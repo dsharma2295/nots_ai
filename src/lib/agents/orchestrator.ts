@@ -58,7 +58,7 @@ You will receive:
 2. A list of existing tasks with their similarity scores from vector search.
 
 DECISION RULES:
-- MERGE: The new message clearly belongs to an existing task. The content is about the same objective, project, or conversation thread. Similarity score should be > 0.85.
+- MERGE: The new message clearly belongs to an existing task. The content is about the same objective, project, or conversation thread. Similarity score should be > 0.85. Set mergeTargetId to the exact ID string provided in the match list.
 - CREATE: The new message represents a genuinely new task, objective, or topic. No existing task is a good match.
 - REVIEW: You are uncertain. Multiple tasks could be matches, or the similarity is borderline (0.75-0.85), or the message is ambiguous.
 
@@ -131,6 +131,23 @@ export async function orchestrate(
       reasoning:
         `Best match "${topMatch.title}" has similarity ${topMatch.similarity.toFixed(3)}, ` +
         `well below the ${SIMILARITY_THRESHOLD} threshold. Creating new task.`,
+    };
+  }
+
+  // FAST PATH: Single clear match above threshold → MERGE
+  if (
+    topMatch.similarity >= SIMILARITY_THRESHOLD &&
+    (vectorMatches.length === 1 ||
+      vectorMatches[1].similarity < SIMILARITY_THRESHOLD)
+  ) {
+    return {
+      action: "MERGE",
+      mergeTargetId: topMatch.id,
+      similarityScore: topMatch.similarity,
+      confidence: Math.min(topMatch.similarity, 0.95),
+      reasoning:
+        `Clear match: "${topMatch.title}" at ${topMatch.similarity.toFixed(4)} ` +
+        `exceeds the ${SIMILARITY_THRESHOLD} threshold with no competing matches.`,
     };
   }
 
@@ -223,7 +240,7 @@ function buildOrchestratorPrompt(input: OrchestratorInput): string {
   const matchList = vectorMatches
     .map(
       (m, i) =>
-        `  ${i + 1}. "${m.title}" (intent: ${m.intent ?? "unknown"}) — similarity: ${m.similarity.toFixed(4)}`,
+        `  ${i + 1}. ID: "${m.id}" | "${m.title}" (intent: ${m.intent ?? "unknown"}) — similarity: ${m.similarity.toFixed(4)}`,
     )
     .join("\n");
 
