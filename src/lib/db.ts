@@ -97,7 +97,9 @@ const softDeleteExtension = Prisma.defineExtension((client) => {
         },
 
         async groupBy({ args, query }) {
-          args.where = injectDismissedFilter(args.where as any);
+          args.where = injectDismissedFilter(
+            args.where as Record<string, unknown>,
+          );
           return query(args);
         },
 
@@ -160,7 +162,7 @@ const db = basePrisma.$extends(softDeleteExtension);
 
 // Attach unrestricted client for escape hatch
 // This is the raw Prisma client — no filters, no guards.
-(db as any).$unrestricted = basePrisma;
+(db as unknown as Record<string, unknown>).$unrestricted = basePrisma;
 
 type ExtendedDB = typeof db & { $unrestricted: PrismaClient };
 
