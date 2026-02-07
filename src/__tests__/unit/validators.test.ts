@@ -328,14 +328,14 @@ describe("RefinerOutputSchema", () => {
     expect(parsed.isNoise).toBe(true);
   });
 
-  it("accepts extracted dates as strings and coerces", () => {
+  it("accepts extracted dates as strings", () => {
     const withDates = {
       ...valid,
       extractedDates: ["2026-03-15", "2026-04-01T10:00:00Z"],
     };
     const parsed = RefinerOutputSchema.parse(withDates);
-    expect(parsed.extractedDates[0]).toBeInstanceOf(Date);
-    expect(parsed.extractedDates[1]).toBeInstanceOf(Date);
+    expect(parsed.extractedDates).toHaveLength(2);
+    expect(typeof parsed.extractedDates[0]).toBe("string");
   });
 });
 
@@ -412,7 +412,7 @@ describe("CreateNodalTaskSchema", () => {
     expect(parsed.status).toBe("OPEN");
     expect(parsed.confidence).toBe(0);
     expect(parsed.needsReview).toBe(false);
-    expect(parsed.embeddingModel).toBe("gemini-text-embedding-004");
+    expect(parsed.embeddingModel).toBe("gemini-embedding-001");
   });
 
   it("rejects non-cuid userId", () => {

@@ -114,7 +114,7 @@ model NodalTask {
   // which model generated this vector so stale embeddings are
   // detectable and re-processable during migration.
   embedding      Unsupported("vector(768)")?
-  embeddingModel String                      @default("gemini-text-embedding-004") @map("embedding_model")
+  embeddingModel String                      @default("gemini-embedding-001") @map("embedding_model")
 
   // Orchestrator confidence score (0.0 – 1.0)
   confidence  Float   @default(0)

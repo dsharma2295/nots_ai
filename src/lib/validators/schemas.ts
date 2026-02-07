@@ -191,7 +191,7 @@ export const RefinerOutputSchema = z.object({
     .max(200, "Title too long — truncate or re-prompt"),
   intent: z.string().min(1).max(100),
   extractedLinks: z.array(z.string().url()).default([]),
-  extractedDates: z.array(z.coerce.date()).default([]),
+  extractedDates: z.array(z.string()).default([]),
   mentionedUsers: z.array(z.string()).default([]),
   suggestedPriority: PriorityEnum.default("MEDIUM"),
   isNoise: z.boolean().default(false),
@@ -249,7 +249,7 @@ export const CreateNodalTaskSchema = z.object({
   status: TaskStatusEnum.default("OPEN"),
   confidence: z.number().min(0).max(1).default(0),
   needsReview: z.boolean().default(false),
-  embeddingModel: z.string().default("gemini-text-embedding-004"),
+  embeddingModel: z.string().default("gemini-embedding-001"),
 });
 
 export type CreateNodalTask = z.infer<typeof CreateNodalTaskSchema>;
