@@ -195,7 +195,7 @@ export const RefinerOutputSchema = z.object({
   mentionedUsers: z.array(z.string()).default([]),
   suggestedPriority: PriorityEnum.default("MEDIUM"),
   isNoise: z.boolean().default(false),
-  noiseReason: z.string().optional(),
+  noiseReason: z.string().nullable().optional(),
   confidence: z.number().min(0).max(1, "Confidence must be between 0 and 1"),
 });
 

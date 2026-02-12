@@ -112,6 +112,7 @@ export async function generateJSON<T>(
   const cleaned = text
     .replace(/^```json\s*/i, "")
     .replace(/```\s*$/i, "")
+    .replace(/:\s*undefined/g, ": null")
     .trim();
 
   try {
