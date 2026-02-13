@@ -66,34 +66,58 @@ Respond ONLY with valid JSON matching this exact schema:
 export async function refine(task: UniversalTask): Promise<RefinerOutput> {
   const userPrompt = buildUserPrompt(task);
 
-  const raw = await generateJSON<Record<string, unknown>>(
-    MODELS.refiner,
-    REFINER_SYSTEM_PROMPT,
-    userPrompt,
-  );
-
-  // Validate with Zod — if Gemini hallucinates, this catches it
-  const parsed = RefinerOutputSchema.safeParse(raw);
-
-  if (!parsed.success) {
-    // Fallback: return a safe default rather than crashing
-    console.error(
-      "[Refiner] Gemini output failed Zod validation:",
-      parsed.error.flatten(),
+  try {
+    const raw = await generateJSON<Record<string, unknown>>(
+      MODELS.refiner,
+      REFINER_SYSTEM_PROMPT,
+      userPrompt,
     );
-    return {
-      smartTitle: task.rawContent.slice(0, 100),
-      intent: "unknown",
-      extractedLinks: [],
-      extractedDates: [],
-      mentionedUsers: [],
-      suggestedPriority: "MEDIUM",
-      isNoise: false,
-      confidence: 0.3, // Low confidence = likely flagged for review
-    };
-  }
 
-  return parsed.data;
+    // Validate with Zod — if Gemini hallucinates, this catches it
+    const parsed = RefinerOutputSchema.safeParse(raw);
+
+    if (!parsed.success) {
+      console.error(
+        "[Refiner] Gemini output failed Zod validation:",
+        parsed.error.flatten(),
+      );
+      return buildFallback(task);
+    }
+
+    return parsed.data;
+  } catch (error) {
+    // Gemini completely failed (timeout, rate limit, network error)
+    // Return a usable fallback instead of crashing the pipeline
+    console.error(
+      "[Refiner] Gemini call failed, using fallback:",
+      error instanceof Error ? error.message : error,
+    );
+    return buildFallback(task);
+  }
+}
+
+/**
+ * Build a safe fallback RefinerOutput when Gemini fails.
+ * Uses the raw content as the title (truncated) and sets
+ * low confidence so it gets flagged for human review.
+ */
+function buildFallback(task: UniversalTask): RefinerOutput {
+  // Try to extract a reasonable title from the first sentence
+  const firstSentence = task.rawContent
+    .split(/[.!?\n]/)[0]
+    .trim()
+    .slice(0, 100);
+
+  return {
+    smartTitle: firstSentence || task.rawContent.slice(0, 100),
+    intent: "unknown",
+    extractedLinks: [],
+    extractedDates: [],
+    mentionedUsers: [],
+    suggestedPriority: "MEDIUM",
+    isNoise: false,
+    confidence: 0.3,
+  };
 }
 
 // =============================================================

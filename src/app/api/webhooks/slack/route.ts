@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
     const ts = (event.ts as string) ?? "";
     const botId = event.bot_id as string | undefined;
     const threadTs = event.thread_ts as string | undefined;
+    const subtype = event.subtype as string | undefined;
 
     // Ignore messages from bots (including our own)
     if (botId) {
@@ -99,15 +100,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Ignore message subtypes (edits, deletes, joins, etc.)
-    if (event.subtype) {
+    // Ignore message subtypes (edits, deletes, joins, leaves, etc.)
+    // These are not actionable content.
+    const IGNORED_SUBTYPES = new Set([
+      "message_changed",
+      "message_deleted",
+      "channel_join",
+      "channel_leave",
+      "channel_topic",
+      "channel_purpose",
+      "channel_name",
+      "bot_message",
+      "file_share", // We handle files via the files array, not the subtype
+      "pinned_item",
+      "unpinned_item",
+    ]);
+
+    if (subtype && IGNORED_SUBTYPES.has(subtype)) {
       return NextResponse.json({ ok: true });
     }
+
+    // Skip empty messages (can happen with file-only shares)
+    if (!text.trim()) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Truncate very long messages to prevent downstream issues
+    const truncatedText =
+      text.length > 5000 ? text.slice(0, 5000) + "... [truncated]" : text;
+
+    // Strip Slack mrkdwn user mentions like <@U12345> to readable format
+    const cleanedText = truncatedText.replace(/<@[A-Z0-9]+>/g, (match) => {
+      const userId = match.slice(2, -1);
+      return `@${userId}`;
+    });
 
     // ---------------------------------------------------------
     // STEP 4: Noise Filter
     // ---------------------------------------------------------
-    const noiseResult = classifyNoise(text, user, false);
+    const noiseResult = classifyNoise(cleanedText, user, false);
     if (!noiseResult.allowed) {
       return NextResponse.json({ ok: true, filtered: noiseResult.reason });
     }
@@ -117,7 +148,7 @@ export async function POST(req: NextRequest) {
     // ---------------------------------------------------------
     const teamId = (body.team_id as string) ?? "";
     const deepLink = `slack://channel?team=${teamId}&id=${channel}&message=${ts}`;
-    const sourceHash = generateSourceHash("SLACK", deepLink, text);
+    const sourceHash = generateSourceHash("SLACK", deepLink, cleanedText);
 
     const duplicate = await isDuplicate(sourceHash, db);
     if (duplicate) {
@@ -201,7 +232,7 @@ export async function POST(req: NextRequest) {
       data: {
         task: {
           platform: "SLACK" as const,
-          rawContent: text,
+          rawContent: cleanedText,
           sender: senderName,
           deepLink,
           timestamp: new Date(parseFloat(ts) * 1000).toISOString(),
