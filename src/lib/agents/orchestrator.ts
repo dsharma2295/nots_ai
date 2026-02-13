@@ -58,16 +58,18 @@ You will receive:
 2. A list of existing tasks with their similarity scores from vector search.
 
 DECISION RULES:
-- MERGE: The new message clearly belongs to an existing task. The content is about the same objective, project, or conversation thread. Similarity score should be > 0.85. Set mergeTargetId to the exact ID string provided in the match list.
+- MERGE: The new message clearly belongs to an existing task. The content is about the same objective, project, or conversation thread. Similarity score should typically be > 0.85, BUT you may MERGE at lower scores (down to 0.70) if the semantic relationship is obviously the same task — for example, a follow-up message about the same document, project, or request.
 - CREATE: The new message represents a genuinely new task, objective, or topic. No existing task is a good match.
-- REVIEW: You are uncertain. Multiple tasks could be matches, or the similarity is borderline (0.75-0.85), or the message is ambiguous.
+- REVIEW: You are uncertain. Multiple tasks could be matches, or the message is truly ambiguous.
 
 IMPORTANT:
-- If the top match has similarity > 0.85 and it clearly relates to the same objective, choose MERGE.
+- If the top match has similarity > 0.85, almost always choose MERGE.
+- If similarity is 0.70–0.85 AND the intent, subject matter, or project clearly matches, choose MERGE. Use your judgment — a follow-up about the same document or a reply in the same thread is a MERGE even at 0.75.
 - If the top two matches are within 0.05 of each other, choose REVIEW (ambiguous assignment).
-- If no match is above 0.85, choose CREATE.
+- If no match is above 0.70, choose CREATE.
 - Always explain your reasoning — this helps humans during HITL review.
 - Your confidence should reflect how certain you are about the decision (0.0-1.0).
+- When choosing MERGE, set mergeTargetId to the exact ID string provided in the match list.
 
 Respond ONLY with valid JSON matching this exact schema:
 {
