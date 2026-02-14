@@ -2,7 +2,8 @@ import { SignalStream } from "@/components/signal/signal-stream";
 import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
 
-export const dynamic = "force-dynamic"; // Always fetch fresh data
+// Revalidate every 10 seconds — dashboard auto-refreshes with new tasks
+export const revalidate = 10;
 
 async function getTasks(): Promise<NodalTask[]> {
   const tasks = await db.nodalTask.findMany({

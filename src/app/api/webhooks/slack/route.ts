@@ -52,6 +52,8 @@ export async function POST(req: NextRequest) {
     // STEP 2: HMAC Signature Verification
     // ---------------------------------------------------------
     const signingSecret = process.env.SLACK_SIGNING_SECRET;
+    const botToken = process.env.SLACK_BOT_TOKEN;
+
     if (!signingSecret) {
       console.error("[Slack Webhook] SLACK_SIGNING_SECRET not set");
       return NextResponse.json(
@@ -221,11 +223,50 @@ export async function POST(req: NextRequest) {
         ? messageText.slice(0, 5000) + "... [truncated]"
         : messageText;
 
-    // Strip Slack mrkdwn user mentions like <@U12345> to readable format
-    const cleanedText = truncatedText.replace(/<@[A-Z0-9]+>/g, (match) => {
-      const userId = match.slice(2, -1);
-      return `@${userId}`;
-    });
+    // Strip Slack mrkdwn user mentions like <@U12345> to readable names
+    // Resolves each user ID to their display name via Slack API
+    let cleanedText = truncatedText;
+    const mentionPattern = /<@([A-Z0-9]+)>/g;
+    const mentions = [...truncatedText.matchAll(mentionPattern)];
+
+    if (mentions.length > 0 && botToken) {
+      const nameCache: Record<string, string> = {};
+      for (const match of mentions) {
+        const uid = match[1];
+        if (!nameCache[uid]) {
+          try {
+            const res = await fetch(
+              `https://slack.com/api/users.info?user=${uid}`,
+              { headers: { Authorization: `Bearer ${botToken}` } },
+            );
+            const data = (await res.json()) as {
+              ok: boolean;
+              user?: {
+                real_name?: string;
+                profile?: { display_name?: string };
+              };
+            };
+            if (data.ok && data.user) {
+              nameCache[uid] =
+                data.user.profile?.display_name || data.user.real_name || uid;
+            } else {
+              nameCache[uid] = uid;
+            }
+          } catch {
+            nameCache[uid] = uid;
+          }
+        }
+        cleanedText = cleanedText.replace(
+          new RegExp(`<@${uid}>`, "g"),
+          `@${nameCache[uid]}`,
+        );
+      }
+    } else {
+      cleanedText = truncatedText.replace(
+        /<@([A-Z0-9]+)>/g,
+        (_, uid) => `@${uid}`,
+      );
+    }
 
     // ---------------------------------------------------------
     // STEP 4: Noise Filter
@@ -253,7 +294,6 @@ export async function POST(req: NextRequest) {
     // If it fails, we fall back to the user ID.
     // ---------------------------------------------------------
     let senderName = user;
-    const botToken = process.env.SLACK_BOT_TOKEN;
     if (botToken) {
       try {
         const userRes = await fetch(
