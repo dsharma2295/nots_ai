@@ -1,3 +1,4 @@
+import { AutoRefresh } from "@/components/signal/auto-refresh";
 import { SignalStream } from "@/components/signal/signal-stream";
 import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
@@ -55,6 +56,9 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-8 dark:bg-zinc-950">
+      <div className="mx-auto mb-4 flex max-w-3xl justify-end">
+        <AutoRefresh intervalSeconds={15} />
+      </div>
       <SignalStream tasks={tasks} />
       {tasks.length === 0 && (
         <div className="mx-auto mt-8 max-w-3xl text-center">
