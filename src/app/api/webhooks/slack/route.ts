@@ -180,13 +180,35 @@ export async function POST(req: NextRequest) {
         size: f.size,
       }));
 
-    // If no text but has files, construct a description from filenames
+    // Enrich text with attachment filenames so the Refiner
+    // has full context about what was shared.
+    //
+    // Three scenarios:
+    //   1. No text, has files → "Shared: budget.xlsx"
+    //   2. Text is just @mentions, has files → "@U123 — Shared: budget.xlsx"
+    //   3. Real text + files → "Review this [Attachments: budget.xlsx]"
+    //   4. Real text, no files → unchanged
+
     const hasFiles = files.length > 0;
     let messageText = text.trim();
 
-    if (!messageText && hasFiles) {
+    if (hasFiles) {
       const fileNames = files.map((f) => f.name ?? "unnamed file").join(", ");
-      messageText = `Shared: ${fileNames}`;
+
+      const textWithoutMentions = messageText
+        .replace(/<@[A-Z0-9]+>/g, "")
+        .trim();
+
+      if (!messageText) {
+        // Scenario 1: file-only, no text at all
+        messageText = `Shared: ${fileNames}`;
+      } else if (!textWithoutMentions) {
+        // Scenario 2: text is only @mentions
+        messageText = `${messageText} — Shared: ${fileNames}`;
+      } else {
+        // Scenario 3: real text + files
+        messageText = `${messageText} [Attachments: ${fileNames}]`;
+      }
     }
 
     // Skip truly empty messages (no text, no files)
