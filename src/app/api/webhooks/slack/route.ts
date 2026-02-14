@@ -110,7 +110,6 @@ export async function POST(req: NextRequest) {
       "channel_purpose",
       "channel_name",
       "bot_message",
-      "file_share",
       "pinned_item",
       "unpinned_item",
     ]);
