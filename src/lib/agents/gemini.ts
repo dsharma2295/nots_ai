@@ -40,9 +40,8 @@ export function getGeminiClient(): GoogleGenAI {
 // =============================================================
 
 export const MODELS = {
-  refiner: process.env.GEMINI_REFINER_MODEL || "gemini-2.5-flash-lite",
-  orchestrator:
-    process.env.GEMINI_ORCHESTRATOR_MODEL || "gemini-2.5-flash-lite",
+  refiner: process.env.GEMINI_REFINER_MODEL || "gemini-2.5-pro",
+  orchestrator: process.env.GEMINI_ORCHESTRATOR_MODEL || "gemini-2.5-pro",
   embedding: process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001",
 } as const;
 
