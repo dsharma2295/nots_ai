@@ -101,7 +101,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Ignore message subtypes (edits, deletes, joins, leaves, etc.)
-    // These are not actionable content.
     const IGNORED_SUBTYPES = new Set([
       "message_changed",
       "message_deleted",
@@ -111,7 +110,7 @@ export async function POST(req: NextRequest) {
       "channel_purpose",
       "channel_name",
       "bot_message",
-      "file_share", // We handle files via the files array, not the subtype
+      "file_share",
       "pinned_item",
       "unpinned_item",
     ]);
@@ -120,14 +119,86 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Skip empty messages (can happen with file-only shares)
-    if (!text.trim()) {
+    // ---------------------------------------------------------
+    // RELEVANCE FILTER
+    // Only process messages relevant to the TARGET user.
+    // A message is relevant if:
+    //   1. It @mentions the target user (e.g. <@U0ADGL60FGE>)
+    //   2. It's a DM to the bot (channel type = "im")
+    //   3. It's an app_mention event
+    //   4. It's a thread reply to the target user's message
+    //   5. It mentions the target user's name textually
+    //
+    // Everything else is someone else's conversation — ignore it.
+    // ---------------------------------------------------------
+    const targetUserId = process.env.SLACK_TARGET_USER_ID ?? "";
+    const targetUserNames = (process.env.SLACK_TARGET_USER_NAMES ?? "")
+      .split(",")
+      .map((n) => n.trim().toLowerCase())
+      .filter(Boolean);
+
+    const channelType = (event.channel_type as string) ?? "";
+    const isDirectMessage = channelType === "im";
+    const isAppMention = eventType === "app_mention";
+    const mentionsTargetUser = text.includes(`<@${targetUserId}>`);
+    const mentionsTargetName = targetUserNames.some((name) =>
+      text.toLowerCase().includes(name),
+    );
+    // Thread replies: if someone replies in a thread the target user started
+    const isThreadReply = !!threadTs && threadTs !== ts;
+
+    const isRelevant =
+      isDirectMessage ||
+      isAppMention ||
+      mentionsTargetUser ||
+      mentionsTargetName ||
+      isThreadReply; // Thread replies get processed — we check authorship in the pipeline
+
+    if (!isRelevant) {
+      return NextResponse.json({ ok: true, skipped: "not_relevant" });
+    }
+
+    // ---------------------------------------------------------
+    // STEP 7: Extract attachments (Slack files)
+    // Must happen before text processing since file-only
+    // messages need filenames to construct content.
+    // ---------------------------------------------------------
+    const files =
+      (event.files as Array<{
+        name?: string;
+        url_private?: string;
+        mimetype?: string;
+        size?: number;
+      }>) ?? [];
+
+    const attachments = files
+      .filter((f) => f.name && f.url_private)
+      .map((f) => ({
+        name: f.name!,
+        url: f.url_private!,
+        mimeType: f.mimetype,
+        size: f.size,
+      }));
+
+    // If no text but has files, construct a description from filenames
+    const hasFiles = files.length > 0;
+    let messageText = text.trim();
+
+    if (!messageText && hasFiles) {
+      const fileNames = files.map((f) => f.name ?? "unnamed file").join(", ");
+      messageText = `Shared: ${fileNames}`;
+    }
+
+    // Skip truly empty messages (no text, no files)
+    if (!messageText) {
       return NextResponse.json({ ok: true });
     }
 
     // Truncate very long messages to prevent downstream issues
     const truncatedText =
-      text.length > 5000 ? text.slice(0, 5000) + "... [truncated]" : text;
+      messageText.length > 5000
+        ? messageText.slice(0, 5000) + "... [truncated]"
+        : messageText;
 
     // Strip Slack mrkdwn user mentions like <@U12345> to readable format
     const cleanedText = truncatedText.replace(/<@[A-Z0-9]+>/g, (match) => {
@@ -184,26 +255,6 @@ export async function POST(req: NextRequest) {
         // Non-critical — fall back to user ID
       }
     }
-
-    // ---------------------------------------------------------
-    // STEP 7: Extract attachments (Slack files)
-    // ---------------------------------------------------------
-    const files =
-      (event.files as Array<{
-        name?: string;
-        url_private?: string;
-        mimetype?: string;
-        size?: number;
-      }>) ?? [];
-
-    const attachments = files
-      .filter((f) => f.name && f.url_private)
-      .map((f) => ({
-        name: f.name!,
-        url: f.url_private!,
-        mimeType: f.mimetype,
-        size: f.size,
-      }));
 
     // ---------------------------------------------------------
     // STEP 8: Dispatch to Inngest

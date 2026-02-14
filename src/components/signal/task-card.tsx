@@ -47,6 +47,10 @@ function uniquePlatforms(task: NodalTask): string[] {
   return [...new Set(task.sourceEvents.map((e) => e.platform))];
 }
 
+function totalAttachments(task: NodalTask): number {
+  return task.sourceEvents.reduce((acc, e) => acc + e.attachments.length, 0);
+}
+
 // =============================================================
 // TASK CARD
 // =============================================================
@@ -55,6 +59,7 @@ export function TaskCard({ task }: { task: NodalTask }) {
   const [expanded, setExpanded] = useState(false);
   const status = STATUS_STYLES[task.status];
   const platforms = uniquePlatforms(task);
+  const attachCount = totalAttachments(task);
 
   return (
     <div
@@ -69,7 +74,7 @@ export function TaskCard({ task }: { task: NodalTask }) {
         onClick={() => setExpanded(!expanded)}
         className="w-full cursor-pointer p-4 text-left"
       >
-        {/* Top row: priority + status + time */}
+        {/* Top row: priority + status + attachments + time */}
         <div className="mb-2 flex items-center gap-2">
           <Badge
             variant="secondary"
@@ -84,6 +89,27 @@ export function TaskCard({ task }: { task: NodalTask }) {
             />
             {status.label}
           </span>
+
+          {attachCount > 0 && (
+            <span
+              className="flex items-center gap-1 text-xs text-zinc-400"
+              title={`${attachCount} attachment${attachCount !== 1 ? "s" : ""}`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-3.5 w-3.5"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M15.621 4.379a3 3 0 0 0-4.242 0l-7 7a3 3 0 0 0 4.241 4.243h.001l.497-.5a.75.75 0 0 1 1.064 1.057l-.498.501-.002.002a4.5 4.5 0 0 1-6.364-6.364l7-7a4.5 4.5 0 0 1 6.368 6.36l-3.455 3.553A2.625 2.625 0 1 1 9.52 9.52l3.45-3.451a.75.75 0 1 1 1.061 1.06l-3.45 3.451a1.125 1.125 0 0 0 1.587 1.595l3.454-3.553a3 3 0 0 0 0-4.242Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {attachCount}
+            </span>
+          )}
 
           <span className="ml-auto text-xs text-zinc-400">
             {timeAgo(task.updatedAt)}
