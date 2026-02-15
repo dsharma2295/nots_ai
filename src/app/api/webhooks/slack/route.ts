@@ -52,8 +52,6 @@ export async function POST(req: NextRequest) {
     // STEP 2: HMAC Signature Verification
     // ---------------------------------------------------------
     const signingSecret = process.env.SLACK_SIGNING_SECRET;
-    const botToken = process.env.SLACK_BOT_TOKEN;
-
     if (!signingSecret) {
       console.error("[Slack Webhook] SLACK_SIGNING_SECRET not set");
       return NextResponse.json(
@@ -139,6 +137,7 @@ export async function POST(req: NextRequest) {
       .filter(Boolean);
 
     const channelType = (event.channel_type as string) ?? "";
+    const botToken = process.env.SLACK_BOT_TOKEN;
     const isDirectMessage = channelType === "im";
     const isAppMention = eventType === "app_mention";
     const mentionsTargetUser = text.includes(`<@${targetUserId}>`);
@@ -294,6 +293,7 @@ export async function POST(req: NextRequest) {
     // If it fails, we fall back to the user ID.
     // ---------------------------------------------------------
     let senderName = user;
+
     if (botToken) {
       try {
         const userRes = await fetch(
@@ -323,18 +323,24 @@ export async function POST(req: NextRequest) {
     // Must respond to Slack within 3 seconds.
     // ---------------------------------------------------------
 
-    // For now, we use a hardcoded user ID.
-    // When OAuth is fully wired, this comes from the user's session.
-    // TODO: Replace with real user lookup from Slack team_id → Nots.ai user
+    // ---------------------------------------------------------
+    // STEP 8: Resolve Nots.ai user
+    // Uses GMAIL_TARGET_EMAIL as the primary user identity.
+    // Both Slack and Gmail funnel into the same user so that
+    // cross-platform vector search and merging works.
+    // ---------------------------------------------------------
+    const primaryEmail =
+      process.env.GMAIL_TARGET_EMAIL ?? `slack-${teamId}@nots.ai`;
+
     let notsUser = await db.user.findFirst({
-      where: { email: `slack-${teamId}@nots.ai` },
+      where: { email: primaryEmail },
     });
 
     if (!notsUser) {
       notsUser = await db.user.create({
         data: {
-          email: `slack-${teamId}@nots.ai`,
-          name: `Slack Workspace ${teamId}`,
+          email: primaryEmail,
+          name: senderName,
         },
       });
     }
