@@ -4,32 +4,36 @@ import type { Platform } from "@/lib/mock-data";
 
 const PLATFORM_CONFIG: Record<
   Platform,
-  { label: string; color: string; bg: string; icon: string }
+  { label: string; color: string; icon: string }
 > = {
   SLACK: {
     label: "Slack",
-    color: "text-purple-700",
-    bg: "bg-purple-100",
+    color: "bg-purple-500/15 text-purple-400 ring-1 ring-purple-500/20",
     icon: "#",
   },
-  GMAIL: { label: "Gmail", color: "text-red-700", bg: "bg-red-100", icon: "✉" },
-  JIRA: { label: "Jira", color: "text-blue-700", bg: "bg-blue-100", icon: "◆" },
+  GMAIL: {
+    label: "Gmail",
+    color: "bg-red-500/15 text-red-400 ring-1 ring-red-500/20",
+    icon: "✉",
+  },
+  JIRA: {
+    label: "Jira",
+    color: "bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/20",
+    icon: "◆",
+  },
   TRELLO: {
     label: "Trello",
-    color: "text-sky-700",
-    bg: "bg-sky-100",
+    color: "bg-sky-500/15 text-sky-400 ring-1 ring-sky-500/20",
     icon: "▦",
   },
   ASANA: {
     label: "Asana",
-    color: "text-orange-700",
-    bg: "bg-orange-100",
+    color: "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/20",
     icon: "◎",
   },
   MANUAL: {
     label: "Manual",
-    color: "text-gray-700",
-    bg: "bg-gray-100",
+    color: "bg-zinc-500/15 text-zinc-400 ring-1 ring-zinc-500/20",
     icon: "✎",
   },
 };
@@ -38,9 +42,9 @@ export function PlatformBadge({ platform }: { platform: Platform }) {
   const config = PLATFORM_CONFIG[platform];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${config.bg} ${config.color}`}
+      className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${config.color}`}
     >
-      <span>{config.icon}</span>
+      <span className="opacity-70">{config.icon}</span>
       {config.label}
     </span>
   );
@@ -53,11 +57,11 @@ export function PlatformDot({ platform }: { platform: Platform }) {
     JIRA: "bg-blue-500",
     TRELLO: "bg-sky-500",
     ASANA: "bg-orange-500",
-    MANUAL: "bg-gray-500",
+    MANUAL: "bg-zinc-500",
   };
   return (
     <span
-      className={`inline-block h-2.5 w-2.5 rounded-full ${colorMap[platform]}`}
+      className={`inline-block h-2 w-2 rounded-full ${colorMap[platform]}`}
     />
   );
 }

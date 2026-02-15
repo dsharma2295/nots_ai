@@ -55,15 +55,15 @@ export default async function Home() {
   const tasks = await getTasks();
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-8 dark:bg-zinc-950">
+    <main className="min-h-screen bg-zinc-950 px-4 py-8">
       <div className="mx-auto mb-4 flex max-w-3xl justify-end">
         <AutoRefresh intervalSeconds={15} />
       </div>
       <SignalStream tasks={tasks} />
       {tasks.length === 0 && (
         <div className="mx-auto mt-8 max-w-3xl text-center">
-          <p className="text-sm text-zinc-400">
-            No tasks yet. Send a message in Slack to get started.
+          <p className="text-sm text-zinc-600">
+            No tasks yet. Send a message in Slack or an email to get started.
           </p>
         </div>
       )}
