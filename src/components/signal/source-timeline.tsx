@@ -56,9 +56,10 @@ export function SourceTimeline({ events }: { events: SourceEvent[] }) {
                     href={att.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group/att inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] transition-all duration-200
-                      bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-200 hover:text-zinc-900
-                      dark:bg-zinc-800/40 dark:text-zinc-400 dark:ring-zinc-700/30 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-200"
+                    // RIGHT - Use a template literal (backticks)
+                    className={`group/att inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] transition-all duration-200
+            bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-200 hover:text-zinc-900
+            dark:bg-zinc-800/40 dark:text-zinc-400 dark:ring-zinc-700/30 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-200`}
                   >
                     <Paperclip className="h-3 w-3 opacity-50 transition-opacity group-hover/att:opacity-100" />
                     {att.name}
