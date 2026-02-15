@@ -123,7 +123,8 @@ export async function POST(req: NextRequest) {
       // Gmail labels: CATEGORY_PERSONAL = Primary
       const isPrimary =
         email.labels.includes("CATEGORY_PERSONAL") ||
-        !email.labels.some((l: string) => l.startsWith("CATEGORY_"));
+        // If no category label, it's likely Primary
+        !email.labels.some((l) => l.startsWith("CATEGORY_"));
 
       if (!isPrimary) {
         continue; // Skip promotions, social, updates, forums
@@ -153,9 +154,7 @@ export async function POST(req: NextRequest) {
       // Enrich with attachment filenames
       let enrichedContent = content;
       if (email.attachments.length > 0) {
-        const fileNames = email.attachments
-          .map((a: { filename: string }) => a.filename)
-          .join(", ");
+        const fileNames = email.attachments.map((a) => a.filename).join(", ");
         enrichedContent = `${content} [Attachments: ${fileNames}]`;
       }
 
@@ -166,7 +165,8 @@ export async function POST(req: NextRequest) {
       }
 
       // Deduplication
-      const deepLink = `https://mail.google.com/mail/u/0/#inbox/${email.threadId}`;
+      const gmailUser = encodeURIComponent(targetEmail || "me");
+      const deepLink = `https://mail.google.com/mail/u/?authuser=${gmailUser}#inbox/${email.threadId}`;
       const sourceHash = generateSourceHash("GMAIL", deepLink, enrichedContent);
 
       const duplicate = await isDuplicate(sourceHash, db);
@@ -175,14 +175,12 @@ export async function POST(req: NextRequest) {
       }
 
       // Build attachments array
-      const attachments = email.attachments.map(
-        (a: { filename: string; mimeType: string; size: number }) => ({
-          name: a.filename,
-          url: `https://mail.google.com/mail/u/0/#inbox/${email.threadId}`,
-          mimeType: a.mimeType,
-          size: a.size,
-        }),
-      );
+      const attachments = email.attachments.map((a) => ({
+        name: a.filename,
+        url: `https://mail.google.com/mail/u/?authuser=${gmailUser}#inbox/${email.threadId}`,
+        mimeType: a.mimeType,
+        size: a.size,
+      }));
 
       // Dispatch to Inngest
       await inngest.send({
