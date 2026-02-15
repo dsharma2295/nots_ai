@@ -7,37 +7,51 @@ import type {
   Priority,
   TaskStatus,
 } from "@/lib/mock-data";
-import { Inbox, Search, SlidersHorizontal } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  Inbox,
+  Layers,
+  Radio,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { TaskCard } from "./task-card";
 import { TaskCardSkeleton } from "./task-card-skeleton";
-
-// =============================================================
-// CONSTANTS
-// =============================================================
 
 const ALL_PLATFORMS: Platform[] = ["SLACK", "GMAIL", "JIRA", "TRELLO", "ASANA"];
 const ALL_PRIORITIES: Priority[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
 const ALL_STATUSES: TaskStatus[] = ["OPEN", "IN_PROGRESS", "BLOCKED", "DONE"];
 
-const PLATFORM_ACTIVE: Record<string, string> = {
-  SLACK: "bg-purple-500/10 text-purple-400 border-purple-500/30",
-  GMAIL: "bg-red-500/10 text-red-400 border-red-500/30",
-  JIRA: "bg-blue-500/10 text-blue-400 border-blue-500/30",
-  TRELLO: "bg-sky-500/10 text-sky-400 border-sky-500/30",
-  ASANA: "bg-orange-500/10 text-orange-400 border-orange-500/30",
+const PLAT_STYLE: Record<string, { active: string; icon: string }> = {
+  SLACK: {
+    active: "bg-purple-500/15 text-purple-400 ring-1 ring-purple-500/25",
+    icon: "#",
+  },
+  GMAIL: {
+    active: "bg-red-500/15 text-red-400 ring-1 ring-red-500/25",
+    icon: "✉",
+  },
+  JIRA: {
+    active: "bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/25",
+    icon: "◆",
+  },
+  TRELLO: {
+    active: "bg-sky-500/15 text-sky-400 ring-1 ring-sky-500/25",
+    icon: "▦",
+  },
+  ASANA: {
+    active: "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/25",
+    icon: "◎",
+  },
 };
 
-const PRIORITY_ACTIVE: Record<string, string> = {
-  CRITICAL: "bg-red-500/10 text-red-400 border-red-500/30",
-  HIGH: "bg-orange-500/10 text-orange-400 border-orange-500/30",
-  MEDIUM: "bg-zinc-500/10 text-zinc-300 border-zinc-500/30",
-  LOW: "bg-zinc-600/10 text-zinc-400 border-zinc-600/30",
+const PRI_STYLE: Record<string, string> = {
+  CRITICAL: "bg-red-500/15 text-red-400 ring-1 ring-red-500/25",
+  HIGH: "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/25",
+  MEDIUM: "bg-zinc-500/10 text-zinc-300 ring-1 ring-zinc-600/25",
+  LOW: "bg-zinc-800/50 text-zinc-500 ring-1 ring-zinc-700/25",
 };
-
-// =============================================================
-// FILTER TYPES
-// =============================================================
 
 interface Filters {
   platforms: Set<Platform>;
@@ -46,10 +60,6 @@ interface Filters {
   showReviewOnly: boolean;
   search: string;
 }
-
-// =============================================================
-// SIGNAL STREAM
-// =============================================================
 
 export function SignalStream({
   tasks,
@@ -70,37 +80,29 @@ export function SignalStream({
   });
 
   const [sortBy, setSortBy] = useState<"updated" | "priority">("updated");
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Drag reorder state
-  const [taskOrder, setTaskOrder] = useState<string[]>([]);
-  const dragIdx = useRef<number | null>(null);
-
-  function toggle<T>(set: Set<T>, value: T): Set<T> {
-    const next = new Set(set);
-    if (next.has(value)) next.delete(value);
-    else next.add(value);
-    return next;
+  function tog<T>(set: Set<T>, val: T): Set<T> {
+    const n = new Set(set);
+    if (n.has(val)) n.delete(val);
+    else n.add(val);
+    return n;
   }
 
-  // Apply filters + sorting
   const filtered = useMemo(() => {
     const result = tasks.filter((t) => {
-      const taskPlatforms = new Set(t.sourceEvents.map((e) => e.platform));
-      const hasPlatform = [...taskPlatforms].some((p) =>
-        filters.platforms.has(p),
-      );
-      if (!hasPlatform) return false;
+      const tp = new Set(t.sourceEvents.map((e) => e.platform));
+      if (![...tp].some((p) => filters.platforms.has(p))) return false;
       if (!filters.priorities.has(t.priority)) return false;
       if (!filters.statuses.has(t.status)) return false;
       if (filters.showReviewOnly && !t.needsReview) return false;
       if (filters.search) {
         const q = filters.search.toLowerCase();
-        const matchesTitle = t.title.toLowerCase().includes(q);
-        const matchesContent = t.sourceEvents.some((e) =>
-          e.rawContent.toLowerCase().includes(q),
-        );
-        if (!matchesTitle && !matchesContent) return false;
+        if (
+          !t.title.toLowerCase().includes(q) &&
+          !t.sourceEvents.some((e) => e.rawContent.toLowerCase().includes(q))
+        )
+          return false;
       }
       return true;
     });
@@ -111,144 +113,93 @@ export function SignalStream({
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
     } else {
-      const pOrder: Record<Priority, number> = {
+      const o: Record<Priority, number> = {
         CRITICAL: 0,
         HIGH: 1,
         MEDIUM: 2,
         LOW: 3,
       };
-      result.sort((a, b) => pOrder[a.priority] - pOrder[b.priority]);
-    }
-
-    // Apply custom drag order if set
-    if (taskOrder.length > 0) {
-      result.sort((a, b) => {
-        const ai = taskOrder.indexOf(a.id);
-        const bi = taskOrder.indexOf(b.id);
-        if (ai === -1 && bi === -1) return 0;
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-      });
+      result.sort((a, b) => o[a.priority] - o[b.priority]);
     }
 
     return result;
-  }, [tasks, filters, sortBy, taskOrder]);
+  }, [tasks, filters, sortBy]);
 
-  // Stats
   const reviewCount = tasks.filter((t) => t.needsReview).length;
   const totalSources = tasks.reduce((acc, t) => acc + t.sourceEvents.length, 0);
-  const animatedTasks = useCountUp(filtered.length);
-  const animatedSources = useCountUp(totalSources);
+  const aTasks = useCountUp(filtered.length);
+  const aSources = useCountUp(totalSources);
 
-  // Drag handlers
-  const handleDragStart = useCallback((_e: React.DragEvent, idx: number) => {
-    dragIdx.current = idx;
-  }, []);
-
-  const handleDrop = useCallback(
-    (_e: React.DragEvent, dropIdx: number) => {
-      if (dragIdx.current === null || dragIdx.current === dropIdx) return;
-      const ids = filtered.map((t) => t.id);
-      const [moved] = ids.splice(dragIdx.current, 1);
-      ids.splice(dropIdx, 0, moved);
-      setTaskOrder(ids);
-      dragIdx.current = null;
-    },
-    [filtered],
+  const pill = (
+    active: boolean,
+    activeStyle: string,
+    label: string,
+    onClick: () => void,
+  ) => (
+    <button
+      onClick={onClick}
+      className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
+        active
+          ? activeStyle
+          : "bg-transparent text-zinc-600 ring-1 ring-zinc-800 hover:text-zinc-400 hover:ring-zinc-700"
+      }`}
+    >
+      {label}
+    </button>
   );
 
-  // Filter bar content (shared between desktop and mobile)
-  const filterContent = (
-    <>
-      {/* Platform toggles */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        {ALL_PLATFORMS.map((p) => {
-          const active = filters.platforms.has(p);
-          return (
-            <button
-              key={p}
-              onClick={() =>
-                setFilters((f) => ({
-                  ...f,
-                  platforms: toggle(f.platforms, p),
-                }))
-              }
-              className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-all duration-200 ease-out active:scale-95 ${
-                active
-                  ? PLATFORM_ACTIVE[p]
-                  : "border-zinc-800 bg-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
-              }`}
-            >
-              {p.charAt(0) + p.slice(1).toLowerCase()}
-            </button>
-          );
-        })}
+  const filterBar = (
+    <div className="space-y-3">
+      {/* Platforms */}
+      <div className="flex flex-wrap gap-1.5">
+        {ALL_PLATFORMS.map((p) =>
+          pill(
+            filters.platforms.has(p),
+            PLAT_STYLE[p].active,
+            p.charAt(0) + p.slice(1).toLowerCase(),
+            () => setFilters((f) => ({ ...f, platforms: tog(f.platforms, p) })),
+          ),
+        )}
       </div>
-
-      {/* Priority + Status + Sort */}
+      {/* Priority + Status */}
       <div className="flex flex-wrap items-center gap-1.5">
-        {ALL_PRIORITIES.map((p) => {
-          const active = filters.priorities.has(p);
-          return (
-            <button
-              key={p}
-              onClick={() =>
-                setFilters((f) => ({
-                  ...f,
-                  priorities: toggle(f.priorities, p),
-                }))
-              }
-              className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-all duration-200 ease-out active:scale-95 ${
-                active
-                  ? PRIORITY_ACTIVE[p]
-                  : "border-zinc-800 bg-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
-              }`}
-            >
-              {p.charAt(0) + p.slice(1).toLowerCase()}
-            </button>
-          );
-        })}
-
-        <div className="mx-1 h-5 w-px border-r border-zinc-800" />
-
+        {ALL_PRIORITIES.map((p) =>
+          pill(
+            filters.priorities.has(p),
+            PRI_STYLE[p],
+            p === "CRITICAL"
+              ? "P0"
+              : p === "HIGH"
+                ? "P1"
+                : p === "MEDIUM"
+                  ? "P2"
+                  : "P3",
+            () =>
+              setFilters((f) => ({ ...f, priorities: tog(f.priorities, p) })),
+          ),
+        )}
+        <div className="mx-0.5 h-4 w-px bg-zinc-800" />
         {ALL_STATUSES.map((s) => {
-          const active = filters.statuses.has(s);
           const label =
             s === "IN_PROGRESS"
-              ? "In progress"
+              ? "Active"
               : s.charAt(0) + s.slice(1).toLowerCase();
-          return (
-            <button
-              key={s}
-              onClick={() =>
-                setFilters((f) => ({
-                  ...f,
-                  statuses: toggle(f.statuses, s),
-                }))
-              }
-              className={`rounded-md border px-2 py-1 text-[11px] transition-all duration-200 active:scale-95 ${
-                active
-                  ? "border-zinc-600 bg-zinc-700/30 text-zinc-300"
-                  : "border-zinc-800 bg-transparent text-zinc-600 hover:text-zinc-400"
-              }`}
-            >
-              {label}
-            </button>
+          return pill(
+            filters.statuses.has(s),
+            "bg-zinc-700/30 text-zinc-300 ring-1 ring-zinc-600/30",
+            label,
+            () => setFilters((f) => ({ ...f, statuses: tog(f.statuses, s) })),
           );
         })}
-
-        <div className="mx-1 h-5 w-px border-r border-zinc-800" />
-
+        <div className="mx-0.5 h-4 w-px bg-zinc-800" />
         <button
           onClick={() =>
-            setSortBy(sortBy === "updated" ? "priority" : "updated")
+            setSortBy((s) => (s === "updated" ? "priority" : "updated"))
           }
-          className="rounded-md border border-zinc-800 px-2 py-1 text-[11px] text-zinc-500 transition-all duration-200 hover:bg-zinc-800/50 hover:text-zinc-300 active:scale-95"
+          className="rounded-lg px-2.5 py-1 text-[11px] text-zinc-500 ring-1 ring-zinc-800 transition-all hover:text-zinc-300 active:scale-[0.97]"
         >
           {sortBy === "updated" ? "↓ Latest" : "↓ Priority"}
         </button>
-
         {reviewCount > 0 && (
           <button
             onClick={() =>
@@ -257,120 +208,91 @@ export function SignalStream({
                 showReviewOnly: !f.showReviewOnly,
               }))
             }
-            className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-all duration-200 active:scale-95 ${
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all active:scale-[0.97] ${
               filters.showReviewOnly
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
-                : "border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                ? "bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25"
+                : "text-zinc-500 ring-1 ring-zinc-800 hover:text-amber-400"
             }`}
           >
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
-            Review ({reviewCount})
+            <AlertTriangle className="h-3 w-3" />
+            {reviewCount}
           </button>
         )}
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* ==== HEADER ==== */}
-      <div className="mb-8">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-zinc-800 shadow-lg shadow-black/30 ring-1 ring-white/5">
-            <span className="text-lg font-black tracking-tight text-white">
-              N
-            </span>
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-zinc-100">
-              Nots<span className="text-zinc-500">.ai</span>
-            </h1>
-            <p className="text-[13px] text-zinc-500">
-              Cut the Noise, Keep the Context
-            </p>
-          </div>
+    <div>
+      {/* Stats */}
+      <div className="mb-5 flex items-center gap-5 text-[13px]">
+        <div className="flex items-center gap-1.5">
+          <Layers className="h-3.5 w-3.5 text-zinc-600" />
+          <span className="font-semibold tabular-nums text-zinc-100">
+            {aTasks}
+          </span>
+          <span className="text-zinc-600">tasks</span>
         </div>
-
-        {/* Stats row */}
-        <div className="mb-5 flex items-center gap-4 text-[13px]">
-          <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-zinc-100">{animatedTasks}</span>
-            <span className="text-zinc-500">tasks</span>
-          </div>
-          <div className="h-4 w-px bg-zinc-800" />
-          <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-zinc-100">
-              {animatedSources}
-            </span>
-            <span className="text-zinc-500">sources</span>
-          </div>
-          {reviewCount > 0 && (
-            <>
-              <div className="h-4 w-px bg-zinc-800" />
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-amber-400">
-                  {reviewCount}
-                </span>
-                <span className="text-zinc-500">need review</span>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search tasks...  ⌘K"
-            value={filters.search}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, search: e.target.value }))
-            }
-            className="h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900/50 pl-9 pr-3 text-sm text-zinc-100 shadow-inner placeholder:text-zinc-500 outline-none transition-colors duration-200 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
-          />
+        <div className="flex items-center gap-1.5">
+          <Radio className="h-3.5 w-3.5 text-zinc-600" />
+          <span className="font-semibold tabular-nums text-zinc-100">
+            {aSources}
+          </span>
+          <span className="text-zinc-600">sources</span>
         </div>
       </div>
 
-      {/* ==== FILTERS (Desktop) ==== */}
-      <div className="mb-6 hidden space-y-2 md:block">{filterContent}</div>
+      {/* Search */}
+      <div className="relative mb-5">
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
+        <input
+          ref={searchRef}
+          type="text"
+          placeholder="Search tasks...  ⌘K"
+          value={filters.search}
+          onChange={(e) =>
+            setFilters((f) => ({ ...f, search: e.target.value }))
+          }
+          className="h-10 w-full rounded-xl border border-zinc-800/80 bg-zinc-900/50 pl-10 pr-4 text-sm text-zinc-100 shadow-inner shadow-black/20 placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/30 focus:shadow-[0_0_15px_rgba(99,102,241,0.06)]"
+        />
+      </div>
 
-      {/* ==== FILTERS (Mobile) ==== */}
+      {/* Filters — Desktop */}
+      <div className="mb-6 hidden md:block">{filterBar}</div>
+
+      {/* Filters — Mobile */}
       <div className="mb-6 md:hidden">
         <button
-          onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-          className="flex w-full items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800/50"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/50 px-3.5 py-2.5 text-sm text-zinc-400"
         >
           <span className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4" />
             Filters
           </span>
           <span className="text-[11px] text-zinc-600">
-            {filters.platforms.size}/{ALL_PLATFORMS.length} platforms
+            {filters.platforms.size}/{ALL_PLATFORMS.length}
           </span>
         </button>
-        {mobileFiltersOpen && (
-          <div className="mt-2 space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-            {filterContent}
+        {mobileOpen && (
+          <div className="mt-2 rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 backdrop-blur-sm">
+            {filterBar}
           </div>
         )}
       </div>
 
-      {/* ==== TASK LIST ==== */}
+      {/* Cards */}
       <div className="space-y-2">
         {isLoading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <TaskCardSkeleton key={i} index={i} />
           ))
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 py-20">
-            <Inbox className="mb-3 h-16 w-16 text-zinc-800" />
-            <p className="text-sm text-zinc-600">
-              No signals found for this filter
-            </p>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800/60 py-20">
+            <Inbox className="mb-3 h-12 w-12 text-zinc-800" />
+            <p className="text-sm text-zinc-600">No signals found</p>
             <button
-              className="mt-3 text-xs text-zinc-500 underline underline-offset-2 transition-colors hover:text-zinc-300"
+              className="mt-3 text-[11px] text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
               onClick={() =>
                 setFilters({
                   platforms: new Set(ALL_PLATFORMS),
@@ -381,34 +303,26 @@ export function SignalStream({
                 })
               }
             >
-              Reset all filters
+              Reset filters
             </button>
           </div>
         ) : (
-          filtered.map((task, i) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              index={i}
-              draggable
-              onDragStartAction={handleDragStart}
-              onDropAction={handleDrop}
-            />
-          ))
+          filtered.map((t, i) => <TaskCard key={t.id} task={t} index={i} />)
         )}
       </div>
 
       {/* Footer */}
-      <div className="mt-8 border-t border-zinc-800/50 pt-4 text-center text-[11px] text-zinc-700">
-        Nots.ai — Noise to Signal
+      <div className="mt-10 flex items-center justify-center gap-2 text-[10px] text-zinc-700">
+        <span className="h-px w-8 bg-zinc-800" />
+        Noise → Signal
+        <span className="h-px w-8 bg-zinc-800" />
       </div>
 
-      {/* Global keyframe styles */}
       <style jsx global>{`
-        @keyframes cardEnter {
+        @keyframes cardSlideIn {
           from {
             opacity: 0;
-            transform: translateY(8px);
+            transform: translateY(12px);
           }
           to {
             opacity: 1;

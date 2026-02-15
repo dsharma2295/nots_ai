@@ -3,30 +3,28 @@
 export function TaskCardSkeleton({ index = 0 }: { index?: number }) {
   return (
     <div
-      className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4"
-      style={{ animationDelay: `${index * 100}ms` }}
+      className="rounded-xl border-l-2 border-l-zinc-800 bg-zinc-900/30 p-4"
+      style={{
+        animation: "cardSlideIn 0.4s ease-out backwards",
+        animationDelay: `${index * 80}ms`,
+      }}
     >
-      {/* Meta row */}
-      <div className="mb-2 flex items-center gap-2">
-        <div className="h-4 w-16 animate-pulse rounded bg-zinc-800" />
-        <div className="h-3 w-14 animate-pulse rounded bg-zinc-800/60" />
-        <div className="ml-auto h-3 w-8 animate-pulse rounded bg-zinc-800/40" />
+      <div className="mb-3 flex items-center gap-2">
+        <div className="h-5 w-10 animate-pulse rounded-md bg-zinc-800/60" />
+        <div className="h-4 w-12 animate-pulse rounded bg-zinc-800/40" />
+        <div className="ml-auto h-3 w-6 animate-pulse rounded bg-zinc-800/30" />
       </div>
-
-      {/* Title */}
-      <div className="mb-3 space-y-1.5">
-        <div className="h-4 w-4/5 animate-pulse rounded bg-zinc-800" />
-        <div className="h-4 w-2/5 animate-pulse rounded bg-zinc-800/60" />
+      <div className="mb-3 space-y-2">
+        <div className="h-4 w-[85%] animate-pulse rounded bg-zinc-800/50" />
+        <div className="h-4 w-[45%] animate-pulse rounded bg-zinc-800/30" />
       </div>
-
-      {/* Bottom meta */}
       <div className="flex items-center gap-2">
-        <div className="flex gap-1">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-zinc-700" />
-          <div className="h-2 w-2 animate-pulse rounded-full bg-zinc-700" />
+        <div className="flex -space-x-1">
+          <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-zinc-700/60" />
+          <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-zinc-700/40" />
         </div>
-        <div className="h-3 w-16 animate-pulse rounded bg-zinc-800/40" />
-        <div className="h-3 w-20 animate-pulse rounded bg-zinc-800/30" />
+        <div className="h-3 w-14 animate-pulse rounded bg-zinc-800/30" />
+        <div className="h-4 w-16 animate-pulse rounded-full bg-zinc-800/20" />
       </div>
     </div>
   );

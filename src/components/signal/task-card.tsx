@@ -2,33 +2,49 @@
 
 import { useLiveRelativeTime } from "@/lib/hooks";
 import type { NodalTask } from "@/lib/mock-data";
-import { ChevronDown, Paperclip } from "lucide-react";
+import { AlertCircle, ChevronDown, Paperclip } from "lucide-react";
 import { useState } from "react";
 import { PlatformDot } from "./platform-icon";
 import { SourceTimeline } from "./source-timeline";
 
-// =============================================================
-// PRIORITY & STATUS CONFIG
-// =============================================================
-
-const PRIORITY_STYLES: Record<string, string> = {
-  CRITICAL: "bg-red-500/10 text-red-400",
-  HIGH: "bg-orange-500/10 text-orange-400",
-  MEDIUM: "bg-zinc-500/10 text-zinc-400",
-  LOW: "bg-zinc-600/10 text-zinc-500",
+const PRIORITY: Record<
+  string,
+  { label: string; class: string; border: string }
+> = {
+  CRITICAL: {
+    label: "P0",
+    class: "bg-red-500/15 text-red-400 ring-1 ring-red-500/25",
+    border: "border-l-red-500/60",
+  },
+  HIGH: {
+    label: "P1",
+    class: "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/25",
+    border: "border-l-orange-500/60",
+  },
+  MEDIUM: {
+    label: "P2",
+    class: "bg-zinc-500/10 text-zinc-400 ring-1 ring-zinc-500/20",
+    border: "border-l-zinc-700/60",
+  },
+  LOW: {
+    label: "P3",
+    class: "bg-zinc-800/50 text-zinc-500 ring-1 ring-zinc-700/30",
+    border: "border-l-zinc-800/60",
+  },
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  OPEN: { label: "Open", color: "text-emerald-400" },
-  IN_PROGRESS: { label: "In Progress", color: "text-blue-400" },
-  BLOCKED: { label: "Blocked", color: "text-red-400" },
-  DONE: { label: "Done", color: "text-zinc-500" },
-  ARCHIVED: { label: "Archived", color: "text-zinc-600" },
+const STATUS: Record<string, { label: string; dot: string }> = {
+  OPEN: { label: "Open", dot: "bg-emerald-500" },
+  IN_PROGRESS: { label: "Active", dot: "bg-blue-500" },
+  BLOCKED: { label: "Blocked", dot: "bg-red-500" },
+  DONE: { label: "Done", dot: "bg-zinc-500" },
+  ARCHIVED: { label: "Archived", dot: "bg-zinc-700" },
 };
 
-// =============================================================
-// HELPERS
-// =============================================================
+function LiveTime({ iso }: { iso: string }) {
+  const text = useLiveRelativeTime(iso);
+  return <>{text}</>;
+}
 
 function uniquePlatforms(task: NodalTask): string[] {
   return [...new Set(task.sourceEvents.map((e) => e.platform))];
@@ -38,139 +54,117 @@ function totalAttachments(task: NodalTask): number {
   return task.sourceEvents.reduce((acc, e) => acc + e.attachments.length, 0);
 }
 
-// =============================================================
-// TIME DISPLAY (uses live hook)
-// =============================================================
-
-function LiveTime({ iso }: { iso: string }) {
-  const text = useLiveRelativeTime(iso);
-  return <span>{text}</span>;
-}
-
-// =============================================================
-// TASK CARD
-// =============================================================
-
 export function TaskCard({
   task,
   index = 0,
-  draggable = false,
-  onDragStartAction,
-  onDragOverAction,
-  onDropAction,
 }: {
   task: NodalTask;
   index?: number;
-  draggable?: boolean;
-  onDragStartAction?: (e: React.DragEvent, idx: number) => void;
-  onDragOverAction?: (e: React.DragEvent) => void;
-  onDropAction?: (e: React.DragEvent, idx: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.MEDIUM;
-  const status = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.OPEN;
+  const p = PRIORITY[task.priority] ?? PRIORITY.MEDIUM;
+  const s = STATUS[task.status] ?? STATUS.OPEN;
   const platforms = uniquePlatforms(task);
   const attachCount = totalAttachments(task);
 
   return (
     <div
-      draggable={draggable}
-      onDragStart={(e) => onDragStartAction?.(e, index)}
-      onDragOver={(e) => {
-        e.preventDefault();
-        onDragOverAction?.(e);
-      }}
-      onDrop={(e) => onDropAction?.(e, index)}
-      className={`group overflow-hidden rounded-lg border shadow-md shadow-black/20 transition-all duration-200 ease-in-out ${
+      className={`group relative overflow-hidden rounded-xl border-l-2 transition-all duration-300 ease-out ${p.border} ${
         expanded
-          ? "border-zinc-700 bg-zinc-900/60 ring-1 ring-white/5"
-          : "border-zinc-800/60 bg-zinc-900/30 hover:border-zinc-700/80 hover:bg-zinc-900/50"
-      } ${task.needsReview ? "ring-1 ring-amber-500/20" : ""} ${
-        draggable ? "cursor-grab active:cursor-grabbing" : ""
-      }`}
+          ? "bg-zinc-900/80 ring-1 ring-white/[0.06] shadow-xl shadow-black/30"
+          : "bg-zinc-900/40 hover:bg-zinc-900/60 hover:shadow-lg hover:shadow-black/20"
+      } ${task.needsReview ? "ring-1 ring-amber-500/15" : ""}`}
       style={{
-        animation: "cardEnter 0.4s ease-out backwards",
-        animationDelay: `${index * 75}ms`,
+        animation: "cardSlideIn 0.5s cubic-bezier(0.16,1,0.3,1) backwards",
+        animationDelay: `${index * 60}ms`,
       }}
     >
-      {/* Clickable header */}
+      {/* Hover glow effect */}
+      <div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-[radial-gradient(600px_circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),_rgba(99,102,241,0.04),_transparent_40%)]" />
+
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full cursor-pointer px-4 py-3 text-left"
+        className="relative w-full cursor-pointer px-4 py-3.5 text-left"
       >
-        {/* Row 1: Meta */}
-        <div className="mb-1.5 flex items-center gap-2 text-[10px]">
+        {/* Row 1 */}
+        <div className="mb-2 flex items-center gap-2">
           <span
-            className={`rounded px-1.5 py-0.5 font-bold uppercase tracking-wider ${priority}`}
+            className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${p.class}`}
           >
-            {task.priority}
+            {p.label}
           </span>
 
-          <span className={`font-medium ${status.color}`}>{status.label}</span>
+          <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+            <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+            {s.label}
+          </span>
 
           {attachCount > 0 && (
-            <span className="flex items-center gap-0.5 text-zinc-500">
+            <span className="flex items-center gap-1 text-[11px] text-zinc-600">
               <Paperclip className="h-3 w-3" />
               {attachCount}
             </span>
           )}
 
-          <span className="ml-auto text-zinc-600">
+          {task.needsReview && (
+            <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400 ring-1 ring-amber-500/20">
+              <AlertCircle className="h-2.5 w-2.5" />
+              Review
+            </span>
+          )}
+
+          <span className="ml-auto text-[11px] tabular-nums text-zinc-600">
             <LiveTime iso={task.updatedAt} />
           </span>
         </div>
 
         {/* Row 2: Title */}
-        <h3 className="mb-2 text-[14px] font-medium leading-snug text-zinc-100 transition-colors duration-200 group-hover:text-indigo-400">
-          {task.needsReview && (
-            <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" />
-          )}
+        <h3 className="mb-2.5 text-[15px] font-medium leading-snug tracking-tight text-zinc-100 transition-colors duration-200 group-hover:text-white">
           {task.title}
         </h3>
 
-        {/* Row 3: Bottom meta */}
-        <div className="flex items-center gap-2.5 text-[11px]">
-          {/* Overlapping platform dots */}
-          <div className="flex items-center -space-x-1">
-            {platforms.map((p) => (
+        {/* Row 3: Meta */}
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-1.5">
+            {platforms.map((pl) => (
               <PlatformDot
-                key={p}
-                platform={p as NodalTask["sourceEvents"][0]["platform"]}
+                key={pl}
+                platform={pl as NodalTask["sourceEvents"][0]["platform"]}
               />
             ))}
           </div>
 
-          <span className="text-zinc-500">
+          <span className="text-[11px] text-zinc-500">
             {task.sourceEvents.length} source
             {task.sourceEvents.length !== 1 ? "s" : ""}
           </span>
 
-          <span className="rounded border border-zinc-700/50 bg-zinc-800/50 px-1.5 py-0.5 text-[10px] text-zinc-400">
+          <span className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] text-zinc-500 ring-1 ring-zinc-700/40">
             {task.intent}
           </span>
 
           <ChevronDown
-            className={`ml-auto h-3.5 w-3.5 text-zinc-600 transition-transform duration-300 ${
+            className={`ml-auto h-4 w-4 text-zinc-700 transition-transform duration-300 ease-out group-hover:text-zinc-500 ${
               expanded ? "rotate-180" : ""
             }`}
           />
         </div>
       </button>
 
-      {/* Smooth expand/collapse via CSS grid-rows */}
+      {/* Expandable timeline — CSS grid animation */}
       <div
-        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+        className={`grid transition-[grid-template-rows] duration-400 ease-in-out ${
           expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         }`}
       >
         <div className="overflow-hidden">
-          <div className="border-t border-zinc-800/50 px-4 py-4">
-            <div className="mb-3 flex items-center gap-2">
-              <div className="h-px flex-1 bg-zinc-800/60" />
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-                Source Timeline
+          <div className="px-4 pb-4 pt-1">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-linear-to-r from-transparent via-zinc-800 to-transparent" />
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
+                Provenance
               </span>
-              <div className="h-px flex-1 bg-zinc-800/60" />
+              <div className="h-px flex-1 bg-linear-to-r from-transparent via-zinc-800 to-transparent" />
             </div>
             <SourceTimeline events={task.sourceEvents} />
           </div>

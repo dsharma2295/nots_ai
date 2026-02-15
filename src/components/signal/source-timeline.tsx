@@ -1,7 +1,7 @@
 "use client";
 
 import type { SourceEvent } from "@/lib/mock-data";
-import { ExternalLink, Paperclip } from "lucide-react";
+import { ArrowUpRight, Paperclip } from "lucide-react";
 import { PlatformBadge, getPlatformDotColor } from "./platform-icon";
 
 function formatTime(iso: string): string {
@@ -17,36 +17,39 @@ function formatTime(iso: string): string {
 
 export function SourceTimeline({ events }: { events: SourceEvent[] }) {
   return (
-    <div className="relative pl-4">
-      {/* Vertical gradient track */}
-      <div className="absolute left-1.75 top-0 bottom-0 w-px bg-linear-to-b from-zinc-700 via-zinc-800 to-transparent" />
+    <div className="relative ml-1 pl-5">
+      {/* Track */}
+      <div className="absolute left-[5px] top-2 bottom-2 w-px bg-linear-to-b from-zinc-700/60 via-zinc-800/40 to-transparent" />
 
       {events.map((evt, i) => (
         <div
           key={evt.id}
-          className="relative mb-4 last:mb-0"
-          style={{ animationDelay: `${i * 60}ms` }}
+          className="relative mb-3 last:mb-0"
+          style={{
+            animation: "fadeSlideIn 0.3s ease-out backwards",
+            animationDelay: `${i * 80}ms`,
+          }}
         >
-          {/* Node dot — colored by platform */}
+          {/* Dot */}
           <div
-            className={`absolute -left-px top-6 h-2 w-2 rounded-full ring-4 ring-zinc-950 ${getPlatformDotColor(evt.platform)}`}
+            className={`absolute -left-[15px] top-4 h-2.5 w-2.5 rounded-full ring-[3px] ring-[#0a0a0f] ${getPlatformDotColor(evt.platform)}`}
           />
 
-          {/* Source card */}
-          <div className="ml-6 rounded-lg border border-zinc-800/80 bg-zinc-950/50 p-4 transition-colors duration-200 hover:bg-zinc-900/50">
+          {/* Card */}
+          <div className="rounded-lg border border-zinc-800/50 bg-[#0f0f18] p-3.5 transition-all duration-200 hover:border-zinc-700/60 hover:bg-[#12121e]">
             {/* Header */}
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <PlatformBadge platform={evt.platform} />
-              <span className="text-sm font-medium text-zinc-200">
+              <span className="text-[13px] font-medium text-zinc-200">
                 {evt.sender}
               </span>
-              <span className="ml-auto text-xs text-zinc-500">
+              <span className="ml-auto text-[11px] tabular-nums text-zinc-600">
                 {formatTime(evt.timestamp)}
               </span>
             </div>
 
-            {/* Content */}
-            <p className="text-sm leading-relaxed text-zinc-400 line-clamp-4">
+            {/* Body */}
+            <p className="text-[13px] leading-[1.6] text-zinc-400 line-clamp-3">
               {evt.rawContent}
             </p>
 
@@ -59,9 +62,9 @@ export function SourceTimeline({ events }: { events: SourceEvent[] }) {
                     href={att.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded border border-zinc-700/50 bg-zinc-800/50 px-2 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:bg-zinc-700"
+                    className="group/att inline-flex items-center gap-1.5 rounded-lg bg-zinc-800/40 px-2.5 py-1.5 text-[11px] text-zinc-400 ring-1 ring-zinc-700/30 transition-all duration-200 hover:bg-zinc-800/70 hover:text-zinc-200 hover:ring-zinc-600/40"
                   >
-                    <Paperclip className="h-3 w-3 text-zinc-500" />
+                    <Paperclip className="h-3 w-3 text-zinc-600 transition-colors group-hover/att:text-zinc-400" />
                     {att.name}
                   </a>
                 ))}
@@ -73,14 +76,27 @@ export function SourceTimeline({ events }: { events: SourceEvent[] }) {
               href={evt.deepLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2.5 inline-flex items-center gap-1 text-[11px] text-zinc-600 transition-colors duration-150 hover:text-zinc-400"
+              className="mt-2.5 inline-flex items-center gap-1 text-[11px] text-zinc-600 transition-colors duration-200 hover:text-indigo-400"
             >
-              <ExternalLink className="h-3 w-3" />
-              View original
+              Open source
+              <ArrowUpRight className="h-3 w-3" />
             </a>
           </div>
         </div>
       ))}
+
+      <style jsx global>{`
+        @keyframes fadeSlideIn {
+          from {
+            opacity: 0;
+            transform: translateX(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
