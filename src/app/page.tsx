@@ -1,5 +1,6 @@
 import { AutoRefresh } from "@/components/signal/auto-refresh";
 import { SignalStream } from "@/components/signal/signal-stream";
+import { ThemeToggle } from "@/components/signal/theme-toggle";
 import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
 
@@ -54,31 +55,37 @@ export default async function Home() {
   const tasks = await getTasks();
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl">
-        {/* Top bar */}
+    <main className="min-h-screen bg-zinc-50 px-4 py-6 transition-colors duration-300 dark:bg-[#0a0a0f] sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Logo */}
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/20">
               <span className="text-sm font-black text-white">N</span>
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <h1 className="text-base font-semibold text-white">Nots</h1>
-              <span className="text-base text-zinc-500">.ai</span>
+            <div className="flex items-baseline gap-1">
+              <h1 className="text-base font-semibold text-zinc-900 dark:text-white">
+                Nots
+              </h1>
+              <span className="text-base text-zinc-400 dark:text-zinc-500">
+                .ai
+              </span>
             </div>
           </div>
-          <AutoRefresh intervalSeconds={15} />
+          <div className="flex items-center gap-2">
+            <AutoRefresh intervalSeconds={15} />
+            <ThemeToggle />
+          </div>
         </div>
 
         <SignalStream tasks={tasks} />
 
         {tasks.length === 0 && (
           <div className="mt-16 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 ring-1 ring-zinc-800">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7 text-zinc-600"
+                className="h-7 w-7 text-zinc-400 dark:text-zinc-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -92,7 +99,7 @@ export default async function Home() {
               </svg>
             </div>
             <p className="text-sm text-zinc-500">No tasks yet</p>
-            <p className="mt-1 text-xs text-zinc-600">
+            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">
               Send a message in Slack or an email to get started
             </p>
           </div>

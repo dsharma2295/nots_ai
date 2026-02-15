@@ -1,65 +1,307 @@
 "use client";
 
-import { useCmdK, useCountUp } from "@/lib/hooks";
-import type {
-  NodalTask,
-  Platform,
-  Priority,
-  TaskStatus,
-} from "@/lib/mock-data";
+import { useCmdK } from "@/lib/hooks";
+import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
 import {
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
   Inbox,
-  Layers,
-  Radio,
+  Minus,
   Search,
   SlidersHorizontal,
+  Zap,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { getPlatformFilterStyle } from "./platform-icon";
 import { TaskCard } from "./task-card";
 import { TaskCardSkeleton } from "./task-card-skeleton";
 
+// =============================================================
+// CONSTANTS
+// =============================================================
+
 const ALL_PLATFORMS: Platform[] = ["SLACK", "GMAIL", "JIRA", "TRELLO", "ASANA"];
-const ALL_PRIORITIES: Priority[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
 const ALL_STATUSES: TaskStatus[] = ["OPEN", "IN_PROGRESS", "BLOCKED", "DONE"];
-
-const PLAT_STYLE: Record<string, { active: string; icon: string }> = {
-  SLACK: {
-    active: "bg-purple-500/15 text-purple-400 ring-1 ring-purple-500/25",
-    icon: "#",
-  },
-  GMAIL: {
-    active: "bg-red-500/15 text-red-400 ring-1 ring-red-500/25",
-    icon: "✉",
-  },
-  JIRA: {
-    active: "bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/25",
-    icon: "◆",
-  },
-  TRELLO: {
-    active: "bg-sky-500/15 text-sky-400 ring-1 ring-sky-500/25",
-    icon: "▦",
-  },
-  ASANA: {
-    active: "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/25",
-    icon: "◎",
-  },
-};
-
-const PRI_STYLE: Record<string, string> = {
-  CRITICAL: "bg-red-500/15 text-red-400 ring-1 ring-red-500/25",
-  HIGH: "bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/25",
-  MEDIUM: "bg-zinc-500/10 text-zinc-300 ring-1 ring-zinc-600/25",
-  LOW: "bg-zinc-800/50 text-zinc-500 ring-1 ring-zinc-700/25",
-};
 
 interface Filters {
   platforms: Set<Platform>;
-  priorities: Set<Priority>;
   statuses: Set<TaskStatus>;
   showReviewOnly: boolean;
   search: string;
+  selectedDate: string | null; // ISO date string or null
 }
+
+// =============================================================
+// TIME GROUPING
+// =============================================================
+
+function getTimeGroup(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  if (d >= today) return "Today";
+  if (d >= yesterday) return "Yesterday";
+  if (d >= weekAgo) return "This Week";
+  return "Earlier";
+}
+
+function groupByTime(
+  tasks: NodalTask[],
+): { label: string; tasks: NodalTask[] }[] {
+  const order = ["Today", "Yesterday", "This Week", "Earlier"];
+  const groups: Record<string, NodalTask[]> = {};
+  for (const t of tasks) {
+    const g = getTimeGroup(t.updatedAt);
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(t);
+  }
+  return order
+    .filter((l) => groups[l]?.length)
+    .map((l) => ({ label: l, tasks: groups[l] }));
+}
+
+// =============================================================
+// MINI CALENDAR
+// =============================================================
+
+function MiniCalendar({
+  taskDates,
+  selectedDate,
+  onSelect,
+}: {
+  taskDates: Set<string>;
+  selectedDate: string | null;
+  onSelect: (date: string | null) => void;
+}) {
+  const [viewDate, setViewDate] = useState(() => new Date());
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const days: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+  const monthName = viewDate.toLocaleString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
+
+  function dateStr(day: number): string {
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  return (
+    <div className="w-full rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800/60 dark:bg-zinc-900/50">
+      <div className="mb-2 flex items-center justify-between">
+        <button
+          onClick={() => setViewDate(new Date(year, month - 1, 1))}
+          className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
+          {monthName}
+        </span>
+        <button
+          onClick={() => setViewDate(new Date(year, month + 1, 1))}
+          className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="mb-1 grid grid-cols-7 text-center text-[9px] font-medium text-zinc-400 dark:text-zinc-600">
+        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+          <span key={i}>{d}</span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-px">
+        {days.map((day, i) => {
+          if (day === null) return <span key={i} />;
+          const ds = dateStr(day);
+          const hasTask = taskDates.has(ds);
+          const isToday = ds === todayStr;
+          const isSelected = ds === selectedDate;
+
+          return (
+            <button
+              key={i}
+              onClick={() => onSelect(isSelected ? null : ds)}
+              className={`relative flex h-7 w-7 items-center justify-center rounded-md text-[10px] font-medium transition-all duration-150 ${
+                isSelected
+                  ? "bg-indigo-500 text-white shadow-sm"
+                  : isToday
+                    ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                    : hasTask
+                      ? "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      : "text-zinc-300 dark:text-zinc-700"
+              }`}
+            >
+              {day}
+              {hasTask && !isSelected && (
+                <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-indigo-500 dark:bg-indigo-400" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {selectedDate && (
+        <button
+          onClick={() => onSelect(null)}
+          className="mt-2 w-full rounded-md py-1 text-[10px] text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          Clear date filter
+        </button>
+      )}
+    </div>
+  );
+}
+
+// =============================================================
+// SMART STATS
+// =============================================================
+
+function SmartStats({ tasks }: { tasks: NodalTask[] }) {
+  const needAttention = tasks.filter(
+    (t) =>
+      (t.priority === "CRITICAL" || t.priority === "HIGH") &&
+      t.status === "OPEN",
+  ).length;
+  const blocked = tasks.filter((t) => t.status === "BLOCKED").length;
+  const done = tasks.filter((t) => t.status === "DONE").length;
+  const review = tasks.filter((t) => t.needsReview).length;
+
+  const items = [
+    needAttention > 0 && {
+      icon: Flame,
+      count: needAttention,
+      label: "need attention",
+      color: "text-orange-500 dark:text-orange-400",
+      bg: "bg-orange-50 dark:bg-orange-500/10",
+    },
+    blocked > 0 && {
+      icon: Minus,
+      count: blocked,
+      label: "blocked",
+      color: "text-red-500 dark:text-red-400",
+      bg: "bg-red-50 dark:bg-red-500/10",
+    },
+    review > 0 && {
+      icon: AlertTriangle,
+      count: review,
+      label: "need review",
+      color: "text-amber-500 dark:text-amber-400",
+      bg: "bg-amber-50 dark:bg-amber-500/10",
+    },
+    done > 0 && {
+      icon: Zap,
+      count: done,
+      label: "resolved",
+      color: "text-emerald-500 dark:text-emerald-400",
+      bg: "bg-emerald-50 dark:bg-emerald-500/10",
+    },
+  ].filter(Boolean) as {
+    icon: typeof Flame;
+    count: number;
+    label: string;
+    color: string;
+    bg: string;
+  }[];
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="mb-5 flex flex-wrap gap-2">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium ${item.bg}`}
+        >
+          <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
+          <span className={item.color}>{item.count}</span>
+          <span className="text-zinc-500 dark:text-zinc-500">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// =============================================================
+// KANBAN COLUMN
+// =============================================================
+
+function KanbanColumn({
+  title,
+  icon: Icon,
+  iconColor,
+  tasks,
+  totalIndex,
+}: {
+  title: string;
+  icon: typeof Flame;
+  iconColor: string;
+  tasks: NodalTask[];
+  totalIndex: number;
+}) {
+  const timeGroups = groupByTime(tasks);
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col">
+      {/* Column header */}
+      <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-800/60 dark:bg-zinc-900/80">
+        <Icon className={`h-4 w-4 ${iconColor}`} />
+        <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
+          {title}
+        </span>
+        <span className="ml-auto rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400">
+          {tasks.length}
+        </span>
+      </div>
+
+      {/* Tasks grouped by time */}
+      <div className="space-y-4">
+        {tasks.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
+            <p className="text-[12px] text-zinc-400 dark:text-zinc-600">
+              No tasks
+            </p>
+          </div>
+        ) : (
+          timeGroups.map((group) => (
+            <div key={group.label}>
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+                  {group.label}
+                </span>
+                <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/40" />
+              </div>
+              <div className="space-y-2">
+                {group.tasks.map((t, i) => (
+                  <TaskCard key={t.id} task={t} index={totalIndex + i} />
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================
+// SIGNAL STREAM
+// =============================================================
 
 export function SignalStream({
   tasks,
@@ -73,13 +315,12 @@ export function SignalStream({
 
   const [filters, setFilters] = useState<Filters>({
     platforms: new Set(ALL_PLATFORMS),
-    priorities: new Set(ALL_PRIORITIES),
     statuses: new Set(ALL_STATUSES),
     showReviewOnly: false,
     search: "",
+    selectedDate: null,
   });
 
-  const [sortBy, setSortBy] = useState<"updated" | "priority">("updated");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   function tog<T>(set: Set<T>, val: T): Set<T> {
@@ -89,11 +330,11 @@ export function SignalStream({
     return n;
   }
 
+  // Filtered tasks
   const filtered = useMemo(() => {
-    const result = tasks.filter((t) => {
+    return tasks.filter((t) => {
       const tp = new Set(t.sourceEvents.map((e) => e.platform));
       if (![...tp].some((p) => filters.platforms.has(p))) return false;
-      if (!filters.priorities.has(t.priority)) return false;
       if (!filters.statuses.has(t.status)) return false;
       if (filters.showReviewOnly && !t.needsReview) return false;
       if (filters.search) {
@@ -104,147 +345,112 @@ export function SignalStream({
         )
           return false;
       }
+      if (filters.selectedDate) {
+        const taskDate = new Date(t.updatedAt);
+        const ds = `${taskDate.getFullYear()}-${String(taskDate.getMonth() + 1).padStart(2, "0")}-${String(taskDate.getDate()).padStart(2, "0")}`;
+        if (ds !== filters.selectedDate) return false;
+      }
       return true;
     });
+  }, [tasks, filters]);
 
-    if (sortBy === "updated") {
-      result.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  // Split into priority lanes
+  const urgent = filtered.filter(
+    (t) => t.priority === "CRITICAL" || t.priority === "HIGH",
+  );
+  const active = filtered.filter((t) => t.priority === "MEDIUM");
+  const low = filtered.filter((t) => t.priority === "LOW");
+
+  // Task dates for calendar
+  const taskDates = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of tasks) {
+      const d = new Date(t.updatedAt);
+      s.add(
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
       );
-    } else {
-      const o: Record<Priority, number> = {
-        CRITICAL: 0,
-        HIGH: 1,
-        MEDIUM: 2,
-        LOW: 3,
-      };
-      result.sort((a, b) => o[a.priority] - o[b.priority]);
     }
-
-    return result;
-  }, [tasks, filters, sortBy]);
+    return s;
+  }, [tasks]);
 
   const reviewCount = tasks.filter((t) => t.needsReview).length;
-  const totalSources = tasks.reduce((acc, t) => acc + t.sourceEvents.length, 0);
-  const aTasks = useCountUp(filtered.length);
-  const aSources = useCountUp(totalSources);
-
-  const pill = (
-    active: boolean,
-    activeStyle: string,
-    label: string,
-    onClick: () => void,
-  ) => (
-    <button
-      onClick={onClick}
-      className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
-        active
-          ? activeStyle
-          : "bg-transparent text-zinc-600 ring-1 ring-zinc-800 hover:text-zinc-400 hover:ring-zinc-700"
-      }`}
-    >
-      {label}
-    </button>
-  );
 
   const filterBar = (
-    <div className="space-y-3">
-      {/* Platforms */}
-      <div className="flex flex-wrap gap-1.5">
-        {ALL_PLATFORMS.map((p) =>
-          pill(
-            filters.platforms.has(p),
-            PLAT_STYLE[p].active,
-            p.charAt(0) + p.slice(1).toLowerCase(),
-            () => setFilters((f) => ({ ...f, platforms: tog(f.platforms, p) })),
-          ),
-        )}
-      </div>
-      {/* Priority + Status */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        {ALL_PRIORITIES.map((p) =>
-          pill(
-            filters.priorities.has(p),
-            PRI_STYLE[p],
-            p === "CRITICAL"
-              ? "P0"
-              : p === "HIGH"
-                ? "P1"
-                : p === "MEDIUM"
-                  ? "P2"
-                  : "P3",
-            () =>
-              setFilters((f) => ({ ...f, priorities: tog(f.priorities, p) })),
-          ),
-        )}
-        <div className="mx-0.5 h-4 w-px bg-zinc-800" />
-        {ALL_STATUSES.map((s) => {
-          const label =
-            s === "IN_PROGRESS"
-              ? "Active"
-              : s.charAt(0) + s.slice(1).toLowerCase();
-          return pill(
-            filters.statuses.has(s),
-            "bg-zinc-700/30 text-zinc-300 ring-1 ring-zinc-600/30",
-            label,
-            () => setFilters((f) => ({ ...f, statuses: tog(f.statuses, s) })),
-          );
-        })}
-        <div className="mx-0.5 h-4 w-px bg-zinc-800" />
-        <button
-          onClick={() =>
-            setSortBy((s) => (s === "updated" ? "priority" : "updated"))
-          }
-          className="rounded-lg px-2.5 py-1 text-[11px] text-zinc-500 ring-1 ring-zinc-800 transition-all hover:text-zinc-300 active:scale-[0.97]"
-        >
-          {sortBy === "updated" ? "↓ Latest" : "↓ Priority"}
-        </button>
-        {reviewCount > 0 && (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {ALL_PLATFORMS.map((p) => {
+        const a = filters.platforms.has(p);
+        const s = getPlatformFilterStyle(p);
+        return (
+          <button
+            key={p}
+            onClick={() =>
+              setFilters((f) => ({ ...f, platforms: tog(f.platforms, p) }))
+            }
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
+              a
+                ? s.active
+                : "text-zinc-400 ring-1 ring-zinc-200 hover:ring-zinc-300 dark:text-zinc-600 dark:ring-zinc-800 dark:hover:ring-zinc-700"
+            }`}
+          >
+            {p.charAt(0) + p.slice(1).toLowerCase()}
+          </button>
+        );
+      })}
+
+      <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+
+      {ALL_STATUSES.map((s) => {
+        const a = filters.statuses.has(s);
+        const label =
+          s === "IN_PROGRESS"
+            ? "Active"
+            : s.charAt(0) + s.slice(1).toLowerCase();
+        return (
+          <button
+            key={s}
+            onClick={() =>
+              setFilters((f) => ({ ...f, statuses: tog(f.statuses, s) }))
+            }
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
+              a
+                ? "bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 dark:bg-zinc-700/30 dark:text-zinc-300 dark:ring-zinc-600/30"
+                : "text-zinc-400 ring-1 ring-zinc-200 dark:text-zinc-600 dark:ring-zinc-800"
+            }`}
+          >
+            {label}
+          </button>
+        );
+      })}
+
+      {reviewCount > 0 && (
+        <>
+          <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
           <button
             onClick={() =>
-              setFilters((f) => ({
-                ...f,
-                showReviewOnly: !f.showReviewOnly,
-              }))
+              setFilters((f) => ({ ...f, showReviewOnly: !f.showReviewOnly }))
             }
             className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all active:scale-[0.97] ${
               filters.showReviewOnly
-                ? "bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25"
-                : "text-zinc-500 ring-1 ring-zinc-800 hover:text-amber-400"
+                ? "bg-amber-100 text-amber-700 ring-1 ring-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:ring-amber-500/25"
+                : "text-zinc-400 ring-1 ring-zinc-200 dark:text-zinc-600 dark:ring-zinc-800"
             }`}
           >
             <AlertTriangle className="h-3 w-3" />
             {reviewCount}
           </button>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 
   return (
     <div>
-      {/* Stats */}
-      <div className="mb-5 flex items-center gap-5 text-[13px]">
-        <div className="flex items-center gap-1.5">
-          <Layers className="h-3.5 w-3.5 text-zinc-600" />
-          <span className="font-semibold tabular-nums text-zinc-100">
-            {aTasks}
-          </span>
-          <span className="text-zinc-600">tasks</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Radio className="h-3.5 w-3.5 text-zinc-600" />
-          <span className="font-semibold tabular-nums text-zinc-100">
-            {aSources}
-          </span>
-          <span className="text-zinc-600">sources</span>
-        </div>
-      </div>
+      {/* Smart Stats */}
+      <SmartStats tasks={filtered} />
 
       {/* Search */}
-      <div className="relative mb-5">
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
+      <div className="relative mb-4">
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-600" />
         <input
           ref={searchRef}
           type="text"
@@ -253,69 +459,108 @@ export function SignalStream({
           onChange={(e) =>
             setFilters((f) => ({ ...f, search: e.target.value }))
           }
-          className="h-10 w-full rounded-xl border border-zinc-800/80 bg-zinc-900/50 pl-10 pr-4 text-sm text-zinc-100 shadow-inner shadow-black/20 placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/30 focus:shadow-[0_0_15px_rgba(99,102,241,0.06)]"
+          className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-4 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20
+            dark:border-zinc-800/80 dark:bg-zinc-900/50 dark:text-zinc-100 dark:shadow-inner dark:shadow-black/20 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
         />
       </div>
 
       {/* Filters — Desktop */}
-      <div className="mb-6 hidden md:block">{filterBar}</div>
+      <div className="mb-5 hidden md:block">{filterBar}</div>
 
       {/* Filters — Mobile */}
-      <div className="mb-6 md:hidden">
+      <div className="mb-5 md:hidden">
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/50 px-3.5 py-2.5 text-sm text-zinc-400"
+          className="flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400"
         >
           <span className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4" />
             Filters
           </span>
-          <span className="text-[11px] text-zinc-600">
+          <span className="text-[11px] text-zinc-400">
             {filters.platforms.size}/{ALL_PLATFORMS.length}
           </span>
         </button>
         {mobileOpen && (
-          <div className="mt-2 rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 backdrop-blur-sm">
+          <div className="mt-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900/80">
             {filterBar}
           </div>
         )}
       </div>
 
-      {/* Cards */}
-      <div className="space-y-2">
-        {isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <TaskCardSkeleton key={i} index={i} />
-          ))
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800/60 py-20">
-            <Inbox className="mb-3 h-12 w-12 text-zinc-800" />
-            <p className="text-sm text-zinc-600">No signals found</p>
-            <button
-              className="mt-3 text-[11px] text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
-              onClick={() =>
-                setFilters({
-                  platforms: new Set(ALL_PLATFORMS),
-                  priorities: new Set(ALL_PRIORITIES),
-                  statuses: new Set(ALL_STATUSES),
-                  showReviewOnly: false,
-                  search: "",
-                })
-              }
-            >
-              Reset filters
-            </button>
-          </div>
-        ) : (
-          filtered.map((t, i) => <TaskCard key={t.id} task={t} index={i} />)
-        )}
+      {/* Main layout: Calendar sidebar + Kanban */}
+      <div className="flex gap-5">
+        {/* Calendar sidebar — desktop only */}
+        <div className="hidden w-48 shrink-0 lg:block">
+          <MiniCalendar
+            taskDates={taskDates}
+            selectedDate={filters.selectedDate}
+            onSelect={(d) => setFilters((f) => ({ ...f, selectedDate: d }))}
+          />
+        </div>
+
+        {/* Kanban columns */}
+        <div className="min-w-0 flex-1">
+          {isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TaskCardSkeleton key={i} index={i} />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-20 dark:border-zinc-800/40">
+              <Inbox className="mb-3 h-12 w-12 text-zinc-300 dark:text-zinc-800" />
+              <p className="text-sm text-zinc-500 dark:text-zinc-600">
+                No signals found
+              </p>
+              <button
+                className="mt-3 text-[11px] text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                onClick={() =>
+                  setFilters({
+                    platforms: new Set(ALL_PLATFORMS),
+                    statuses: new Set(ALL_STATUSES),
+                    showReviewOnly: false,
+                    search: "",
+                    selectedDate: null,
+                  })
+                }
+              >
+                Reset filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <KanbanColumn
+                title="Urgent"
+                icon={Flame}
+                iconColor="text-orange-500 dark:text-orange-400"
+                tasks={urgent}
+                totalIndex={0}
+              />
+              <KanbanColumn
+                title="Active"
+                icon={Zap}
+                iconColor="text-blue-500 dark:text-blue-400"
+                tasks={active}
+                totalIndex={urgent.length}
+              />
+              <KanbanColumn
+                title="Low Priority"
+                icon={Minus}
+                iconColor="text-zinc-400 dark:text-zinc-500"
+                tasks={low}
+                totalIndex={urgent.length + active.length}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-10 flex items-center justify-center gap-2 text-[10px] text-zinc-700">
-        <span className="h-px w-8 bg-zinc-800" />
+      <div className="mt-10 flex items-center justify-center gap-2 text-[10px] text-zinc-300 dark:text-zinc-700">
+        <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
         Noise → Signal
-        <span className="h-px w-8 bg-zinc-800" />
+        <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
       </div>
 
       <style jsx global>{`
