@@ -5,6 +5,7 @@ import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
   AlertTriangle,
+  Archive,
   ChevronLeft,
   ChevronRight,
   Flame,
@@ -171,7 +172,7 @@ function MiniCalendar({
 }
 
 // =============================================================
-// SMART STATS
+// SMART STATS — now includes resolved link
 // =============================================================
 
 function SmartStats({ tasks }: { tasks: NodalTask[] }) {
@@ -221,10 +222,8 @@ function SmartStats({ tasks }: { tasks: NodalTask[] }) {
     bg: string;
   }[];
 
-  if (items.length === 0) return null;
-
   return (
-    <div className="mb-5 flex flex-wrap gap-2">
+    <div className="mb-5 flex flex-wrap items-center gap-2">
       {items.map((item) => (
         <div
           key={item.label}
@@ -235,6 +234,15 @@ function SmartStats({ tasks }: { tasks: NodalTask[] }) {
           <span className="text-zinc-500">{item.label}</span>
         </div>
       ))}
+      {done > 0 && (
+        <a
+          href="/resolved"
+          className="ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
+        >
+          <Archive className="h-3.5 w-3.5" />
+          View resolved
+        </a>
+      )}
     </div>
   );
 }
@@ -314,7 +322,7 @@ function KanbanColumn({
 // =============================================================
 
 export function SignalStream({
-  tasks,
+  tasks: serverTasks,
   isLoading = false,
 }: {
   tasks: NodalTask[];
@@ -322,6 +330,15 @@ export function SignalStream({
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
   useCmdK(searchRef);
+
+  // Local task state for optimistic updates (done removal, priority, tier)
+  const [localTasks, setLocalTasks] = useState(serverTasks);
+  // Sync when server data changes (ISR revalidation)
+  const prevRef = useRef(serverTasks);
+  if (prevRef.current !== serverTasks) {
+    prevRef.current = serverTasks;
+    setLocalTasks(serverTasks);
+  }
 
   const [filters, setFilters] = useState<Filters>({
     platforms: new Set(ALL_PLATFORMS),
@@ -334,7 +351,6 @@ export function SignalStream({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // AI mode state
-  const [aiQuery, setAiQuery] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<AIQueryResponse | null>(null);
 
@@ -356,7 +372,7 @@ export function SignalStream({
       const res = await fetch("/api/ai/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.slice(1).trim() }), // Remove "/" prefix
+        body: JSON.stringify({ query: query.slice(1).trim() }),
       });
       const data = await res.json();
       if (data.text) {
@@ -375,7 +391,7 @@ export function SignalStream({
     }
   }, []);
 
-  // Execute AI action (from response card buttons)
+  // Execute AI action
   const executeAiAction = useCallback(
     async (action: AIQueryResponse["actions"][number]) => {
       const body =
@@ -419,16 +435,39 @@ export function SignalStream({
     [],
   );
 
-  // Execute task card hover actions
+  // Execute task card actions — with optimistic local state updates
   const executeTaskAction = useCallback(
     async (taskId: string, action: string, value?: string) => {
+      // Optimistic update
+      if (action === "done") {
+        // Delay removal to let fade animation play (450ms in task-card)
+        setTimeout(() => {
+          setLocalTasks((prev) => prev.filter((t) => t.id !== taskId));
+        }, 500);
+      } else if (action === "priority" && value) {
+        setLocalTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId
+              ? { ...t, priority: value as NodalTask["priority"] }
+              : t,
+          ),
+        );
+      } else if (action === "tier" && value) {
+        setLocalTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId ? { ...t, tier: parseInt(value, 10) } : t,
+          ),
+        );
+      }
+
+      // API call
       const body =
         action === "done"
           ? { action: "updateStatus", taskId, status: "DONE" }
           : action === "priority" && value
             ? { action: "updatePriority", taskId, priority: value }
-            : action === "snooze"
-              ? { action: "snooze", taskId }
+            : action === "tier" && value
+              ? { action: "updateTier", taskId, tier: parseInt(value, 10) }
               : null;
 
       if (!body) return;
@@ -442,21 +481,17 @@ export function SignalStream({
     [],
   );
 
-  // Handle search input
+  // Handle search
   function handleSearchChange(value: string) {
     setFilters((f) => ({ ...f, search: value }));
-    // If cleared, dismiss AI response
     if (!value) {
       setAiResponse(null);
-      setAiQuery("");
     }
   }
 
-  // Handle Enter key in AI mode
   function handleSearchKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && isAiMode && filters.search.length > 1) {
       e.preventDefault();
-      setAiQuery(filters.search);
       executeAiQuery(filters.search);
     }
     if (e.key === "Escape") {
@@ -466,9 +501,10 @@ export function SignalStream({
     }
   }
 
-  // Filtered tasks (only in filter mode)
+  // Filtered tasks — use localTasks for optimistic updates
   const filtered = useMemo(() => {
-    return tasks.filter((t) => {
+    return localTasks.filter((t) => {
+      if (t.status === "DONE" || t.status === "ARCHIVED") return false;
       const tp = new Set(t.sourceEvents.map((e) => e.platform));
       if (![...tp].some((p) => filters.platforms.has(p))) return false;
       if (!filters.statuses.has(t.status)) return false;
@@ -488,7 +524,7 @@ export function SignalStream({
       }
       return true;
     });
-  }, [tasks, filters, filterText]);
+  }, [localTasks, filters, filterText]);
 
   const urgent = filtered.filter(
     (t) => t.priority === "CRITICAL" || t.priority === "HIGH",
@@ -498,16 +534,16 @@ export function SignalStream({
 
   const taskDates = useMemo(() => {
     const s = new Set<string>();
-    for (const t of tasks) {
+    for (const t of localTasks) {
       const d = new Date(t.updatedAt);
       s.add(
         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
       );
     }
     return s;
-  }, [tasks]);
+  }, [localTasks]);
 
-  const reviewCount = tasks.filter((t) => t.needsReview).length;
+  const reviewCount = localTasks.filter((t) => t.needsReview).length;
 
   // Filter pill helper
   const pill = (
@@ -517,6 +553,7 @@ export function SignalStream({
     onClick: () => void,
   ) => (
     <button
+      key={label}
       onClick={onClick}
       className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
         act
@@ -574,10 +611,9 @@ export function SignalStream({
 
   return (
     <div>
-      {/* Smart Stats */}
-      <SmartStats tasks={filtered} />
+      <SmartStats tasks={localTasks} />
 
-      {/* ======== DUAL-MODE SEARCH BAR ======== */}
+      {/* Search bar */}
       <div className="relative mb-4">
         {isAiMode ? (
           <Sparkles className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-500 dark:text-indigo-400" />
@@ -608,7 +644,7 @@ export function SignalStream({
         )}
       </div>
 
-      {/* ======== AI RESPONSE AREA ======== */}
+      {/* AI Response */}
       {(aiLoading || aiResponse) && (
         <div className="mb-5">
           {aiLoading ? (
@@ -626,7 +662,7 @@ export function SignalStream({
         </div>
       )}
 
-      {/* ======== FILTERS ======== */}
+      {/* Filters */}
       {!isAiMode && (
         <>
           <div className="mb-5 hidden md:block">{filterBar}</div>
@@ -652,10 +688,9 @@ export function SignalStream({
         </>
       )}
 
-      {/* ======== MAIN LAYOUT ======== */}
+      {/* Main layout */}
       {!isAiMode && (
         <div className="flex gap-5">
-          {/* Calendar sidebar */}
           <div className="hidden w-48 shrink-0 lg:block">
             <MiniCalendar
               taskDates={taskDates}
@@ -666,7 +701,6 @@ export function SignalStream({
             />
           </div>
 
-          {/* Kanban */}
           <div className="min-w-0 flex-1">
             {isLoading ? (
               <div className="space-y-2">

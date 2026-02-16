@@ -11,9 +11,10 @@ import { z } from "zod";
 
 const UpdateTaskSchema = z.object({
   taskId: z.string().min(1),
-  action: z.enum(["updateStatus", "updatePriority", "snooze"]),
+  action: z.enum(["updateStatus", "updatePriority", "updateTier", "snooze"]),
   status: TaskStatusEnum.optional(),
   priority: PriorityEnum.optional(),
+  tier: z.number().int().min(1).max(3).optional(),
   snoozeUntil: z.string().optional(),
 });
 
@@ -101,9 +102,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // --- UPDATE TIER ---
+    if (data.action === "updateTier" && data.tier !== undefined) {
+      await db.nodalTask.update({
+        where: { id: data.taskId },
+        data: { tier: data.tier },
+      });
+
+      return NextResponse.json({
+        success: true,
+        action: "updateTier",
+        taskId: data.taskId,
+        tier: data.tier,
+      });
+    }
+
     // --- SNOOZE ---
-    // For MVP, snooze just marks as ARCHIVED. A proper implementation
-    // would use a snoozeUntil field + a cron job to unsnooze.
     if (data.action === "snooze") {
       await db.nodalTask.update({
         where: { id: data.taskId },
