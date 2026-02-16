@@ -46,9 +46,15 @@ function totalAttachments(task: NodalTask): number {
 export function TaskCard({
   task,
   index = 0,
+  onTaskActionExec,
 }: {
   task: NodalTask;
   index?: number;
+  onTaskActionExec?: (
+    taskId: string,
+    action: string,
+    value?: string,
+  ) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const platforms = uniquePlatforms(task);
@@ -79,7 +85,10 @@ export function TaskCard({
           className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
             text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600
             dark:text-zinc-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTaskActionExec?.(task.id, "done");
+          }}
         >
           <Check className="h-3.5 w-3.5" />
         </button>
@@ -88,7 +97,20 @@ export function TaskCard({
           className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
             text-zinc-400 hover:bg-orange-50 hover:text-orange-600
             dark:text-zinc-600 dark:hover:bg-orange-500/10 dark:hover:text-orange-400"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            const next: Record<string, string> = {
+              LOW: "MEDIUM",
+              MEDIUM: "HIGH",
+              HIGH: "CRITICAL",
+              CRITICAL: "LOW",
+            };
+            onTaskActionExec?.(
+              task.id,
+              "priority",
+              next[task.priority] ?? "MEDIUM",
+            );
+          }}
         >
           <Flag className="h-3.5 w-3.5" />
         </button>
@@ -97,7 +119,10 @@ export function TaskCard({
           className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
             text-zinc-400 hover:bg-blue-50 hover:text-blue-600
             dark:text-zinc-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTaskActionExec?.(task.id, "snooze");
+          }}
         >
           <Clock className="h-3.5 w-3.5" />
         </button>
