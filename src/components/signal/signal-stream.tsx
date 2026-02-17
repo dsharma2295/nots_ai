@@ -6,6 +6,7 @@ import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
   AlertTriangle,
   Archive,
+  Bookmark,
   ChevronLeft,
   ChevronRight,
   Flame,
@@ -15,7 +16,6 @@ import {
   SlidersHorizontal,
   Sparkles,
   Zap,
-  Bookmark
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -499,7 +499,7 @@ export function SignalStream({
             t.id === taskId ? { ...t, bookmarked: !t.bookmarked } : t,
           ),
         );
-
+      }
       const body =
         action === "done"
           ? { action: "updateStatus", taskId, status: "DONE" }
@@ -508,8 +508,8 @@ export function SignalStream({
             : action === "tier" && value
               ? { action: "updateTier", taskId, tier: parseInt(value, 10) }
               : action === "bookmark"
-              ? { action: "bookmark", taskId }
-              : null;
+                ? { action: "bookmark", taskId }
+                : null;
 
       if (!body) {
         pendingRef.current.delete(taskId);
