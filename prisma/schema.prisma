@@ -121,8 +121,8 @@ model NodalTask {
   needsReview Boolean @default(false) @map("needs_review")
 
   // Visual emphasis tier within kanban columns (1 = gold, 2 = silver, 3 = bronze)
-  tier Int @default(3)
-
+  tier        Int              @default(3)
+  bookmarked  Boolean          @default(false)
   // MANY-TO-MANY: A task can have many source events,
   // and a source event can belong to many tasks.
   sourceLinks TaskSourceLink[]

@@ -1,21 +1,20 @@
-import { ResolvedStream } from "@/components/signal/resolved-stream";
+import { BookmarkedStream } from "@/components/signal/bookmarked-stream";
 import { ThemeToggle } from "@/components/signal/theme-toggle";
 import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
 import Link from "next/link";
 export const dynamic = "force-dynamic";
-async function getResolvedTasks(): Promise<NodalTask[]> {
+
+async function getBookmarkedTasks(): Promise<NodalTask[]> {
   const tasks = await db.nodalTask.findMany({
-    where: { status: "DONE" },
+    where: { bookmarked: true },
     orderBy: { updatedAt: "desc" },
     take: 100,
     include: {
       sourceLinks: {
         where: { dismissed: false },
         include: {
-          event: {
-            include: { attachments: true },
-          },
+          event: { include: { attachments: true } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -50,34 +49,32 @@ async function getResolvedTasks(): Promise<NodalTask[]> {
   }));
 }
 
-export default async function ResolvedPage() {
-  const tasks = await getResolvedTasks();
+export default async function BookmarksPage() {
+  const tasks = await getBookmarkedTasks();
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 transition-colors duration-300 dark:bg-[#0a0a0f] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
-        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/"
               className="text-[12px] text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
             >
-              ← Dashboard
+              &larr; Dashboard
             </Link>
             <div>
               <h1 className="text-base font-semibold text-zinc-900 dark:text-white">
-                Resolved Tasks
+                Bookmarks
               </h1>
               <p className="text-[12px] text-zinc-500 dark:text-zinc-600">
-                {tasks.length} task{tasks.length !== 1 ? "s" : ""} completed
+                {tasks.length} bookmarked task{tasks.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
           <ThemeToggle />
         </div>
-
-        <ResolvedStream tasks={tasks} />
+        <BookmarkedStream tasks={tasks} />
       </div>
     </main>
   );

@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Zap,
+  Bookmark
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -234,6 +235,14 @@ function SmartStats({ tasks }: { tasks: NodalTask[] }) {
           <span className="text-zinc-500">{item.label}</span>
         </div>
       ))}
+      <Link
+        href="/bookmarks"
+        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-blue-500 dark:text-zinc-600 dark:hover:text-blue-400"
+      >
+        <Bookmark className="h-3.5 w-3.5" />
+        Bookmarks
+      </Link>
+
       <Link
         href="/resolved"
         className="ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
@@ -485,6 +494,12 @@ export function SignalStream({
           ),
         );
       }
+      } else if (action === "bookmark") {
+        setLocalTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId ? { ...t, bookmarked: !t.bookmarked } : t,
+          ),
+        );
 
       const body =
         action === "done"
@@ -493,6 +508,8 @@ export function SignalStream({
             ? { action: "updatePriority", taskId, priority: value }
             : action === "tier" && value
               ? { action: "updateTier", taskId, tier: parseInt(value, 10) }
+              : action === "bookmark"
+              ? { action: "bookmark", taskId }
               : null;
 
       if (!body) {

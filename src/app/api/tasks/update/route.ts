@@ -11,7 +11,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 const UpdateTaskSchema = z.object({
   taskId: z.string().min(1),
-  action: z.enum(["updateStatus", "updatePriority", "updateTier", "snooze"]),
+  action: z.enum([
+    "updateStatus",
+    "updatePriority",
+    "updateTier",
+    "bookmark",
+    "snooze",
+  ]),
   status: TaskStatusEnum.optional(),
   priority: PriorityEnum.optional(),
   tier: z.number().int().min(0).max(3).optional(),
@@ -126,6 +132,33 @@ export async function POST(req: NextRequest) {
         action: "updateTier",
         taskId: data.taskId,
         tier: data.tier,
+      });
+    }
+
+    // --- BOOKMARK ---
+    if (data.action === "bookmark") {
+      const task = await db.nodalTask.findUnique({
+        where: { id: data.taskId },
+      });
+      if (!task) {
+        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      }
+      await db.nodalTask.update({
+        where: { id: data.taskId },
+        data: { bookmarked: !task.bookmarked },
+      });
+
+      await broadcastTaskUpdate({
+        type: "task_updated",
+        taskId: data.taskId,
+        changes: { bookmarked: !task.bookmarked },
+      });
+
+      return NextResponse.json({
+        success: true,
+        action: "bookmark",
+        taskId: data.taskId,
+        bookmarked: !task.bookmarked,
       });
     }
 

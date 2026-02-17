@@ -33,6 +33,7 @@ async function getTasks(): Promise<NodalTask[]> {
     confidence: t.confidence,
     needsReview: t.needsReview,
     tier: t.tier,
+    bookmarked: t.bookmarked,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     sourceEvents: t.sourceLinks.map((link) => ({

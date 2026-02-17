@@ -1,5 +1,6 @@
 export { AIResponseCard, AIResponseLoading } from "./ai-response";
 export { AutoRefresh } from "./auto-refresh";
+export { BookmarkedStream } from "./bookmarked-stream";
 export { PlatformBadge, PlatformDot } from "./platform-icon";
 export { ResolvedStream } from "./resolved-stream";
 export { SignalStream } from "./signal-stream";

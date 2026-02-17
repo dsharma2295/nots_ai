@@ -4,6 +4,7 @@ import { useLiveRelativeTime } from "@/lib/hooks";
 import type { NodalTask } from "@/lib/mock-data";
 import {
   ArrowRightLeft,
+  Bookmark,
   Check,
   ChevronDown,
   ExternalLink,
@@ -288,7 +289,13 @@ export function TaskCard({
     },
     [task.id, onTaskActionExec, closeTier],
   );
-
+  const handleBookmark = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onTaskActionExec?.(task.id, "bookmark");
+    },
+    [task.id, onTaskActionExec],
+  );
   return (
     <div
       ref={cardRef}
@@ -388,6 +395,19 @@ export function TaskCard({
               {tierStyle.label}
             </span>
           )}
+          <button
+            title={task.bookmarked ? "Remove bookmark" : "Bookmark"}
+            onClick={handleBookmark}
+            className="flex items-center"
+          >
+            <Bookmark
+              className={`h-3 w-3 transition-colors ${
+                task.bookmarked
+                  ? "fill-blue-500 text-blue-500 dark:fill-blue-400 dark:text-blue-400"
+                  : "text-zinc-300 hover:text-blue-400 dark:text-zinc-700 dark:hover:text-blue-400"
+              }`}
+            />
+          </button>
 
           {attachCount > 0 && (
             <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-600">
