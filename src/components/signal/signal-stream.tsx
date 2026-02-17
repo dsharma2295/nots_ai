@@ -493,7 +493,6 @@ export function SignalStream({
             t.id === taskId ? { ...t, tier: parseInt(value, 10) } : t,
           ),
         );
-      }
       } else if (action === "bookmark") {
         setLocalTasks((prev) =>
           prev.map((t) =>
