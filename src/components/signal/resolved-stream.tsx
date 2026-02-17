@@ -76,10 +76,17 @@ export function ResolvedStream({
               animationDelay: `${i * 40}ms`,
             }}
           >
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setExpandedId(isExpanded ? null : task.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ")
+                  setExpandedId(isExpanded ? null : task.id);
+              }}
               className="w-full cursor-pointer px-4 py-3.5 text-left"
             >
+              {" "}
               {/* Row 1: Done icon + title */}
               <div className="mb-2 flex items-start gap-2.5">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
@@ -97,7 +104,6 @@ export function ResolvedStream({
                   <RotateCcw className="h-3.5 w-3.5" />
                 </button>
               </div>
-
               {/* Row 2: Meta */}
               <div className="flex items-center gap-2.5">
                 <div className="flex -space-x-1.5">
@@ -127,7 +133,7 @@ export function ResolvedStream({
                   }`}
                 />
               </div>
-            </button>
+            </div>
 
             {/* Expand */}
             <div

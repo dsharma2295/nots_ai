@@ -495,7 +495,7 @@ export function SignalStream({
       } finally {
         setTimeout(() => {
           pendingRef.current.delete(taskId);
-        }, 2000);
+        }, 5000);
       }
     },
     [],

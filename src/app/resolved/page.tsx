@@ -3,8 +3,7 @@ import { ThemeToggle } from "@/components/signal/theme-toggle";
 import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
 import Link from "next/link";
-export const revalidate = 10;
-
+export const dynamic = "force-dynamic";
 async function getResolvedTasks(): Promise<NodalTask[]> {
   const tasks = await db.nodalTask.findMany({
     where: { status: "DONE" },

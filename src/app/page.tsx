@@ -4,8 +4,7 @@ import { ThemeToggle } from "@/components/signal/theme-toggle";
 import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
 
-export const revalidate = 10;
-
+export const dynamic = "force-dynamic";
 async function getTasks(): Promise<NodalTask[]> {
   const tasks = await db.nodalTask.findMany({
     orderBy: { updatedAt: "desc" },
