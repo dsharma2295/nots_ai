@@ -3,12 +3,12 @@
 import { useLiveRelativeTime } from "@/lib/hooks";
 import type { NodalTask } from "@/lib/mock-data";
 import {
+  ArrowRightLeft,
   Check,
   ChevronDown,
   ExternalLink,
-  Flag,
+  Medal,
   Paperclip,
-  Star,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -454,7 +454,7 @@ export function TaskCard({
                     setTierOpen(false);
                   }}
                 >
-                  <Flag className="h-3.5 w-3.5" />
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
                 </button>
                 <button
                   ref={tierBtnRef}
@@ -467,7 +467,7 @@ export function TaskCard({
                     setPriorityOpen(false);
                   }}
                 >
-                  <Star className="h-3.5 w-3.5" />
+                  <Medal className="h-3.5 w-3.5" />{" "}
                 </button>
                 {firstLink && (
                   <a

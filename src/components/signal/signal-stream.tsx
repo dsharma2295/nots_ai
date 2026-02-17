@@ -268,8 +268,8 @@ function KanbanColumn({
     value?: string,
   ) => Promise<void>;
 }) {
-  const timeGroups = groupByTime(tasks);
-
+  const sorted = [...tasks].sort((a, b) => (a.tier ?? 3) - (b.tier ?? 3));
+  const timeGroups = groupByTime(sorted);
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-800/60 dark:bg-zinc-900/80">
