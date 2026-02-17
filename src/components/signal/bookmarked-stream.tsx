@@ -173,7 +173,16 @@ export function BookmarkedStream({
             {isResolved ? (
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
             ) : (
-              <Bookmark className="h-3.5 w-3.5 shrink-0 fill-blue-500 text-blue-500 dark:fill-blue-400 dark:text-blue-400" />
+              <button
+                title="Remove bookmark"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveBookmark(task.id);
+                }}
+                className="shrink-0"
+              >
+                <Bookmark className="h-3.5 w-3.5 fill-blue-500 text-blue-500 transition-colors hover:fill-red-400 hover:text-red-400 dark:fill-blue-400 dark:text-blue-400 dark:hover:fill-red-400 dark:hover:text-red-400" />
+              </button>
             )}
             {tierBadge && (
               <span
@@ -191,17 +200,7 @@ export function BookmarkedStream({
             <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-600">
               <LiveTime iso={task.updatedAt} />
             </span>
-            {/* Remove bookmark */}
-            <button
-              title="Remove bookmark"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRemoveBookmark(task.id);
-              }}
-            >
-              <Bookmark className="h-3.5 w-3.5" />
-            </button>
+
             {/* Mark done or Restore */}
             {isResolved ? (
               <button
@@ -328,24 +327,90 @@ export function BookmarkedStream({
   }
 
   return (
-    <div className="space-y-8">
-      {activeTasks.length > 0 &&
-        renderSection(
-          "Active",
-          "text-zinc-500 dark:text-zinc-400",
-          activeTasks.length,
-          activeGrouped,
-          false,
-        )}
+    <div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Active column */}
+        <div>
+          <div className="mb-3 flex items-center gap-2 px-1">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+              Active
+            </span>
+            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            <span className="text-[11px] text-zinc-400">
+              {activeTasks.length}
+            </span>
+          </div>
+          {activeTasks.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
+              <p className="text-[12px] text-zinc-400 dark:text-zinc-600">
+                No active bookmarks
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {activeGrouped.map((group) => (
+                <div key={group.label}>
+                  <div className="mb-2 flex items-center gap-2 px-1">
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${group.color}`}
+                    >
+                      {group.label}
+                    </span>
+                    <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/40" />
+                    <span className="text-[11px] text-zinc-400">
+                      {group.tasks.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {group.tasks.map((task, i) => renderCard(task, i, false))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-      {resolvedTasks.length > 0 &&
-        renderSection(
-          "Resolved",
-          "text-emerald-500 dark:text-emerald-400",
-          resolvedTasks.length,
-          resolvedGrouped,
-          true,
-        )}
+        {/* Resolved column */}
+        <div>
+          <div className="mb-3 flex items-center gap-2 px-1">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-emerald-500 dark:text-emerald-400">
+              Resolved
+            </span>
+            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            <span className="text-[11px] text-zinc-400">
+              {resolvedTasks.length}
+            </span>
+          </div>
+          {resolvedTasks.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
+              <p className="text-[12px] text-zinc-400 dark:text-zinc-600">
+                No resolved bookmarks
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {resolvedGrouped.map((group) => (
+                <div key={`resolved-${group.label}`}>
+                  <div className="mb-2 flex items-center gap-2 px-1">
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${group.color}`}
+                    >
+                      {group.label}
+                    </span>
+                    <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/40" />
+                    <span className="text-[11px] text-zinc-400">
+                      {group.tasks.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {group.tasks.map((task, i) => renderCard(task, i, true))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       <style jsx global>{`
         @keyframes cardSlideIn {

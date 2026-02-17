@@ -235,21 +235,22 @@ function SmartStats({ tasks }: { tasks: NodalTask[] }) {
           <span className="text-zinc-500">{item.label}</span>
         </div>
       ))}
-      <Link
-        href="/bookmarks"
-        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-blue-500 dark:text-zinc-600 dark:hover:text-blue-400"
-      >
-        <Bookmark className="h-3.5 w-3.5" />
-        Bookmarks
-      </Link>
-
-      <Link
-        href="/resolved"
-        className="ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
-      >
-        <Archive className="h-3.5 w-3.5" />
-        View resolved
-      </Link>
+      <div className="ml-auto flex items-center gap-1">
+        <Link
+          href="/bookmarks"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-blue-500 dark:text-zinc-600 dark:hover:text-blue-400"
+        >
+          <Bookmark className="h-3.5 w-3.5" />
+          Bookmarks
+        </Link>
+        <Link
+          href="/resolved"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
+        >
+          <Archive className="h-3.5 w-3.5" />
+          View resolved
+        </Link>
+      </div>
     </div>
   );
 }
@@ -789,7 +790,7 @@ export function SignalStream({
                   onTaskActionExec={executeTaskAction}
                 />
                 <KanbanColumn
-                  title="Active"
+                  title="Normal"
                   icon={Zap}
                   iconColor="text-blue-500 dark:text-blue-400"
                   tasks={active}
