@@ -130,9 +130,9 @@ function MiniCalendar({
           <span key={i}>{d}</span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-px">
+      <div className="grid grid-cols-7 gap-0.5">
         {days.map((day, i) => {
-          if (day === null) return <span key={i} />;
+          if (day === null) return <span key={i} className="h-6 w-6" />;
           const ds = dateStr(day);
           const hasTask = taskDates.has(ds);
           const isToday = ds === todayStr;
@@ -141,7 +141,7 @@ function MiniCalendar({
             <button
               key={i}
               onClick={() => onSelectAction(isSelected ? null : ds)}
-              className={`relative flex h-7 w-7 items-center justify-center rounded-md text-[10px] font-medium transition-all duration-150 ${
+              className={`relative flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-medium transition-all duration-150 ${
                 isSelected
                   ? "bg-indigo-500 text-white shadow-sm"
                   : isToday

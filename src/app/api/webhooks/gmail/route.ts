@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
       let enrichedContent = content;
       if (email.attachments.length > 0) {
         const fileNames = email.attachments.map((a) => a.filename).join(", ");
-        enrichedContent = `${content} [Attachments: ${fileNames}]`;
+        enrichedContent = content;
       }
 
       // TIER 2 FILTER: Noise check

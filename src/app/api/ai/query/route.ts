@@ -116,9 +116,7 @@ export async function POST(req: NextRequest) {
           .map(
             (sl) =>
               `    - [${sl.event.platform}] From: ${sl.event.sender ?? "Unknown"} | ${sl.event.rawContent.slice(0, 200)} | ${sl.event.timestamp.toISOString()}${
-                sl.event.attachments.length > 0
-                  ? ` | Attachments: ${sl.event.attachments.map((a) => a.name).join(", ")}`
-                  : ""
+                sl.event.attachments.length > 0 ? "" : ""
               }`,
           )
           .join("\n");
