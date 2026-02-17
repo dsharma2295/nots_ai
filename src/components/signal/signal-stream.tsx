@@ -268,7 +268,21 @@ function KanbanColumn({
     value?: string,
   ) => Promise<void>;
 }) {
-  const sorted = [...tasks].sort((a, b) => (a.tier ?? 3) - (b.tier ?? 3));
+  const PRIORITY_WEIGHT: Record<string, number> = {
+    CRITICAL: 0,
+    HIGH: 1,
+    MEDIUM: 2,
+    LOW: 3,
+  };
+  const sorted = [...tasks].sort((a, b) => {
+    const tierA = a.tier || 99;
+    const tierB = b.tier || 99;
+    if (tierA !== tierB) return tierA - tierB;
+    // Same tier (or both unranked) — sort by AI priority
+    return (
+      (PRIORITY_WEIGHT[a.priority] ?? 4) - (PRIORITY_WEIGHT[b.priority] ?? 4)
+    );
+  });
   const timeGroups = groupByTime(sorted);
   return (
     <div className="flex min-w-0 flex-1 flex-col">

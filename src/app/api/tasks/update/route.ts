@@ -14,7 +14,7 @@ const UpdateTaskSchema = z.object({
   action: z.enum(["updateStatus", "updatePriority", "updateTier", "snooze"]),
   status: TaskStatusEnum.optional(),
   priority: PriorityEnum.optional(),
-  tier: z.number().int().min(1).max(3).optional(),
+  tier: z.number().int().min(0).max(3).optional(),
   snoozeUntil: z.string().optional(),
 });
 

@@ -235,9 +235,8 @@ export function TaskCard({
   const sl = STATUS_LABEL[task.status] ?? "Open";
   const firstLink = task.sourceEvents[0]?.deepLink;
 
-  const tierStyle = TIER_STYLE[task.tier];
+  const tierStyle = task.tier > 0 ? TIER_STYLE[task.tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
-
   // State-based hover — persists while dropdowns are open
   const handleMouseEnter = useCallback(() => setShowActions(true), []);
   const handleMouseLeave = useCallback(() => {
@@ -352,6 +351,17 @@ export function TaskCard({
             )}
           </button>
         ))}
+        {task.tier > 0 && (
+          <>
+            <div className="mx-2 my-1 h-px bg-zinc-100 dark:bg-zinc-700" />
+            <button
+              onClick={() => handleTierChange(0)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-zinc-400 transition-colors hover:bg-zinc-50 dark:text-zinc-500 dark:hover:bg-zinc-700/50"
+            >
+              Clear
+            </button>
+          </>
+        )}
       </PortalDropdown>
 
       {/* ─── CARD BODY (clickable for expand) ─── */}
