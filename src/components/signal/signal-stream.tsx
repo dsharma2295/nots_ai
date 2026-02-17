@@ -440,9 +440,15 @@ export function SignalStream({
     async (taskId: string, action: string, value?: string) => {
       // Optimistic update
       if (action === "done") {
-        // Delay removal to let fade animation play (450ms in task-card)
+        // After fade animation, mark as DONE (don't remove — SmartStats needs the count for "View resolved")
         setTimeout(() => {
-          setLocalTasks((prev) => prev.filter((t) => t.id !== taskId));
+          setLocalTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId
+                ? { ...t, status: "DONE" as NodalTask["status"] }
+                : t,
+            ),
+          );
         }, 500);
       } else if (action === "priority" && value) {
         setLocalTasks((prev) =>
