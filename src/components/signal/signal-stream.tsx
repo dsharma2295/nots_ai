@@ -16,12 +16,12 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { getPlatformFilterStyle } from "./platform-icon";
 import { TaskCard } from "./task-card";
 import { TaskCardSkeleton } from "./task-card-skeleton";
-
 // =============================================================
 // CONSTANTS
 // =============================================================
@@ -234,15 +234,13 @@ function SmartStats({ tasks }: { tasks: NodalTask[] }) {
           <span className="text-zinc-500">{item.label}</span>
         </div>
       ))}
-      {done > 0 && (
-        <a
-          href="/resolved"
-          className="ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
-        >
-          <Archive className="h-3.5 w-3.5" />
-          View resolved
-        </a>
-      )}
+      <Link
+        href="/resolved"
+        className="ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
+      >
+        <Archive className="h-3.5 w-3.5" />
+        View resolved
+      </Link>
     </div>
   );
 }
@@ -333,13 +331,20 @@ export function SignalStream({
 
   // Local task state for optimistic updates (done removal, priority, tier)
   const [localTasks, setLocalTasks] = useState(serverTasks);
-  // Sync when server data changes (ISR revalidation)
+  const pendingRef = useRef<Set<string>>(new Set());
   const prevRef = useRef(serverTasks);
   if (prevRef.current !== serverTasks) {
     prevRef.current = serverTasks;
-    setLocalTasks(serverTasks);
+    setLocalTasks((current) =>
+      serverTasks.map((serverTask) => {
+        if (pendingRef.current.has(serverTask.id)) {
+          const localVersion = current.find((t) => t.id === serverTask.id);
+          return localVersion ?? serverTask;
+        }
+        return serverTask;
+      }),
+    );
   }
-
   const [filters, setFilters] = useState<Filters>({
     platforms: new Set(ALL_PLATFORMS),
     statuses: new Set(ALL_STATUSES),
@@ -435,12 +440,13 @@ export function SignalStream({
     [],
   );
 
-  // Execute task card actions — with optimistic local state updates
+  // Execute task card actions — with optimistic updates + pending guard
   const executeTaskAction = useCallback(
     async (taskId: string, action: string, value?: string) => {
+      pendingRef.current.add(taskId);
+
       // Optimistic update
       if (action === "done") {
-        // After fade animation, mark as DONE (don't remove — SmartStats needs the count for "View resolved")
         setTimeout(() => {
           setLocalTasks((prev) =>
             prev.map((t) =>
@@ -466,7 +472,6 @@ export function SignalStream({
         );
       }
 
-      // API call
       const body =
         action === "done"
           ? { action: "updateStatus", taskId, status: "DONE" }
@@ -476,17 +481,25 @@ export function SignalStream({
               ? { action: "updateTier", taskId, tier: parseInt(value, 10) }
               : null;
 
-      if (!body) return;
+      if (!body) {
+        pendingRef.current.delete(taskId);
+        return;
+      }
 
-      await fetch("/api/tasks/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      try {
+        await fetch("/api/tasks/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } finally {
+        setTimeout(() => {
+          pendingRef.current.delete(taskId);
+        }, 2000);
+      }
     },
     [],
   );
-
   // Handle search
   function handleSearchChange(value: string) {
     setFilters((f) => ({ ...f, search: value }));
