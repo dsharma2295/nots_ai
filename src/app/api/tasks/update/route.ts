@@ -5,10 +5,10 @@
 // =============================================================
 
 import db from "@/lib/db";
+import { broadcastTaskUpdate } from "@/lib/supabase";
 import { PriorityEnum, TaskStatusEnum } from "@/lib/validators/schemas";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-
 const UpdateTaskSchema = z.object({
   taskId: z.string().min(1),
   action: z.enum(["updateStatus", "updatePriority", "updateTier", "snooze"]),
@@ -64,14 +64,18 @@ export async function POST(req: NextRequest) {
           needsReview: false,
         },
       });
-
+      await broadcastTaskUpdate({ type: "task_created", taskId: task.id });
       return NextResponse.json({
         success: true,
         action: "createTask",
         task: { id: task.id, title: task.title },
       });
     }
-
+    await broadcastTaskUpdate({
+      type: "task_updated",
+      taskId: data.taskId,
+      changes: { status: data.status },
+    });
     // --- UPDATE STATUS ---
     if (data.action === "updateStatus" && data.status) {
       await db.nodalTask.update({
@@ -93,7 +97,11 @@ export async function POST(req: NextRequest) {
         where: { id: data.taskId },
         data: { priority: data.priority },
       });
-
+      await broadcastTaskUpdate({
+        type: "task_updated",
+        taskId: data.taskId,
+        changes: { priority: data.priority },
+      });
       return NextResponse.json({
         success: true,
         action: "updatePriority",
@@ -108,7 +116,11 @@ export async function POST(req: NextRequest) {
         where: { id: data.taskId },
         data: { tier: data.tier },
       });
-
+      await broadcastTaskUpdate({
+        type: "task_updated",
+        taskId: data.taskId,
+        changes: { tier: data.tier },
+      });
       return NextResponse.json({
         success: true,
         action: "updateTier",
@@ -123,7 +135,11 @@ export async function POST(req: NextRequest) {
         where: { id: data.taskId },
         data: { status: "ARCHIVED" },
       });
-
+      await broadcastTaskUpdate({
+        type: "task_updated",
+        taskId: data.taskId,
+        changes: { status: "ARCHIVED" },
+      });
       return NextResponse.json({
         success: true,
         action: "snooze",

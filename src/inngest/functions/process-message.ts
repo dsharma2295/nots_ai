@@ -20,6 +20,7 @@
 import { findSimilarTasks, orchestrate } from "@/lib/agents/orchestrator";
 import { refineWithEmbedding } from "@/lib/agents/refiner";
 import db from "@/lib/db";
+import { broadcastTaskUpdate } from "@/lib/supabase";
 import {
   CreateNodalTaskSchema,
   CreateSourceEventSchema,
@@ -28,7 +29,6 @@ import {
   type UniversalTask,
 } from "@/lib/validators/schemas";
 import { inngest } from "../client";
-
 // =============================================================
 // EVENT SCHEMA
 // This is the event shape that webhooks send to Inngest.
@@ -162,7 +162,10 @@ export const processMessage = inngest.createFunction(
           vectorStr,
           decision.mergeTargetId,
         );
-
+        await broadcastTaskUpdate({
+          type: "task_updated",
+          taskId: decision.mergeTargetId,
+        });
         return {
           status: "MERGED",
           taskId: decision.mergeTargetId,
@@ -183,7 +186,10 @@ export const processMessage = inngest.createFunction(
         });
 
         const nodalTask = await db.nodalTask.create({ data: taskData });
-
+        await broadcastTaskUpdate({
+          type: "task_created",
+          taskId: nodalTask.id,
+        });
         // Store the embedding
         const vectorStr = `[${embedding.join(",")}]`;
         await db.$executeRawUnsafe(
@@ -220,7 +226,7 @@ export const processMessage = inngest.createFunction(
       });
 
       const nodalTask = await db.nodalTask.create({ data: taskData });
-
+      await broadcastTaskUpdate({ type: "task_created", taskId: nodalTask.id });
       const vectorStr = `[${embedding.join(",")}]`;
       await db.$executeRawUnsafe(
         `UPDATE nodal_tasks SET embedding = $1::vector WHERE id = $2`,

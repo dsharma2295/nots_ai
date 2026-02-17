@@ -1,22 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRealtimeRefresh } from "@/lib/use-realtime-refresh";
 
 export function AutoRefresh({
-  intervalSeconds = 15,
+  intervalSeconds = 60,
 }: {
   intervalSeconds?: number;
 }) {
-  const router = useRouter();
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      router.refresh();
-    }, intervalSeconds * 1000);
-
-    return () => clearInterval(timer);
-  }, [router, intervalSeconds]);
+  // Uses Supabase Realtime if available, falls back to polling
+  useRealtimeRefresh(intervalSeconds);
 
   return (
     <div
