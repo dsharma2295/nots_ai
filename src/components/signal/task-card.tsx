@@ -451,19 +451,9 @@ export function TaskCard({
         </div>
 
         {/* Row 2: Title + unread indicator */}
-        <div className="mb-2.5 flex items-start gap-2">
-          {showIndicator &&
-            (isNewTask ? (
-              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.5)]" />
-            ) : (
-              <span className="mt-0.5 flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-[0_0_6px_rgba(244,63,94,0.5)]">
-                {unseenCount}
-              </span>
-            ))}
-          <h3 className="mb-2.5 text-[14px] font-medium leading-snug tracking-tight text-zinc-900 transition-colors duration-200 dark:text-zinc-100">
-            {task.title}
-          </h3>
-        </div>
+        <h3 className="mb-2.5 text-[14px] font-medium leading-snug tracking-tight text-zinc-900 transition-colors duration-200 dark:text-zinc-100">
+          {task.title}
+        </h3>
         {/* Row 3: platforms + sources + intent + (chevron OR actions) */}
         <div className="flex items-center gap-2.5">
           <div className="flex -space-x-1.5">
