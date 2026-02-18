@@ -1,6 +1,6 @@
 "use client";
 
-import { useCmdK, useLiveRelativeTime } from "@/lib/hooks";
+import { useCmdK } from "@/lib/hooks";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
@@ -18,11 +18,6 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { PlatformDot } from "./platform-icon";
 import { SourceTimeline } from "./source-timeline";
-
-function LiveTime({ iso }: { iso: string }) {
-  const t = useLiveRelativeTime(iso);
-  return <>{t}</>;
-}
 
 export function ResolvedStream({
   tasks: initialTasks,
@@ -317,9 +312,7 @@ export function ResolvedStream({
                         {attachCount}
                       </span>
                     )}
-                    <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-600">
-                      <LiveTime iso={task.updatedAt} />
-                    </span>
+
                     <ChevronDown
                       className={`h-3.5 w-3.5 text-zinc-300 transition-transform duration-300 dark:text-zinc-700 ${
                         isExpanded ? "rotate-180" : ""

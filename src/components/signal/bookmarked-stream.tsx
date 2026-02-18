@@ -1,6 +1,6 @@
 "use client";
 
-import { useCmdK, useLiveRelativeTime } from "@/lib/hooks";
+import { useCmdK } from "@/lib/hooks";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
@@ -53,11 +53,6 @@ const TIER_BADGE: Record<number, { label: string; className: string }> = {
     className: "bg-gradient-to-r from-amber-700 to-amber-600 text-amber-100",
   },
 };
-
-function LiveTime({ iso }: { iso: string }) {
-  const t = useLiveRelativeTime(iso);
-  return <>{t}</>;
-}
 
 function groupByPriority(list: NodalTask[]) {
   const result: { label: string; color: string; tasks: NodalTask[] }[] = [];
@@ -292,9 +287,6 @@ export function BookmarkedStream({
                 {attachCount}
               </span>
             )}
-            <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-600">
-              <LiveTime iso={task.updatedAt} />
-            </span>
             {/* Mark done or Restore */}
             {isResolved ? (
               <button

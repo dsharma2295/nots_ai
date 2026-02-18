@@ -405,7 +405,6 @@ export function TaskCard({
             <span className={`h-1.5 w-1.5 rounded-full ${sd}`} />
             {sl}
           </span>
-
           {tierStyle && (
             <span
               className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${tierStyle.badge}`}
@@ -426,23 +425,29 @@ export function TaskCard({
               }`}
             />
           </button>
-
           {attachCount > 0 && (
             <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-600">
               <Paperclip className="h-3 w-3" />
               {attachCount}
             </span>
           )}
-
           {task.needsReview && (
             <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
               Review
             </span>
           )}
-
-          <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-600">
-            <LiveTime iso={task.updatedAt} />
-          </span>
+          {showIndicator && (
+            <span className="ml-auto">
+              {isNewTask ? (
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.5)]" />
+              ) : (
+                <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_6px_rgba(244,63,94,0.5)]">
+                  {" "}
+                  {unseenCount}
+                </span>
+              )}
+            </span>
+          )}{" "}
         </div>
 
         {/* Row 2: Title + unread indicator */}
@@ -455,7 +460,7 @@ export function TaskCard({
                 {unseenCount}
               </span>
             ))}
-          <h3 className="text-[14px] font-medium leading-snug tracking-tight text-zinc-900 transition-colors duration-200 dark:text-zinc-100">
+          <h3 className="mb-2.5 text-[14px] font-medium leading-snug tracking-tight text-zinc-900 transition-colors duration-200 dark:text-zinc-100">
             {task.title}
           </h3>
         </div>
