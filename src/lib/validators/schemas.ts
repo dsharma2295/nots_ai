@@ -10,6 +10,10 @@
 // RULE: Nothing enters the database without passing through Zod.
 // If Gemini hallucinates a field or Slack changes their payload
 // shape, Zod catches it here — not as a runtime crash in prod.
+//
+// CHANGELOG v1.2:
+// - Added threadId and channelId to UniversalTask + CreateSourceEvent
+//   for deterministic merge (Stage 1: thread linking, Stage 2: sender+time)
 // =============================================================
 
 import { z } from "zod";
@@ -45,13 +49,9 @@ export type TaskStatus = z.infer<typeof TaskStatusEnum>;
 
 // =============================================================
 // BOUNDARY 1: INBOUND WEBHOOK PAYLOADS
-// Raw data from external platforms. These are the most
-// dangerous — external services can change schemas anytime.
 // =============================================================
 
 // --- Slack Event Payload ---
-// Slack sends this via Events API / Socket Mode.
-// We only extract what we need — ignore the rest.
 export const SlackEventSchema = z.object({
   type: z.literal("event_callback"),
   token: z.string().optional(),
@@ -60,7 +60,7 @@ export const SlackEventSchema = z.object({
     user: z.string().min(1),
     text: z.string().default(""),
     channel: z.string().min(1),
-    ts: z.string().min(1), // Slack timestamp (e.g. "1234567890.123456")
+    ts: z.string().min(1),
     thread_ts: z.string().optional(),
     files: z
       .array(
@@ -80,11 +80,9 @@ export const SlackEventSchema = z.object({
 export type SlackEvent = z.infer<typeof SlackEventSchema>;
 
 // --- Gmail Pub/Sub Notification ---
-// Google Cloud Pub/Sub pushes this when a new email arrives.
-// The actual email content requires a separate Gmail API call.
 export const GmailPubSubSchema = z.object({
   message: z.object({
-    data: z.string().min(1), // Base64-encoded JSON
+    data: z.string().min(1),
     messageId: z.string().min(1),
     publishTime: z.string().datetime(),
   }),
@@ -94,7 +92,6 @@ export const GmailPubSubSchema = z.object({
 export type GmailPubSub = z.infer<typeof GmailPubSubSchema>;
 
 // --- Gmail Message (after API fetch) ---
-// Decoded email content from Gmail API.
 export const GmailMessageSchema = z.object({
   id: z.string().min(1),
   threadId: z.string().min(1),
@@ -122,7 +119,7 @@ export const JiraWebhookSchema = z.object({
   webhookEvent: z.string().min(1),
   issue: z.object({
     id: z.string().min(1),
-    key: z.string().min(1), // e.g. "PROJ-123"
+    key: z.string().min(1),
     fields: z.object({
       summary: z.string().default(""),
       description: z.string().nullable().default(null),
@@ -146,9 +143,15 @@ export type JiraWebhook = z.infer<typeof JiraWebhookSchema>;
 
 // =============================================================
 // UNIVERSAL TASK: Normalized format from any platform.
-// Every connector (Slack, Gmail, Jira) converts its raw payload
-// into this shape BEFORE hitting the Refiner agent.
-// This is the single contract the AI sees.
+// Every connector converts its raw payload into this shape
+// BEFORE hitting the Refiner agent.
+//
+// CHANGELOG v1.2:
+// - Added threadId: Platform-native thread identifier.
+//   Slack: thread_ts (shared by all replies in a thread)
+//   Gmail: threadId (shared by all emails in a conversation)
+// - Added channelId: Platform-native channel/context identifier.
+//   Slack: channel ID. Gmail: not used (threadId suffices).
 // =============================================================
 
 export const UniversalTaskSchema = z.object({
@@ -171,19 +174,19 @@ export const UniversalTaskSchema = z.object({
     )
     .default([]),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  // Thread/conversation ID for deterministic merge (Stage 1)
+  threadId: z.string().optional(),
+  // Channel/context ID for sender+time heuristic (Stage 2)
+  channelId: z.string().optional(),
 });
 
 export type UniversalTask = z.infer<typeof UniversalTaskSchema>;
 
 // =============================================================
 // BOUNDARY 2: AGENT OUTPUT SCHEMAS
-// Gemini Flash/Pro return JSON. These schemas enforce the exact
-// shape we expect. If Gemini hallucinates an extra field or
-// returns a string where we need a number, Zod rejects it.
 // =============================================================
 
 // --- Refiner Agent Output (Gemini Flash) ---
-// Extracts metadata and generates a "Smart Title" from raw content.
 export const RefinerOutputSchema = z.object({
   smartTitle: z
     .string()
@@ -202,19 +205,13 @@ export const RefinerOutputSchema = z.object({
 export type RefinerOutput = z.infer<typeof RefinerOutputSchema>;
 
 // --- Orchestrator Agent Output (Gemini Pro) ---
-// Decides whether to merge into existing task or create new.
 export const OrchestratorOutputSchema = z
   .object({
     action: z.enum(["MERGE", "CREATE", "REVIEW"]),
-    // If MERGE: which existing task to merge into
     mergeTargetId: z.string().optional(),
-    // Cosine similarity score that led to this decision
     similarityScore: z.number().min(0).max(1).optional(),
-    // Overall confidence in the grouping decision
     confidence: z.number().min(0).max(1, "Confidence must be between 0 and 1"),
-    // If CREATE: suggested title for the new task
     newTaskTitle: z.string().optional(),
-    // Reasoning — useful for HITL review and debugging
     reasoning: z.string().min(1),
   })
   .refine(
@@ -236,8 +233,6 @@ export type OrchestratorOutput = z.infer<typeof OrchestratorOutputSchema>;
 
 // =============================================================
 // BOUNDARY 3: DATABASE WRITE SCHEMAS
-// Final validation before Prisma insert. These map directly
-// to Prisma's create/update input types.
 // =============================================================
 
 // --- Create NodalTask ---
@@ -255,6 +250,7 @@ export const CreateNodalTaskSchema = z.object({
 export type CreateNodalTask = z.infer<typeof CreateNodalTaskSchema>;
 
 // --- Create SourceEvent ---
+// CHANGELOG v1.2: Added threadId and channelId
 export const CreateSourceEventSchema = z.object({
   platform: PlatformEnum,
   rawContent: z.string().min(1).max(10000),
@@ -263,6 +259,8 @@ export const CreateSourceEventSchema = z.object({
   sourceHash: z.string().min(1),
   metadata: z.record(z.string(), z.unknown()).optional(),
   timestamp: z.coerce.date(),
+  threadId: z.string().optional(),
+  channelId: z.string().optional(),
 });
 
 export type CreateSourceEvent = z.infer<typeof CreateSourceEventSchema>;
@@ -313,8 +311,6 @@ export type UpdateNodalTask = z.infer<typeof UpdateNodalTaskSchema>;
 
 // =============================================================
 // GATEKEEPER SCHEMAS
-// Used by the noise filter to classify incoming messages
-// before they reach the AI pipeline.
 // =============================================================
 
 export const GatekeeperResultSchema = z.object({
@@ -334,16 +330,6 @@ export type GatekeeperResult = z.infer<typeof GatekeeperResultSchema>;
 
 // =============================================================
 // HELPER: Safe parse wrapper
-// Returns typed result instead of throwing.
-// Use this everywhere instead of .parse() directly.
-//
-// USAGE:
-//   const result = safeParse(UniversalTaskSchema, rawData);
-//   if (!result.success) {
-//     console.error(result.error.flatten());
-//     return;
-//   }
-//   // result.data is fully typed
 // =============================================================
 
 export function safeParse<T>(schema: z.ZodSchema<T>, data: unknown) {

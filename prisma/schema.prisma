@@ -188,6 +188,14 @@ model TaskSourceLink {
   @@map("task_source_links")
 }
 
+//   @@index([threadId])
+//   @@index([channelId])
+//
+// Then run in Neon SQL Editor:
+//   ALTER TABLE source_events ADD COLUMN thread_id TEXT;
+//   ALTER TABLE source_events ADD COLUMN channel_id TEXT;
+//   CREATE INDEX idx_source_events_thread_id ON source_events (thread_id);
+//   CREATE INDEX idx_source_events_channel_id ON source_events (channel_id);
 // =============================================================
 // SOURCE EVENT (The Provenance Ledger)
 // Immutable log entry. Each row = one message/notification from
@@ -209,7 +217,19 @@ model SourceEvent {
   rawContent String   @map("raw_content") // Text snippet — NOT full email body (data minimization)
   deepLink   String   @map("deep_link")
   sender     String?
+  threadId   String?  @map("thread_id")
+  channelId  String?  @map("channel_id")
 
+  //
+  //   // Thread/conversation identifier for deterministic merge (Stage 1)
+  //   // Slack: thread_ts value (parent message timestamp, shared by all replies)
+  //   // Gmail: Gmail threadId (all emails in a conversation share this)
+  //   threadId   String?  @map("thread_id")
+  //
+  //   // Channel/context identifier for sender+time heuristic (Stage 2)
+  //   // Slack: channel ID (e.g. C0ADGL60FGE)
+  //   // Gmail: not used (threadId is sufficient)
+  //   channelId  String?  @map("channel_id")
   // Idempotency key — prevents reprocessing identical messages
   sourceHash String @unique @map("source_hash")
 
@@ -228,6 +248,8 @@ model SourceEvent {
   @@index([sourceHash])
   @@index([platform])
   @@index([timestamp])
+  @@index([threadId])
+  @@index([channelId])
   @@map("source_events")
 }
 

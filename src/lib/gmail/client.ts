@@ -2,8 +2,9 @@
 // src/lib/gmail/client.ts
 // Gmail OAuth2 client + email fetching utilities.
 //
-// Uses Google's official googleapis library.
-// Tokens are stored in the database (User model).
+// CHANGELOG v1.2:
+// - Added messageId (Message-ID header) and inReplyTo (In-Reply-To header)
+//   to ParsedEmail for deterministic thread linking.
 // =============================================================
 
 import db from "@/lib/db";
@@ -71,6 +72,9 @@ export interface ParsedEmail {
   labels: string[];
   hasUnsubscribe: boolean;
   attachments: { filename: string; mimeType: string; size: number }[];
+  // For deterministic thread linking (Stage 1)
+  messageId: string; // Message-ID header — unique per email
+  inReplyTo: string; // In-Reply-To header — points to parent email's Message-ID
 }
 
 /**
@@ -105,6 +109,10 @@ export async function fetchEmail(
       (h) => h.name?.toLowerCase() === "list-unsubscribe",
     );
 
+    // Thread linking headers
+    const emailMessageId = getHeader("Message-ID") || getHeader("Message-Id");
+    const inReplyTo = getHeader("In-Reply-To");
+
     // Extract body text
     const body = extractBody(msg.payload) || msg.snippet || "";
 
@@ -120,10 +128,12 @@ export async function fetchEmail(
       to,
       date,
       snippet: msg.snippet ?? "",
-      body: body.slice(0, 5000), // Truncate for token limits
+      body: body.slice(0, 5000),
       labels: (msg.labelIds as string[]) ?? [],
       hasUnsubscribe,
       attachments,
+      messageId: emailMessageId,
+      inReplyTo,
     };
   } catch (error) {
     console.error(`[Gmail] Failed to fetch email ${messageId}:`, error);
@@ -150,13 +160,11 @@ function extractBody(
 
   // Multipart — recurse into parts, prefer text/plain
   if (payload.parts) {
-    // First try text/plain
     for (const part of payload.parts) {
       if (part.mimeType === "text/plain" && part.body?.data) {
         return Buffer.from(part.body.data, "base64url").toString("utf8");
       }
     }
-    // Then try recursing into nested multiparts
     for (const part of payload.parts) {
       const result = extractBody(part);
       if (result) return result;
@@ -193,8 +201,6 @@ function extractAttachments(
 
 // =============================================================
 // GMAIL WATCH (Pub/Sub)
-// Sets up push notifications for new emails.
-// Must be renewed every 7 days.
 // =============================================================
 
 export async function setupGmailWatch() {

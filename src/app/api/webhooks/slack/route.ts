@@ -2,16 +2,9 @@
 // src/app/api/webhooks/slack/route.ts
 // Slack Events API Webhook Endpoint
 //
-// This is the entry point for ALL Slack events into Nots.ai.
-// It handles:
-//   1. URL verification challenge (Slack sends this once on setup)
-//   2. Event deduplication (Slack retries aggressively)
-//   3. HMAC signature verification via the Gatekeeper
-//   4. Noise filtering via the Gatekeeper
-//   5. Dispatching to Inngest for async processing
-//
-// IMPORTANT: Must respond within 3 seconds or Slack retries.
-// All heavy processing happens in Inngest, not here.
+// CHANGELOG v1.2:
+// - Passes threadId (thread_ts) and channelId to Inngest payload
+//   for deterministic merge in the pipeline.
 // =============================================================
 
 import { inngest } from "@/inngest/client";
@@ -24,12 +17,10 @@ import {
 } from "@/lib/gatekeeper";
 import { NextRequest, NextResponse } from "next/server";
 
-// Disable body parsing — we need the raw body for HMAC verification
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    // Read raw body ONCE — needed for both HMAC and parsing
     const rawBody = await req.text();
 
     let body: Record<string, unknown>;
@@ -39,18 +30,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    // ---------------------------------------------------------
-    // STEP 1: URL Verification Challenge
-    // Slack sends this once when you set the Request URL.
-    // Must respond with the challenge value immediately.
-    // ---------------------------------------------------------
+    // URL Verification Challenge
     if (body.type === "url_verification") {
       return NextResponse.json({ challenge: body.challenge });
     }
 
-    // ---------------------------------------------------------
-    // STEP 2: HMAC Signature Verification
-    // ---------------------------------------------------------
+    // HMAC Signature Verification
     const signingSecret = process.env.SLACK_SIGNING_SECRET;
     if (!signingSecret) {
       console.error("[Slack Webhook] SLACK_SIGNING_SECRET not set");
@@ -68,11 +53,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    // ---------------------------------------------------------
-    // STEP 3: Parse the event
-    // ---------------------------------------------------------
+    // Parse the event
     if (body.type !== "event_callback") {
-      // Not an event we care about (e.g., app_rate_limited)
       return NextResponse.json({ ok: true });
     }
 
@@ -90,7 +72,7 @@ export async function POST(req: NextRequest) {
     const threadTs = event.thread_ts as string | undefined;
     const subtype = event.subtype as string | undefined;
 
-    // Ignore messages from bots (including our own)
+    // Ignore messages from bots
     if (botId) {
       return NextResponse.json({ ok: true });
     }
@@ -100,7 +82,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Ignore message subtypes (edits, deletes, joins, leaves, etc.)
+    // Ignore message subtypes
     const IGNORED_SUBTYPES = new Set([
       "message_changed",
       "message_deleted",
@@ -118,18 +100,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // ---------------------------------------------------------
-    // RELEVANCE FILTER
-    // Only process messages relevant to the TARGET user.
-    // A message is relevant if:
-    //   1. It @mentions the target user (e.g. <@U0ADGL60FGE>)
-    //   2. It's a DM to the bot (channel type = "im")
-    //   3. It's an app_mention event
-    //   4. It's a thread reply to the target user's message
-    //   5. It mentions the target user's name textually
-    //
-    // Everything else is someone else's conversation — ignore it.
-    // ---------------------------------------------------------
+    // Relevance filter
     const targetUserId = process.env.SLACK_TARGET_USER_ID ?? "";
     const targetUserNames = (process.env.SLACK_TARGET_USER_NAMES ?? "")
       .split(",")
@@ -144,7 +115,6 @@ export async function POST(req: NextRequest) {
     const mentionsTargetName = targetUserNames.some((name) =>
       text.toLowerCase().includes(name),
     );
-    // Thread replies: if someone replies in a thread the target user started
     const isThreadReply = !!threadTs && threadTs !== ts;
 
     const isRelevant =
@@ -152,17 +122,13 @@ export async function POST(req: NextRequest) {
       isAppMention ||
       mentionsTargetUser ||
       mentionsTargetName ||
-      isThreadReply; // Thread replies get processed — we check authorship in the pipeline
+      isThreadReply;
 
     if (!isRelevant) {
       return NextResponse.json({ ok: true, skipped: "not_relevant" });
     }
 
-    // ---------------------------------------------------------
-    // STEP 7: Extract attachments (Slack files)
-    // Must happen before text processing since file-only
-    // messages need filenames to construct content.
-    // ---------------------------------------------------------
+    // Extract attachments
     const files =
       (event.files as Array<{
         name?: string;
@@ -180,15 +146,7 @@ export async function POST(req: NextRequest) {
         size: f.size,
       }));
 
-    // Enrich text with attachment filenames so the Refiner
-    // has full context about what was shared.
-    //
-    // Three scenarios:
-    //   1. No text, has files → "Shared: budget.xlsx"
-    //   2. Text is just @mentions, has files → "@U123 — Shared: budget.xlsx"
-    //   3. Real text + files → "Review this [Attachments: budget.xlsx]"
-    //   4. Real text, no files → unchanged
-
+    // Enrich text
     const hasFiles = files.length > 0;
     let messageText = text.trim();
 
@@ -200,30 +158,25 @@ export async function POST(req: NextRequest) {
         .trim();
 
       if (!messageText) {
-        // Scenario 1: file-only, no text at all
         messageText = `Shared: ${fileNames}`;
       } else if (!textWithoutMentions) {
-        // Scenario 2: text is only @mentions
         messageText = `${messageText} — Shared: ${fileNames}`;
-      } else {
-        // Scenario 3: real text + files
-        messageText = `${messageText} [Attachments: ${fileNames}]`;
       }
+      // Scenario 3: real text + files — attachments passed separately, don't pollute rawContent
     }
 
-    // Skip truly empty messages (no text, no files)
+    // Skip empty messages
     if (!messageText) {
       return NextResponse.json({ ok: true });
     }
 
-    // Truncate very long messages to prevent downstream issues
+    // Truncate
     const truncatedText =
       messageText.length > 5000
         ? messageText.slice(0, 5000) + "... [truncated]"
         : messageText;
 
-    // Strip Slack mrkdwn user mentions like <@U12345> to readable names
-    // Resolves each user ID to their display name via Slack API
+    // Resolve @mentions to display names
     let cleanedText = truncatedText;
     const mentionPattern = /<@([A-Z0-9]+)>/g;
     const mentions = [...truncatedText.matchAll(mentionPattern)];
@@ -267,17 +220,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ---------------------------------------------------------
-    // STEP 4: Noise Filter
-    // ---------------------------------------------------------
+    // Noise filter
+    // Option B (S6): If noise but has threadTs, send through with flag
+    // so process-message can touch the task's updatedAt without adding to provenance.
     const noiseResult = classifyNoise(cleanedText, user, false);
-    if (!noiseResult.allowed) {
+    const isNoiseInThread = !noiseResult.allowed && !!threadTs;
+
+    if (!noiseResult.allowed && !isNoiseInThread) {
       return NextResponse.json({ ok: true, filtered: noiseResult.reason });
     }
 
-    // ---------------------------------------------------------
-    // STEP 5: Deduplication
-    // ---------------------------------------------------------
+    // Deduplication
     const teamId = (body.team_id as string) ?? "";
     const deepLink = `slack://channel?team=${teamId}&id=${channel}&message=${ts}`;
     const sourceHash = generateSourceHash("SLACK", deepLink, cleanedText);
@@ -287,11 +240,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, filtered: "DUPLICATE" });
     }
 
-    // ---------------------------------------------------------
-    // STEP 6: Resolve user info (optional — for sender name)
-    // We use the bot token to look up the user's display name.
-    // If it fails, we fall back to the user ID.
-    // ---------------------------------------------------------
+    // Resolve user info
     let senderName = user;
 
     if (botToken) {
@@ -317,18 +266,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ---------------------------------------------------------
-    // STEP 8: Dispatch to Inngest
-    // This returns immediately — processing happens in background.
-    // Must respond to Slack within 3 seconds.
-    // ---------------------------------------------------------
-
-    // ---------------------------------------------------------
-    // STEP 8: Resolve Nots.ai user
-    // Uses GMAIL_TARGET_EMAIL as the primary user identity.
-    // Both Slack and Gmail funnel into the same user so that
-    // cross-platform vector search and merging works.
-    // ---------------------------------------------------------
+    // Resolve Nots.ai user
     const primaryEmail =
       process.env.GMAIL_TARGET_EMAIL ?? `slack-${teamId}@nots.ai`;
 
@@ -345,6 +283,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // ─── DISPATCH TO INNGEST ─────────────────────────────
+    // Now includes threadId and channelId for Stage 1 & 2 merge
     await inngest.send({
       name: "nots/message.received",
       data: {
@@ -356,6 +296,15 @@ export async function POST(req: NextRequest) {
           timestamp: new Date(parseFloat(ts) * 1000).toISOString(),
           sourceHash,
           attachments,
+          // Stage 1: Thread linking
+          // Reply: threadTs = parent's ts → same value as parent stored
+          // New message: no threadTs → store ts so future replies find it
+          // Both parent and reply end up with the same threadId value.
+          threadId: threadTs ?? ts,
+          // Stage 2: Channel context for sender+time heuristic
+          channelId: channel,
+          // Option B: If noise in thread, flag for process-message
+          metadata: isNoiseInThread ? { noiseInThread: true } : undefined,
         },
         userId: notsUser.id,
       },
