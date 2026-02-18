@@ -16,11 +16,13 @@ const UpdateTaskSchema = z.object({
     "updatePriority",
     "updateTier",
     "bookmark",
+    "markSeen",
     "snooze",
   ]),
   status: TaskStatusEnum.optional(),
   priority: PriorityEnum.optional(),
   tier: z.number().int().min(0).max(3).optional(),
+  seenEventCount: z.number().int().min(0).optional(),
   snoozeUntil: z.string().optional(),
 });
 
@@ -161,7 +163,20 @@ export async function POST(req: NextRequest) {
         bookmarked: !task.bookmarked,
       });
     }
+    // --- MARK SEEN ---
+    if (data.action === "markSeen" && data.seenEventCount !== undefined) {
+      await db.nodalTask.update({
+        where: { id: data.taskId },
+        data: { seenEventCount: data.seenEventCount },
+      });
 
+      return NextResponse.json({
+        success: true,
+        action: "markSeen",
+        taskId: data.taskId,
+        seenEventCount: data.seenEventCount,
+      });
+    }
     // --- SNOOZE ---
     if (data.action === "snooze") {
       await db.nodalTask.update({

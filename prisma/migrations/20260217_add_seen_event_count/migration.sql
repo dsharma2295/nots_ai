@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "nodal_tasks" ADD COLUMN IF NOT EXISTS "bookmarked" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "nodal_tasks" ADD COLUMN IF NOT EXISTS "seen_event_count" INTEGER NOT NULL DEFAULT 0;

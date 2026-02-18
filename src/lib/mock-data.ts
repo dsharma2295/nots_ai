@@ -38,6 +38,7 @@ export interface NodalTask {
   needsReview: boolean;
   tier: number; // 1 = Gold (P1), 2 = Silver (P2), 3 = Bronze/default (P3)
   bookmarked: boolean;
+  seenEventCount: number;
   createdAt: string;
   updatedAt: string;
   sourceEvents: SourceEvent[];
@@ -54,6 +55,7 @@ export const MOCK_TASKS: NodalTask[] = [
     needsReview: false,
     tier: 3,
     bookmarked: false,
+    seenEventCount: 0,
     createdAt: "2026-02-07T09:15:00Z",
     updatedAt: "2026-02-07T10:30:00Z",
     sourceEvents: [
@@ -112,6 +114,7 @@ export const MOCK_TASKS: NodalTask[] = [
     needsReview: false,
     tier: 3,
     bookmarked: false,
+    seenEventCount: 0,
     createdAt: "2026-02-07T08:00:00Z",
     updatedAt: "2026-02-07T14:20:00Z",
     sourceEvents: [
@@ -157,6 +160,7 @@ export const MOCK_TASKS: NodalTask[] = [
     needsReview: false,
     tier: 3,
     bookmarked: false,
+    seenEventCount: 0,
     createdAt: "2026-02-07T07:30:00Z",
     updatedAt: "2026-02-07T13:00:00Z",
     sourceEvents: [
@@ -208,6 +212,7 @@ export const MOCK_TASKS: NodalTask[] = [
     needsReview: false,
     tier: 3,
     bookmarked: false,
+    seenEventCount: 0,
     createdAt: "2026-02-06T16:00:00Z",
     updatedAt: "2026-02-07T11:00:00Z",
     sourceEvents: [
@@ -243,6 +248,7 @@ export const MOCK_TASKS: NodalTask[] = [
     needsReview: false,
     tier: 3,
     bookmarked: false,
+    seenEventCount: 0,
     createdAt: "2026-02-07T08:00:00Z",
     updatedAt: "2026-02-07T08:00:00Z",
     sourceEvents: [
@@ -268,6 +274,7 @@ export const MOCK_TASKS: NodalTask[] = [
     needsReview: true,
     tier: 3,
     bookmarked: false,
+    seenEventCount: 0,
     createdAt: "2026-02-07T12:00:00Z",
     updatedAt: "2026-02-07T12:00:00Z",
     sourceEvents: [

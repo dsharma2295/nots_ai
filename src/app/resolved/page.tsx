@@ -32,6 +32,7 @@ async function getResolvedTasks(): Promise<NodalTask[]> {
     needsReview: t.needsReview,
     tier: t.tier,
     bookmarked: t.bookmarked,
+    seenEventCount: t.seenEventCount,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     sourceEvents: t.sourceLinks.map((link) => ({

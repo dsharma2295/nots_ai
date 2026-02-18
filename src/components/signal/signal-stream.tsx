@@ -500,6 +500,12 @@ export function SignalStream({
             t.id === taskId ? { ...t, bookmarked: !t.bookmarked } : t,
           ),
         );
+      } else if (action === "markSeen" && value) {
+        setLocalTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId ? { ...t, seenEventCount: parseInt(value, 10) } : t,
+          ),
+        );
       }
       const body =
         action === "done"
@@ -510,7 +516,13 @@ export function SignalStream({
               ? { action: "updateTier", taskId, tier: parseInt(value, 10) }
               : action === "bookmark"
                 ? { action: "bookmark", taskId }
-                : null;
+                : action === "markSeen" && value
+                  ? {
+                      action: "markSeen",
+                      taskId,
+                      seenEventCount: parseInt(value, 10),
+                    }
+                  : null;
 
       if (!body) {
         pendingRef.current.delete(taskId);
