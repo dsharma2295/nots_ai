@@ -30,7 +30,7 @@ import { inngest } from "../client";
 // =============================================================
 
 const STAGE_2_TIME_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
-const STAGE_2_LOWERED_THRESHOLD = 0.6;
+const STAGE_2_LOWERED_THRESHOLD = 0.75;
 
 // =============================================================
 // EVENT SCHEMA
