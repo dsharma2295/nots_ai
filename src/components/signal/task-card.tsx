@@ -59,7 +59,7 @@ const COLUMN_OPTIONS = [
       "text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-500/10",
   },
   {
-    label: "Active",
+    label: "Normal",
     priority: "MEDIUM" as const,
     color:
       "text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10",
