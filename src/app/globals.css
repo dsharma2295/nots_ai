@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./custom-animations.css";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -124,20 +126,7 @@
   }
 }
 
-/* =============================================================
-   APPEND THIS ENTIRE BLOCK TO THE END OF src/app/globals.css
-   (after the @layer base { ... } block)
-   ============================================================= */
-
-/* Skeleton shimmer — replaces boring pulse with a sweeping gleam */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
+/* Utility classes */
 .shimmer {
   background: linear-gradient(90deg, #e4e4e7 25%, #f4f4f5 50%, #e4e4e7 75%);
   background-size: 200% 100%;
@@ -153,21 +142,10 @@
   background-size: 200% 100%;
 }
 
-/* Empty state floating icon */
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
 
-/* Hide scrollbars but keep scroll functionality */
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;

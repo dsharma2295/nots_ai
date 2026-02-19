@@ -22,7 +22,7 @@ export function AIResponseLoading() {
     <div className="relative overflow-hidden rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 dark:bg-indigo-500/[0.03]">
       {/* Shimmer bar */}
       <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden">
-        <div className="h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] rounded-full bg-indigo-500/40" />
+        <div className="h-full w-1/3 animate-[aiShimmer_1.5s_ease-in-out_infinite] rounded-full bg-indigo-500/40" />
       </div>
 
       <div className="flex items-start gap-3">
@@ -34,17 +34,6 @@ export function AIResponseLoading() {
           <div className="h-3 w-1/2 animate-pulse rounded bg-indigo-500/10" />
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(400%);
-          }
-        }
-      `}</style>
     </div>
   );
 }

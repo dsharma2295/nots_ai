@@ -1,6 +1,7 @@
 "use client";
 
 import { useCmdK, useLiveRelativeTime } from "@/lib/hooks";
+import { useNotes } from "@/lib/hooks/use-notes";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
@@ -17,19 +18,13 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { ConfirmDeleteModal } from "./confirm-delete-modal";
-import {
-  CreateNoteModal,
-  NoteChips,
-  type NoteData,
-  ViewNoteModal,
-} from "./note-modal";
+import { CreateNoteModal, NoteChips, ViewNoteModal } from "./note-modal";
 import { PlatformDot } from "./platform-icon";
 import { SourceTimeline } from "./source-timeline";
 import { useToast } from "./toast";
-
 const PRIORITY_LABEL: Record<string, { text: string; color: string }> = {
   CRITICAL: {
     text: "Critical",
@@ -121,12 +116,10 @@ function BookmarkedCard({
   onDelete: (taskId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [notes, setNotes] = useState<NoteData[]>([]);
-  const [notesLoaded, setNotesLoaded] = useState(false);
-  const [showCreateNote, setShowCreateNote] = useState(false);
-  const [viewingNote, setViewingNote] = useState<NoteData | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
+  const notes = useNotes(task.id, expanded);
+  const noteCount = notes.count(task.noteCount ?? 0);
 
   const platforms = [...new Set(task.sourceEvents.map((e) => e.platform))];
   const attachCount = task.sourceEvents.reduce(
@@ -134,49 +127,6 @@ function BookmarkedCard({
     0,
   );
   const tierBadge = task.tier > 0 ? TIER_BADGE[task.tier] : null;
-
-  useEffect(() => {
-    if (expanded && !notesLoaded) {
-      fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "list", taskId: task.id }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.notes) setNotes(data.notes);
-          setNotesLoaded(true);
-        })
-        .catch(() => setNotesLoaded(true));
-    }
-  }, [expanded, notesLoaded, task.id]);
-
-  const handleNoteCreated = useCallback(
-    (note: NoteData) => {
-      setNotes((prev) => [note, ...prev]);
-      toast("Note added");
-    },
-    [toast],
-  );
-
-  const handleNoteUpdated = useCallback(
-    (updated: NoteData) => {
-      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
-      toast("Note saved");
-    },
-    [toast],
-  );
-
-  const handleNoteDeleted = useCallback(
-    (noteId: string) => {
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      toast("Note deleted");
-    },
-    [toast],
-  );
-
-  const noteCount = notesLoaded ? notes.length : (task.noteCount ?? 0);
-
   return (
     <>
       <div
@@ -231,7 +181,7 @@ function BookmarkedCard({
               }
               onClick={(e) => {
                 e.stopPropagation();
-                setShowCreateNote(true);
+                notes.setShowCreate(true);
               }}
               className="flex items-center gap-1 transition-transform active:scale-90"
             >
@@ -333,11 +283,11 @@ function BookmarkedCard({
           className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
         >
           <div className="overflow-hidden">
-            {notesLoaded && notes.length > 0 && (
+            {notes.loaded && notes.list.length > 0 && (
               <div className="border-t border-zinc-100 px-4 pb-0 pt-3 dark:border-zinc-800/50">
                 <NoteChips
-                  notes={notes}
-                  onClickNote={(note) => setViewingNote(note)}
+                  notes={notes.list}
+                  onClickNote={(note) => notes.setViewing(note)}
                 />
               </div>
             )}
@@ -354,27 +304,23 @@ function BookmarkedCard({
           </div>
         </div>
       </div>
-
       {/* Modals */}
-      {showCreateNote && (
+      {notes.showCreate && (
         <CreateNoteModal
           taskId={task.id}
           sourceEvents={task.sourceEvents}
-          onClose={() => setShowCreateNote(false)}
-          onCreate={handleNoteCreated}
+          onClose={() => notes.setShowCreate(false)}
+          onCreate={notes.onCreate}
         />
       )}
-      {viewingNote && (
+      {notes.viewing && (
         <ViewNoteModal
-          note={viewingNote}
-          onClose={() => setViewingNote(null)}
-          onUpdate={(updated) => {
-            handleNoteUpdated(updated);
-            setViewingNote(updated);
-          }}
-          onDelete={handleNoteDeleted}
+          note={notes.viewing}
+          onClose={() => notes.setViewing(null)}
+          onUpdate={notes.onUpdate}
+          onDelete={notes.onDelete}
         />
-      )}
+      )}{" "}
       {confirmDelete && (
         <ConfirmDeleteModal
           onConfirm={() => {
@@ -762,19 +708,6 @@ export function BookmarkedStream({
           </button>
         </div>
       )}
-
-      <style jsx global>{`
-        @keyframes cardSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(12px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -173,19 +173,6 @@ export function CreateNoteModal({
           </button>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes noteModalIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-      `}</style>
     </div>,
     document.body,
   );

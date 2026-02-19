@@ -1,5 +1,6 @@
 "use client";
 import { useLiveRelativeTime } from "@/lib/hooks";
+import { useNotes } from "@/lib/hooks/use-notes";
 import type { NodalTask } from "@/lib/mock-data";
 import {
   ArrowRightLeft,
@@ -14,12 +15,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmDeleteModal } from "./confirm-delete-modal";
-import {
-  CreateNoteModal,
-  NoteChips,
-  ViewNoteModal,
-  type NoteData,
-} from "./note-modal";
+import { CreateNoteModal, NoteChips, ViewNoteModal } from "./note-modal";
 import { PlatformDot } from "./platform-icon";
 import { SourceTimeline } from "./source-timeline";
 import { useToast } from "./toast";
@@ -243,52 +239,9 @@ export function TaskCard({
   const sl = STATUS_LABEL[task.status] ?? "Open";
 
   const { toast } = useToast();
-  const [notes, setNotes] = useState<NoteData[]>([]);
-  const [notesLoaded, setNotesLoaded] = useState(false);
-  const [showCreateNote, setShowCreateNote] = useState(false);
-  const [viewingNote, setViewingNote] = useState<NoteData | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // Fetch notes when card expands
-  useEffect(() => {
-    if (expanded && !notesLoaded) {
-      fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "list", taskId: task.id }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.notes) setNotes(data.notes);
-          setNotesLoaded(true);
-        })
-        .catch(() => setNotesLoaded(true));
-    }
-  }, [expanded, notesLoaded, task.id]);
-
-  const handleNoteCreated = useCallback(
-    (note: NoteData) => {
-      setNotes((prev) => [note, ...prev]);
-      toast("Note added");
-    },
-    [toast],
-  );
-
-  const handleNoteUpdated = useCallback(
-    (updated: NoteData) => {
-      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
-      toast("Note saved");
-    },
-    [toast],
-  );
-
-  const handleNoteDeleted = useCallback(
-    (noteId: string) => {
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      toast("Note deleted");
-    },
-    [toast],
-  );
-  const noteCount = notesLoaded ? notes.length : (task.noteCount ?? 0);
+  const notes = useNotes(task.id, expanded);
+  const noteCount = notes.count(task.noteCount ?? 0);
   const tierStyle = task.tier > 0 ? TIER_STYLE[task.tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
   // State-based hover — persists while dropdowns are open
@@ -396,7 +349,6 @@ ${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-
           </button>
         ))}
       </PortalDropdown>
-
       <PortalDropdown
         anchorRef={tierBtnRef}
         open={tierOpen}
@@ -434,7 +386,6 @@ ${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-
           </>
         )}
       </PortalDropdown>
-
       {/* ─── CARD BODY (clickable for expand) ─── */}
       <div
         role="button"
@@ -492,7 +443,7 @@ ${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-
             }
             onClick={(e) => {
               e.stopPropagation();
-              setShowCreateNote(true);
+              notes.setShowCreate(true);
             }}
             className="flex items-center gap-1 transition-transform active:scale-90"
           >
@@ -622,17 +573,16 @@ ${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-
           </div>
         </div>
       </div>
-
       {/* ─── EXPANDABLE TIMELINE (outside the clickable div) ─── */}
       <div
         className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
         <div className="overflow-hidden">
-          {notesLoaded && notes.length > 0 && (
+          {notes.loaded && notes.list.length > 0 && (
             <div className="border-t border-zinc-100 px-4 pb-0 pt-3 dark:border-zinc-800/50">
               <NoteChips
-                notes={notes}
-                onClickNote={(note) => setViewingNote(note)}
+                notes={notes.list}
+                onClickNote={(note) => notes.setViewing(note)}
               />
             </div>
           )}
@@ -649,25 +599,22 @@ ${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-
           </div>
         </div>
       </div>
-      {showCreateNote && (
+      {notes.showCreate && (
         <CreateNoteModal
           taskId={task.id}
           sourceEvents={task.sourceEvents}
-          onClose={() => setShowCreateNote(false)}
-          onCreate={handleNoteCreated}
+          onClose={() => notes.setShowCreate(false)}
+          onCreate={notes.onCreate}
         />
       )}
-      {viewingNote && (
+      {notes.viewing && (
         <ViewNoteModal
-          note={viewingNote}
-          onClose={() => setViewingNote(null)}
-          onUpdate={(updated) => {
-            handleNoteUpdated(updated);
-            setViewingNote(updated);
-          }}
-          onDelete={handleNoteDeleted}
+          note={notes.viewing}
+          onClose={() => notes.setViewing(null)}
+          onUpdate={notes.onUpdate}
+          onDelete={notes.onDelete}
         />
-      )}
+      )}{" "}
       {confirmDelete && (
         <ConfirmDeleteModal
           onConfirm={handleDelete}

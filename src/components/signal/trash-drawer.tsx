@@ -391,19 +391,6 @@ export function TrashDrawer({
           onCancel={() => setConfirmEmptyAll(false)}
         />
       )}
-
-      <style jsx global>{`
-        @keyframes drawerCardIn {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 0.4;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
     </>,
     document.body,
   );

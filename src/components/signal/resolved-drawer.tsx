@@ -1,6 +1,7 @@
 "use client";
 
 import { useLiveRelativeTime } from "@/lib/hooks";
+import { useNotes } from "@/lib/hooks/use-notes";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
@@ -20,16 +21,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { ConfirmDeleteModal } from "./confirm-delete-modal";
-import {
-  CreateNoteModal,
-  NoteChips,
-  type NoteData,
-  ViewNoteModal,
-} from "./note-modal";
+import { CreateNoteModal, NoteChips, ViewNoteModal } from "./note-modal";
 import { PlatformDot } from "./platform-icon";
 import { SourceTimeline } from "./source-timeline";
 import { useToast } from "./toast";
-
 function LiveTime({ iso }: { iso: string }) {
   const t = useLiveRelativeTime(iso);
   return <>{t}</>;
@@ -54,61 +49,16 @@ function ResolvedCard({
   onDelete: (taskId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [notes, setNotes] = useState<NoteData[]>([]);
-  const [notesLoaded, setNotesLoaded] = useState(false);
-  const [showCreateNote, setShowCreateNote] = useState(false);
-  const [viewingNote, setViewingNote] = useState<NoteData | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
+  const notes = useNotes(task.id, expanded);
+  const noteCount = notes.count(task.noteCount ?? 0);
 
   const platforms = [...new Set(task.sourceEvents.map((e) => e.platform))];
   const attachCount = task.sourceEvents.reduce(
     (a, e) => a + e.attachments.length,
     0,
   );
-
-  useEffect(() => {
-    if (expanded && !notesLoaded) {
-      fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "list", taskId: task.id }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.notes) setNotes(data.notes);
-          setNotesLoaded(true);
-        })
-        .catch(() => setNotesLoaded(true));
-    }
-  }, [expanded, notesLoaded, task.id]);
-
-  const handleNoteCreated = useCallback(
-    (note: NoteData) => {
-      setNotes((prev) => [note, ...prev]);
-      toast("Note added");
-    },
-    [toast],
-  );
-
-  const handleNoteUpdated = useCallback(
-    (updated: NoteData) => {
-      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
-      toast("Note saved");
-    },
-    [toast],
-  );
-
-  const handleNoteDeleted = useCallback(
-    (noteId: string) => {
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      toast("Note deleted");
-    },
-    [toast],
-  );
-
-  const noteCount = notesLoaded ? notes.length : (task.noteCount ?? 0);
-
   return (
     <>
       <div
@@ -151,25 +101,25 @@ function ResolvedCard({
                   ? `${noteCount} note${noteCount !== 1 ? "s" : ""}`
                   : "Add note"
               }
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all active:scale-90"
+              className="flex h-6 shrink-0 items-center gap-0.5 rounded-md opacity-0 transition-all active:scale-90 group-hover/card:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowCreateNote(true);
+                notes.setShowCreate(true);
               }}
             >
               <NotebookPen
                 className={`h-3 w-3 transition-colors ${
                   noteCount > 0
                     ? "text-indigo-500 dark:text-indigo-400"
-                    : "text-zinc-400 opacity-0 hover:text-indigo-400 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:text-indigo-400"
+                    : "text-zinc-400 hover:text-indigo-400 dark:text-zinc-600 dark:hover:text-indigo-400"
                 }`}
               />
+              {noteCount > 0 && (
+                <span className="text-[10px] font-medium leading-none text-indigo-500 dark:text-indigo-400">
+                  {noteCount}
+                </span>
+              )}
             </button>
-            {noteCount > 0 && (
-              <span className="flex items-center text-[10px] font-medium text-indigo-500 dark:text-indigo-400">
-                {noteCount}
-              </span>
-            )}
             {/* Bookmark */}
             <button
               title={task.bookmarked ? "Remove bookmark" : "Bookmark"}
@@ -239,11 +189,11 @@ function ResolvedCard({
           className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
         >
           <div className="overflow-hidden">
-            {notesLoaded && notes.length > 0 && (
+            {notes.loaded && notes.list.length > 0 && (
               <div className="border-t border-zinc-100 px-4 pb-0 pt-3 dark:border-zinc-800/50">
                 <NoteChips
-                  notes={notes}
-                  onClickNote={(note) => setViewingNote(note)}
+                  notes={notes.list}
+                  onClickNote={(note) => notes.setViewing(note)}
                 />
               </div>
             )}
@@ -260,27 +210,23 @@ function ResolvedCard({
           </div>
         </div>
       </div>
-
       {/* Modals */}
-      {showCreateNote && (
+      {notes.showCreate && (
         <CreateNoteModal
           taskId={task.id}
           sourceEvents={task.sourceEvents}
-          onClose={() => setShowCreateNote(false)}
-          onCreate={handleNoteCreated}
+          onClose={() => notes.setShowCreate(false)}
+          onCreate={notes.onCreate}
         />
       )}
-      {viewingNote && (
+      {notes.viewing && (
         <ViewNoteModal
-          note={viewingNote}
-          onClose={() => setViewingNote(null)}
-          onUpdate={(updated) => {
-            handleNoteUpdated(updated);
-            setViewingNote(updated);
-          }}
-          onDelete={handleNoteDeleted}
+          note={notes.viewing}
+          onClose={() => notes.setViewing(null)}
+          onUpdate={notes.onUpdate}
+          onDelete={notes.onDelete}
         />
-      )}
+      )}{" "}
       {confirmDelete && (
         <ConfirmDeleteModal
           onConfirm={() => {
@@ -613,19 +559,6 @@ export function ResolvedDrawer({
           )}
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes drawerCardIn {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 0.6;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
     </>,
     document.body,
   );
