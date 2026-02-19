@@ -336,9 +336,11 @@ function KanbanColumn({
 
 export function SignalStream({
   tasks: serverTasks,
+  resolvedTasks = [],
   isLoading = false,
 }: {
   tasks: NodalTask[];
+  resolvedTasks?: NodalTask[];
   isLoading?: boolean;
 }) {
   const searchRef = useRef<HTMLInputElement>(null);

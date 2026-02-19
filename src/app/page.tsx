@@ -5,8 +5,10 @@ import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+
 async function getTasks(): Promise<NodalTask[]> {
   const tasks = await db.nodalTask.findMany({
+    where: { status: { not: "DONE" } },
     orderBy: { updatedAt: "desc" },
     take: 50,
     include: {
@@ -34,9 +36,9 @@ async function getTasks(): Promise<NodalTask[]> {
     tier: t.tier,
     bookmarked: t.bookmarked,
     seenEventCount: t.seenEventCount,
+    noteCount: t._count.notes,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
-
     sourceEvents: t.sourceLinks.map((link) => ({
       id: link.event.id,
       platform: link.event.platform as NodalTask["sourceEvents"][0]["platform"],
@@ -50,12 +52,63 @@ async function getTasks(): Promise<NodalTask[]> {
         mimeType: a.mimeType ?? undefined,
       })),
     })),
+  }));
+}
+
+async function getResolvedTasks(): Promise<NodalTask[]> {
+  const tasks = await db.nodalTask.findMany({
+    where: { status: "DONE" },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    include: {
+      sourceLinks: {
+        where: { dismissed: false },
+        include: {
+          event: { include: { attachments: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { notes: true },
+      },
+    },
+  });
+
+  return tasks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    intent: t.intent ?? "unknown",
+    priority: t.priority as NodalTask["priority"],
+    status: t.status as NodalTask["status"],
+    confidence: t.confidence,
+    needsReview: t.needsReview,
+    tier: t.tier,
+    bookmarked: t.bookmarked,
+    seenEventCount: t.seenEventCount,
     noteCount: t._count.notes,
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
+    sourceEvents: t.sourceLinks.map((link) => ({
+      id: link.event.id,
+      platform: link.event.platform as NodalTask["sourceEvents"][0]["platform"],
+      rawContent: link.event.rawContent,
+      deepLink: link.event.deepLink,
+      sender: link.event.sender ?? "Unknown",
+      timestamp: link.event.timestamp.toISOString(),
+      attachments: link.event.attachments.map((a) => ({
+        name: a.name,
+        url: a.url,
+        mimeType: a.mimeType ?? undefined,
+      })),
+    })),
   }));
 }
 
 export default async function Home() {
-  const tasks = await getTasks();
+  const [tasks, resolvedTasks] = await Promise.all([
+    getTasks(),
+    getResolvedTasks(),
+  ]);
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 transition-colors duration-300 dark:bg-[#0a0a0f] sm:px-6 lg:px-8">
@@ -81,7 +134,7 @@ export default async function Home() {
           </div>
         </div>
 
-        <SignalStream tasks={tasks} />
+        <SignalStream tasks={tasks} resolvedTasks={resolvedTasks} />
 
         {tasks.length === 0 && (
           <div className="mt-16 text-center">
