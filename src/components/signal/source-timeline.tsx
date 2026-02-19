@@ -1,7 +1,7 @@
 "use client";
-
 import type { SourceEvent } from "@/lib/mock-data";
 import { ArrowUpRight, Paperclip } from "lucide-react";
+import { useState } from "react";
 import { PlatformBadge, getPlatformDotClass } from "./platform-icon";
 
 function formatTime(iso: string): string {
@@ -13,6 +13,34 @@ function formatTime(iso: string): string {
     minute: "2-digit",
     hour12: true,
   });
+}
+
+function ExpandableText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > 200;
+
+  return (
+    <div>
+      <p
+        className={`text-[13px] leading-[1.6] text-zinc-600 dark:text-zinc-400 ${
+          !expanded && isLong ? "line-clamp-3" : ""
+        }`}
+      >
+        {text}
+      </p>
+      {isLong && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+          className="mt-1 text-[12px] font-semibold text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300"
+        >
+          {expanded ? "show less" : "see more"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function SourceTimeline({ events }: { events: SourceEvent[] }) {
@@ -44,10 +72,7 @@ export function SourceTimeline({ events }: { events: SourceEvent[] }) {
               </span>
             </div>
 
-            <p className="text-[13px] leading-[1.6] text-zinc-600 line-clamp-3 dark:text-zinc-400">
-              {evt.rawContent}
-            </p>
-
+            <ExpandableText text={evt.rawContent} />
             {evt.attachments.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {evt.attachments.map((att, j) => (

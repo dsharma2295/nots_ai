@@ -1,5 +1,4 @@
 "use client";
-
 import { useCmdK } from "@/lib/hooks";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
@@ -18,6 +17,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { PlatformDot } from "./platform-icon";
 import { SourceTimeline } from "./source-timeline";
+import { useToast } from "./toast";
 
 export function ResolvedStream({
   tasks: initialTasks,
@@ -26,7 +26,7 @@ export function ResolvedStream({
 }) {
   const [tasks, setTasks] = useState(initialTasks);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
+  const { toast } = useToast();
   // Search + AI state
   const [searchText, setSearchText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -120,29 +120,39 @@ export function ResolvedStream({
     }
   }
 
-  const handleRestore = useCallback(async (taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    await fetch("/api/tasks/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "updateStatus", taskId, status: "OPEN" }),
-    });
-  }, []);
+  const handleRestore = useCallback(
+    async (taskId: string) => {
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      toast("Restored to dashboard");
+      await fetch("/api/tasks/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateStatus",
+          taskId,
+          status: "OPEN",
+        }),
+      });
+    },
+    [toast],
+  );
 
-  const handleBookmark = useCallback(async (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, bookmarked: !t.bookmarked } : t,
-      ),
-    );
-    await fetch("/api/tasks/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "bookmark", taskId }),
-    });
-  }, []);
-
-  // Filtered tasks
+  const handleBookmark = useCallback(
+    async (taskId: string) => {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, bookmarked: !t.bookmarked } : t,
+        ),
+      );
+      toast("Bookmark updated");
+      await fetch("/api/tasks/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "bookmark", taskId }),
+      });
+    },
+    [toast],
+  ); // Filtered tasks
   const filteredTasks = useMemo(() => {
     if (!filterText) return tasks;
     const q = filterText.toLowerCase();

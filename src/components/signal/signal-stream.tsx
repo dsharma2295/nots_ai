@@ -1,5 +1,4 @@
 "use client";
-
 import { useCmdK } from "@/lib/hooks";
 import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
@@ -23,6 +22,7 @@ import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { getPlatformFilterStyle } from "./platform-icon";
 import { TaskCard } from "./task-card";
 import { TaskCardSkeleton } from "./task-card-skeleton";
+import { useToast } from "./toast";
 // =============================================================
 // CONSTANTS
 // =============================================================
@@ -354,6 +354,7 @@ export function SignalStream({
   useCmdK(searchRef);
 
   // Local task state for optimistic updates (done removal, priority, tier)
+  const { toast } = useToast();
   const [localTasks, setLocalTasks] = useState(serverTasks);
   const pendingRef = useRef<Set<string>>(new Set());
   const prevRef = useRef(serverTasks);
@@ -530,18 +531,38 @@ export function SignalStream({
       }
 
       try {
-        await fetch("/api/tasks/update", {
+        const res = await fetch("/api/tasks/update", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
+        if (!res.ok) {
+          toast("Action failed — try again", "error");
+        } else if (action === "done") {
+          toast("Task resolved");
+        } else if (action === "priority" && value) {
+          toast(
+            "Moved to " +
+              (value === "CRITICAL" || value === "HIGH"
+                ? "Urgent"
+                : value === "MEDIUM"
+                  ? "Normal"
+                  : "Low Priority"),
+          );
+        } else if (action === "tier" && value) {
+          toast(
+            parseInt(value, 10) === 0 ? "Priority cleared" : `Set to P${value}`,
+          );
+        } else if (action === "bookmark") {
+          toast("Bookmark updated");
+        }
       } finally {
         setTimeout(() => {
           pendingRef.current.delete(taskId);
         }, 5000);
       }
     },
-    [],
+    [toast],
   );
   // Handle search
   function handleSearchChange(value: string) {
