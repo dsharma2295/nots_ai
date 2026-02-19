@@ -18,7 +18,10 @@ const UpdateTaskSchema = z.object({
     "bookmark",
     "markSeen",
     "snooze",
-    "deleteTask",
+    "deleteTask", // soft delete → TRASHED
+    "restoreFromTrash", // restore → OPEN
+    "permanentDelete", // hard delete
+    "emptyTrash", // hard delete all trashed,
   ]),
   status: TaskStatusEnum.optional(),
   priority: PriorityEnum.optional(),
@@ -174,18 +177,49 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // --- DELETE TASK ---
+    // --- SOFT DELETE (TRASH) ---
     if (data.action === "deleteTask") {
-      // Delete notes first (cascade should handle it, but explicit is safer)
-      await db.note.deleteMany({ where: { taskId: data.taskId } });
-      // Delete source links
-      await db.taskSourceLink.deleteMany({ where: { taskId: data.taskId } });
-      // Delete the task itself
-      await db.nodalTask.delete({ where: { id: data.taskId } });
-
+      await db.nodalTask.update({
+        where: { id: data.taskId },
+        data: { status: "TRASHED", trashedAt: new Date() },
+      });
+      await broadcastTaskUpdate({
+        type: "task_updated",
+        taskId: data.taskId,
+        changes: { status: "TRASHED" },
+      });
       return NextResponse.json({
         success: true,
         action: "deleteTask",
+        taskId: data.taskId,
+      });
+    }
+    // --- RESTORE FROM TRASH ---
+    if (data.action === "restoreFromTrash") {
+      await db.nodalTask.update({
+        where: { id: data.taskId },
+        data: { status: "OPEN", trashedAt: null },
+      });
+      await broadcastTaskUpdate({
+        type: "task_updated",
+        taskId: data.taskId,
+        changes: { status: "OPEN" },
+      });
+      return NextResponse.json({
+        success: true,
+        action: "restoreFromTrash",
+        taskId: data.taskId,
+      });
+    }
+
+    // --- PERMANENT DELETE ---
+    if (data.action === "permanentDelete") {
+      await db.note.deleteMany({ where: { taskId: data.taskId } });
+      await db.taskSourceLink.deleteMany({ where: { taskId: data.taskId } });
+      await db.nodalTask.delete({ where: { id: data.taskId } });
+      return NextResponse.json({
+        success: true,
+        action: "permanentDelete",
         taskId: data.taskId,
       });
     }

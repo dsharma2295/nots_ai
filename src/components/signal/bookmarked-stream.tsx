@@ -541,7 +541,7 @@ export function BookmarkedStream({
   const handleDelete = useCallback(
     async (taskId: string) => {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      toast("Task deleted");
+      toast("Moved to trash");
       await fetch("/api/tasks/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

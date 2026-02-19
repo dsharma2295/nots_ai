@@ -41,6 +41,7 @@ export const TaskStatusEnum = z.enum([
   "BLOCKED",
   "DONE",
   "ARCHIVED",
+  "TRASHED",
 ]);
 
 export type Platform = z.infer<typeof PlatformEnum>;

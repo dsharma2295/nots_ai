@@ -38,6 +38,7 @@ async function getBookmarkedTasks(): Promise<NodalTask[]> {
     noteCount: t._count.notes,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
+    trashedAt: t.trashedAt?.toISOString() ?? null,
     sourceEvents: t.sourceLinks.map((link) => ({
       id: link.event.id,
       platform: link.event.platform as NodalTask["sourceEvents"][0]["platform"],

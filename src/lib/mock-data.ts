@@ -16,7 +16,8 @@ export type TaskStatus =
   | "IN_PROGRESS"
   | "BLOCKED"
   | "DONE"
-  | "ARCHIVED";
+  | "ARCHIVED"
+  | "TRASHED";
 
 export interface SourceEvent {
   id: string;
@@ -43,6 +44,7 @@ export interface NodalTask {
   updatedAt: string;
   sourceEvents: SourceEvent[];
   noteCount: number;
+  trashedAt: string | null;
 }
 
 export const MOCK_TASKS: NodalTask[] = [
@@ -60,6 +62,7 @@ export const MOCK_TASKS: NodalTask[] = [
     createdAt: "2026-02-07T09:15:00Z",
     updatedAt: "2026-02-07T10:30:00Z",
     noteCount: 0,
+    trashedAt: null,
     sourceEvents: [
       {
         id: "evt-001",
@@ -120,6 +123,7 @@ export const MOCK_TASKS: NodalTask[] = [
     createdAt: "2026-02-07T08:00:00Z",
     updatedAt: "2026-02-07T14:20:00Z",
     noteCount: 0,
+    trashedAt: null,
     sourceEvents: [
       {
         id: "evt-004",
@@ -167,6 +171,7 @@ export const MOCK_TASKS: NodalTask[] = [
     createdAt: "2026-02-07T07:30:00Z",
     updatedAt: "2026-02-07T13:00:00Z",
     noteCount: 0,
+    trashedAt: null,
     sourceEvents: [
       {
         id: "evt-007",
@@ -220,6 +225,7 @@ export const MOCK_TASKS: NodalTask[] = [
     createdAt: "2026-02-06T16:00:00Z",
     updatedAt: "2026-02-07T11:00:00Z",
     noteCount: 0,
+    trashedAt: null,
     sourceEvents: [
       {
         id: "evt-010",
@@ -257,6 +263,7 @@ export const MOCK_TASKS: NodalTask[] = [
     createdAt: "2026-02-07T08:00:00Z",
     updatedAt: "2026-02-07T08:00:00Z",
     noteCount: 0,
+    trashedAt: null,
     sourceEvents: [
       {
         id: "evt-012",
@@ -284,6 +291,7 @@ export const MOCK_TASKS: NodalTask[] = [
     createdAt: "2026-02-07T12:00:00Z",
     updatedAt: "2026-02-07T12:00:00Z",
     noteCount: 0,
+    trashedAt: null,
     sourceEvents: [
       {
         id: "evt-013",

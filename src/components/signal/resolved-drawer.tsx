@@ -463,7 +463,7 @@ export function ResolvedDrawer({
     async (taskId: string) => {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
       onTaskDeleted?.(taskId);
-      toast("Task deleted");
+      toast("Moved to trash");
       await fetch("/api/tasks/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

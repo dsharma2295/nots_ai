@@ -14,6 +14,7 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
+  Trash2,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +25,7 @@ import { ResolvedDrawer } from "./resolved-drawer";
 import { TaskCard } from "./task-card";
 import { TaskCardSkeleton } from "./task-card-skeleton";
 import { useToast } from "./toast";
+import { TrashDrawer } from "./trash-drawer";
 // =============================================================
 // CONSTANTS
 // =============================================================
@@ -179,10 +181,14 @@ function MiniCalendar({
 
 function SmartStats({
   tasks,
+  trashedCount,
   onOpenResolved,
+  onOpenTrash,
 }: {
   tasks: NodalTask[];
+  trashedCount: number;
   onOpenResolved: () => void;
+  onOpenTrash: () => void;
 }) {
   const needAttention = tasks.filter(
     (t) =>
@@ -250,6 +256,18 @@ function SmartStats({
           <Bookmark className="h-3.5 w-3.5" />
           Bookmarks
         </Link>
+        <button
+          onClick={onOpenTrash}
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-red-500 dark:text-zinc-600 dark:hover:text-red-400"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Trash
+          {trashedCount > 0 && (
+            <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-red-500 dark:bg-red-500/10 dark:text-red-400">
+              {trashedCount}
+            </span>
+          )}
+        </button>
         <button
           onClick={onOpenResolved}
           className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
@@ -344,10 +362,12 @@ function KanbanColumn({
 export function SignalStream({
   tasks: serverTasks,
   resolvedTasks = [],
+  trashedTasks = [],
   isLoading = false,
 }: {
   tasks: NodalTask[];
   resolvedTasks?: NodalTask[];
+  trashedTasks?: NodalTask[];
   isLoading?: boolean;
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
@@ -357,9 +377,11 @@ export function SignalStream({
   const { toast } = useToast();
   const [localTasks, setLocalTasks] = useState(serverTasks);
   const [localResolvedTasks, setLocalResolvedTasks] = useState(resolvedTasks);
+  const [localTrashedTasks, setLocalTrashedTasks] = useState(trashedTasks);
   const pendingRef = useRef<Set<string>>(new Set());
   const prevRef = useRef(serverTasks);
   const prevResolvedRef = useRef(resolvedTasks);
+  const prevTrashedRef = useRef(trashedTasks);
   if (prevRef.current !== serverTasks) {
     prevRef.current = serverTasks;
     setLocalTasks((current) =>
@@ -376,6 +398,10 @@ export function SignalStream({
     prevResolvedRef.current = resolvedTasks;
     setLocalResolvedTasks(resolvedTasks);
   }
+  if (prevTrashedRef.current !== trashedTasks) {
+    prevTrashedRef.current = trashedTasks;
+    setLocalTrashedTasks(trashedTasks);
+  }
   const [filters, setFilters] = useState<Filters>({
     platforms: new Set(ALL_PLATFORMS),
     statuses: new Set(ALL_STATUSES),
@@ -386,6 +412,7 @@ export function SignalStream({
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
   // AI mode state
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<AIQueryResponse | null>(null);
@@ -520,6 +547,23 @@ export function SignalStream({
             t.id === taskId ? { ...t, seenEventCount: parseInt(value, 10) } : t,
           ),
         );
+      } else if (action === "delete") {
+        setTimeout(() => {
+          setLocalTasks((prev) => {
+            const deletedTask = prev.find((t) => t.id === taskId);
+            if (deletedTask) {
+              setLocalTrashedTasks((trashed) => [
+                {
+                  ...deletedTask,
+                  status: "TRASHED" as NodalTask["status"],
+                  trashedAt: new Date().toISOString(),
+                },
+                ...trashed,
+              ]);
+            }
+            return prev.filter((t) => t.id !== taskId);
+          });
+        }, 500);
       }
       const body =
         action === "done"
@@ -536,8 +580,9 @@ export function SignalStream({
                       taskId,
                       seenEventCount: parseInt(value, 10),
                     }
-                  : null;
-
+                  : action === "delete"
+                    ? { action: "deleteTask", taskId }
+                    : null;
       if (!body) {
         pendingRef.current.delete(taskId);
         return;
@@ -568,6 +613,8 @@ export function SignalStream({
           );
         } else if (action === "bookmark") {
           toast("Bookmark updated");
+        } else if (action === "delete") {
+          toast("Moved to trash");
         }
       } finally {
         setTimeout(() => {
@@ -600,7 +647,12 @@ export function SignalStream({
   // Filtered tasks — use localTasks for optimistic updates
   const filtered = useMemo(() => {
     return localTasks.filter((t) => {
-      if (t.status === "DONE" || t.status === "ARCHIVED") return false;
+      if (
+        t.status === "DONE" ||
+        t.status === "ARCHIVED" ||
+        t.status === "TRASHED"
+      )
+        return false;
       const tp = new Set(t.sourceEvents.map((e) => e.platform));
       if (![...tp].some((p) => filters.platforms.has(p))) return false;
       if (!filters.statuses.has(t.status)) return false;
@@ -709,8 +761,10 @@ export function SignalStream({
     <div>
       <SmartStats
         tasks={localTasks}
+        trashedCount={localTrashedTasks.length}
         onOpenResolved={() => setDrawerOpen(true)}
-      />
+        onOpenTrash={() => setTrashOpen(true)}
+      />{" "}
       {/* Search bar */}
       <div className="relative mb-4">
         {isAiMode ? (
@@ -870,6 +924,45 @@ export function SignalStream({
               prev.filter((t) => t.id !== taskId),
             );
           }
+        }}
+        onTaskDeleted={(taskId) => {
+          const deleted = localResolvedTasks.find((t) => t.id === taskId);
+          if (deleted) {
+            setLocalTrashedTasks((prev) => [
+              {
+                ...deleted,
+                status: "TRASHED" as NodalTask["status"],
+                trashedAt: new Date().toISOString(),
+              },
+              ...prev,
+            ]);
+          }
+          setLocalResolvedTasks((prev) => prev.filter((t) => t.id !== taskId));
+        }}
+      />
+      <TrashDrawer
+        tasks={localTrashedTasks}
+        open={trashOpen}
+        onClose={() => setTrashOpen(false)}
+        onTaskRestored={(taskId) => {
+          const restored = localTrashedTasks.find((t) => t.id === taskId);
+          if (restored) {
+            setLocalTasks((prev) => [
+              {
+                ...restored,
+                status: "OPEN" as NodalTask["status"],
+                trashedAt: null,
+              },
+              ...prev,
+            ]);
+            setLocalTrashedTasks((prev) => prev.filter((t) => t.id !== taskId));
+          }
+        }}
+        onTaskDeleted={(taskId) => {
+          setLocalTrashedTasks((prev) => prev.filter((t) => t.id !== taskId));
+        }}
+        onTrashEmptied={() => {
+          setLocalTrashedTasks([]);
         }}
       />{" "}
       {/* Footer */}
