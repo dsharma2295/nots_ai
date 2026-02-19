@@ -350,26 +350,12 @@ export function TaskCard({
     [task.id, onTaskActionExec],
   );
 
-  const handleDelete = useCallback(
-    async (e?: React.MouseEvent) => {
-      e?.stopPropagation();
-      setConfirmDelete(false);
-      setFadingOut(true);
-      await new Promise((r) => setTimeout(r, 450));
-      try {
-        await fetch("/api/tasks/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "deleteTask", taskId: task.id }),
-        });
-        toast("Task deleted");
-      } catch {
-        toast("Failed to delete", "error");
-      }
-    },
-    [task.id, toast, setConfirmDelete, setFadingOut],
-  );
-
+  const handleDelete = useCallback(async () => {
+    setConfirmDelete(false);
+    setFadingOut(true);
+    await new Promise((r) => setTimeout(r, 300));
+    onTaskActionExec?.(task.id, "delete");
+  }, [task.id, onTaskActionExec, setConfirmDelete, setFadingOut]);
   const totalEvents = task.sourceEvents.length;
   const unseenCount = totalEvents - (task.seenEventCount ?? 0);
   const isNewTask = (task.seenEventCount ?? 0) === 0 && totalEvents > 0;
@@ -382,9 +368,8 @@ export function TaskCard({
       onMouseLeave={handleMouseLeave}
       className={`group/card relative rounded-xl border shadow-sm transition-all duration-450 ease-out
         ${cardClass}
-        ${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-100 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}
-        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}
-      `}
+${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-100 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}
+        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}      `}
       style={{
         animation: fadingOut
           ? "none"
@@ -489,7 +474,7 @@ export function TaskCard({
           <button
             title={task.bookmarked ? "Remove bookmark" : "Bookmark"}
             onClick={handleBookmark}
-            className="flex items-center"
+            className="flex items-center transition-transform active:scale-90"
           >
             <Bookmark
               className={`h-3 w-3 transition-colors ${
@@ -509,7 +494,7 @@ export function TaskCard({
               e.stopPropagation();
               setShowCreateNote(true);
             }}
-            className="flex items-center gap-1"
+            className="flex items-center gap-1 transition-transform active:scale-90"
           >
             <NotebookPen
               className={`h-3 w-3 transition-colors ${
@@ -576,7 +561,7 @@ export function TaskCard({
           <div className="ml-auto flex items-center">
             {!showActions ? (
               <ChevronDown
-                className={`h-3.5 w-3.5 text-zinc-300 transition-transform duration-300 dark:text-zinc-700 ${
+                className={`h-3.5 w-3.5 text-zinc-300 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:text-zinc-700 ${
                   expanded ? "rotate-180" : ""
                 }`}
               />
@@ -587,8 +572,8 @@ export function TaskCard({
               >
                 <button
                   title="Mark done"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
-                    text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600
+                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-all
+                    text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600 active:scale-90
                     dark:text-zinc-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                   onClick={handleMarkDone}
                 >
@@ -597,8 +582,8 @@ export function TaskCard({
                 <button
                   ref={priorityBtnRef}
                   title="Move to column"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
-                    text-zinc-400 hover:bg-orange-50 hover:text-orange-600
+                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-all
+                    text-zinc-400 hover:bg-orange-50 hover:text-orange-600 active:scale-90
                     dark:text-zinc-600 dark:hover:bg-orange-500/10 dark:hover:text-orange-400"
                   onClick={() => {
                     setPriorityOpen(!priorityOpen);
@@ -610,8 +595,8 @@ export function TaskCard({
                 <button
                   ref={tierBtnRef}
                   title="Set emphasis tier"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
-                    text-zinc-400 hover:bg-amber-50 hover:text-amber-600
+                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-all
+                    text-zinc-400 hover:bg-amber-50 hover:text-amber-600 active:scale-90
                     dark:text-zinc-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                   onClick={() => {
                     setTierOpen(!tierOpen);
@@ -622,9 +607,9 @@ export function TaskCard({
                 </button>
                 <button
                   title="Delete task"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
-               text-zinc-400 hover:bg-red-50 hover:text-red-500
-               dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-all
+                    text-zinc-400 hover:bg-red-50 hover:text-red-500 active:scale-90
+                    dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                   onClick={(e) => {
                     e.stopPropagation();
                     setConfirmDelete(true);

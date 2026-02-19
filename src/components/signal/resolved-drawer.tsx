@@ -112,7 +112,7 @@ function ResolvedCard({
   return (
     <>
       <div
-        className="group/card rounded-xl border border-zinc-200 bg-white opacity-60 transition-all duration-300 hover:opacity-100 dark:border-zinc-800/60 dark:bg-zinc-900/40"
+        className="group/card rounded-xl border border-zinc-200 bg-white opacity-60 transition-all duration-300 hover:-translate-y-0.5 hover:opacity-100 dark:border-zinc-800/60 dark:bg-zinc-900/40"
         style={{
           animation: "drawerCardIn 0.35s cubic-bezier(0.16,1,0.3,1) backwards",
           animationDelay: `${index * 40}ms`,
@@ -136,7 +136,7 @@ function ResolvedCard({
             {/* Trash */}
             <button
               title="Delete task"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 active:scale-90 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
               onClick={(e) => {
                 e.stopPropagation();
                 setConfirmDelete(true);
@@ -151,7 +151,7 @@ function ResolvedCard({
                   ? `${noteCount} note${noteCount !== 1 ? "s" : ""}`
                   : "Add note"
               }
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all active:scale-90"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowCreateNote(true);
@@ -173,7 +173,7 @@ function ResolvedCard({
             {/* Bookmark */}
             <button
               title={task.bookmarked ? "Remove bookmark" : "Bookmark"}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-0 transition-all group-hover/card:opacity-100"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-0 transition-all active:scale-90 group-hover/card:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
                 onBookmark(task.id);
@@ -190,7 +190,7 @@ function ResolvedCard({
             {/* Restore */}
             <button
               title="Restore to dashboard"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-all hover:bg-indigo-50 hover:text-indigo-600 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-all hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
               onClick={(e) => {
                 e.stopPropagation();
                 onRestore(task.id);
@@ -227,7 +227,7 @@ function ResolvedCard({
               <LiveTime iso={task.updatedAt} />
             </span>
             <ChevronDown
-              className={`h-3 w-3 text-zinc-300 transition-transform duration-300 dark:text-zinc-700 ${
+              className={`h-3 w-3 text-zinc-300 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:text-zinc-700 ${
                 expanded ? "rotate-180" : ""
               }`}
             />
@@ -580,7 +580,7 @@ export function ResolvedDrawer({
             <>
               {filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20">
-                  <Inbox className="mb-3 h-10 w-10 text-zinc-200 dark:text-zinc-800" />
+                  <Inbox className="mb-3 h-10 w-10 animate-float text-zinc-200 dark:text-zinc-800" />
                   <p className="text-[13px] text-zinc-400 dark:text-zinc-600">
                     {tasks.length === 0
                       ? "No resolved tasks yet"

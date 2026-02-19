@@ -189,7 +189,7 @@ export default async function Home() {
         />
         {tasks.length === 0 && (
           <div className="mt-16 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
+            <div className="mx-auto mb-4 flex h-16 w-16 animate-float items-center justify-center rounded-full bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-7 w-7 text-zinc-400 dark:text-zinc-600"

@@ -160,14 +160,14 @@ export function CreateNoteModal({
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-xl px-4 py-2 text-[13px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            className="rounded-xl px-4 py-2 text-[13px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 hover:text-zinc-700 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
           >
             Cancel
           </button>
           <button
             onClick={handleCreate}
             disabled={!content.trim() || saving}
-            className="rounded-xl bg-indigo-500 px-4 py-2 text-[13px] font-medium text-white transition-all hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+            className="rounded-xl bg-indigo-500 px-4 py-2 text-[13px] font-medium text-white transition-all hover:bg-indigo-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-indigo-600 dark:hover:bg-indigo-500"
           >
             {saving ? "Creating..." : "Create"}
           </button>
@@ -301,14 +301,14 @@ export function ViewNoteModal({
               <button
                 title="Delete note"
                 onClick={() => setConfirmDelete(true)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-red-50 hover:text-red-500 active:scale-90 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
               <button
                 title="Edit note"
                 onClick={() => setEditing(true)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 dark:text-zinc-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -406,14 +406,14 @@ export function ViewNoteModal({
                 setTitle(note.title ?? "");
                 setContent(note.content);
               }}
-              className="rounded-xl px-4 py-2 text-[13px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              className="rounded-xl px-4 py-2 text-[13px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 hover:text-zinc-700 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={!content.trim() || saving}
-              className="rounded-xl bg-indigo-500 px-4 py-2 text-[13px] font-medium text-white transition-all hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+              className="rounded-xl bg-indigo-500 px-4 py-2 text-[13px] font-medium text-white transition-all hover:bg-indigo-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-indigo-600 dark:hover:bg-indigo-500"
             >
               {saving ? "Saving..." : "Save"}
             </button>

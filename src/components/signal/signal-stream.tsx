@@ -244,21 +244,23 @@ function SmartStats({
           className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium ${item.bg}`}
         >
           <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
-          <span className={item.color}>{item.count}</span>
+          <span className={`tabular-nums ${item.color}`}>
+            {item.count}
+          </span>{" "}
           <span className="text-zinc-500">{item.label}</span>
         </div>
       ))}
       <div className="ml-auto flex items-center gap-1">
         <Link
           href="/bookmarks"
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-blue-500 dark:text-zinc-600 dark:hover:text-blue-400"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-blue-500 active:scale-95 dark:text-zinc-600 dark:hover:text-blue-400"
         >
           <Bookmark className="h-3.5 w-3.5" />
           Bookmarks
         </Link>
         <button
           onClick={onOpenTrash}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-red-500 dark:text-zinc-600 dark:hover:text-red-400"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-red-500 active:scale-95 dark:text-zinc-600 dark:hover:text-red-400"
         >
           <Trash2 className="h-3.5 w-3.5" />
           Trash
@@ -270,7 +272,7 @@ function SmartStats({
         </button>
         <button
           onClick={onOpenResolved}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-indigo-500 active:scale-95 dark:text-zinc-600 dark:hover:text-indigo-400"
         >
           <Archive className="h-3.5 w-3.5" />
           View resolved
@@ -859,9 +861,9 @@ export function SignalStream({
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-20 dark:border-zinc-800/40">
-                <Inbox className="mb-3 h-12 w-12 text-zinc-300 dark:text-zinc-800" />
+                <Inbox className="mb-3 h-12 w-12 animate-float text-zinc-300 dark:text-zinc-800" />
                 <p className="text-sm text-zinc-500 dark:text-zinc-600">
-                  No signals found
+                  No signals found{" "}
                 </p>
                 <button
                   className="mt-3 text-[11px] text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"

@@ -56,13 +56,13 @@ export function ConfirmDeleteModal({
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onCancel}
-            className="rounded-lg px-3.5 py-2 text-[12px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            className="rounded-lg px-3.5 py-2 text-[12px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-800"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="rounded-lg bg-red-500 px-3.5 py-2 text-[12px] font-medium text-white transition-colors hover:bg-red-600"
+            className="rounded-lg bg-red-500 px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:bg-red-600 active:scale-95"
           >
             {confirmLabel}
           </button>
