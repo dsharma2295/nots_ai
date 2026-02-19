@@ -356,9 +356,10 @@ export function SignalStream({
   // Local task state for optimistic updates (done removal, priority, tier)
   const { toast } = useToast();
   const [localTasks, setLocalTasks] = useState(serverTasks);
-
+  const [localResolvedTasks, setLocalResolvedTasks] = useState(resolvedTasks);
   const pendingRef = useRef<Set<string>>(new Set());
   const prevRef = useRef(serverTasks);
+  const prevResolvedRef = useRef(resolvedTasks);
   if (prevRef.current !== serverTasks) {
     prevRef.current = serverTasks;
     setLocalTasks((current) =>
@@ -370,6 +371,10 @@ export function SignalStream({
         return serverTask;
       }),
     );
+  }
+  if (prevResolvedRef.current !== resolvedTasks) {
+    prevResolvedRef.current = resolvedTasks;
+    setLocalResolvedTasks(resolvedTasks);
   }
   const [filters, setFilters] = useState<Filters>({
     platforms: new Set(ALL_PLATFORMS),
@@ -474,13 +479,20 @@ export function SignalStream({
       // Optimistic update
       if (action === "done") {
         setTimeout(() => {
-          setLocalTasks((prev) =>
-            prev.map((t) =>
+          setLocalTasks((prev) => {
+            const doneTask = prev.find((t) => t.id === taskId);
+            if (doneTask) {
+              setLocalResolvedTasks((resolved) => [
+                { ...doneTask, status: "DONE" as NodalTask["status"] },
+                ...resolved,
+              ]);
+            }
+            return prev.map((t) =>
               t.id === taskId
                 ? { ...t, status: "DONE" as NodalTask["status"] }
                 : t,
-            ),
-          );
+            );
+          });
         }, 500);
       } else if (action === "priority" && value) {
         setLocalTasks((prev) =>
@@ -729,7 +741,6 @@ export function SignalStream({
           </div>
         )}
       </div>
-
       {/* AI Response */}
       {(aiLoading || aiResponse) && (
         <div className="mb-5">
@@ -747,7 +758,6 @@ export function SignalStream({
           ) : null}
         </div>
       )}
-
       {/* Filters */}
       {!isAiMode && (
         <>
@@ -773,7 +783,6 @@ export function SignalStream({
           </div>
         </>
       )}
-
       {/* Main layout */}
       {!isAiMode && (
         <div className="flex gap-5">
@@ -847,17 +856,28 @@ export function SignalStream({
         </div>
       )}
       <ResolvedDrawer
-        tasks={resolvedTasks}
+        tasks={localResolvedTasks}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-      />
+        onTaskRestored={(taskId) => {
+          const restored = localResolvedTasks.find((t) => t.id === taskId);
+          if (restored) {
+            setLocalTasks((prev) => [
+              { ...restored, status: "OPEN" as NodalTask["status"] },
+              ...prev,
+            ]);
+            setLocalResolvedTasks((prev) =>
+              prev.filter((t) => t.id !== taskId),
+            );
+          }
+        }}
+      />{" "}
       {/* Footer */}
       <div className="mt-10 flex items-center justify-center gap-2 text-[10px] text-zinc-300 dark:text-zinc-700">
         <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
         Noise → Signal
         <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
       </div>
-
       <style jsx global>
         {`
           @keyframes cardSlideIn {

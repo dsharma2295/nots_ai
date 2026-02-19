@@ -275,10 +275,12 @@ export function ResolvedDrawer({
   tasks: initialTasks,
   open,
   onClose,
+  onTaskRestored,
 }: {
   tasks: NodalTask[];
   open: boolean;
   onClose: () => void;
+  onTaskRestored?: (taskId: string) => void;
 }) {
   const [tasks, setTasks] = useState(initialTasks);
   const { toast } = useToast();
@@ -400,6 +402,7 @@ export function ResolvedDrawer({
   const handleRestore = useCallback(
     async (taskId: string) => {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      onTaskRestored?.(taskId);
       toast("Restored to dashboard");
       await fetch("/api/tasks/update", {
         method: "POST",
