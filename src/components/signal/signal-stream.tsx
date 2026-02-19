@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { getPlatformFilterStyle } from "./platform-icon";
+import { ResolvedDrawer } from "./resolved-drawer";
 import { TaskCard } from "./task-card";
 import { TaskCardSkeleton } from "./task-card-skeleton";
 import { useToast } from "./toast";
@@ -176,7 +177,13 @@ function MiniCalendar({
 // SMART STATS — now includes resolved link
 // =============================================================
 
-function SmartStats({ tasks }: { tasks: NodalTask[] }) {
+function SmartStats({
+  tasks,
+  onOpenResolved,
+}: {
+  tasks: NodalTask[];
+  onOpenResolved: () => void;
+}) {
   const needAttention = tasks.filter(
     (t) =>
       (t.priority === "CRITICAL" || t.priority === "HIGH") &&
@@ -243,13 +250,13 @@ function SmartStats({ tasks }: { tasks: NodalTask[] }) {
           <Bookmark className="h-3.5 w-3.5" />
           Bookmarks
         </Link>
-        <Link
-          href="/resolved"
+        <button
+          onClick={onOpenResolved}
           className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
         >
           <Archive className="h-3.5 w-3.5" />
           View resolved
-        </Link>
+        </button>
       </div>
     </div>
   );
@@ -349,6 +356,7 @@ export function SignalStream({
   // Local task state for optimistic updates (done removal, priority, tier)
   const { toast } = useToast();
   const [localTasks, setLocalTasks] = useState(serverTasks);
+
   const pendingRef = useRef<Set<string>>(new Set());
   const prevRef = useRef(serverTasks);
   if (prevRef.current !== serverTasks) {
@@ -372,7 +380,7 @@ export function SignalStream({
   });
 
   const [mobileOpen, setMobileOpen] = useState(false);
-
+  const [drawerOpen, setDrawerOpen] = useState(false);
   // AI mode state
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<AIQueryResponse | null>(null);
@@ -687,8 +695,10 @@ export function SignalStream({
 
   return (
     <div>
-      <SmartStats tasks={localTasks} />
-
+      <SmartStats
+        tasks={localTasks}
+        onOpenResolved={() => setDrawerOpen(true)}
+      />
       {/* Search bar */}
       <div className="relative mb-4">
         {isAiMode ? (
@@ -836,7 +846,11 @@ export function SignalStream({
           </div>
         </div>
       )}
-
+      <ResolvedDrawer
+        tasks={resolvedTasks}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
       {/* Footer */}
       <div className="mt-10 flex items-center justify-center gap-2 text-[10px] text-zinc-300 dark:text-zinc-700">
         <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
@@ -844,18 +858,20 @@ export function SignalStream({
         <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
       </div>
 
-      <style jsx global>{`
-        @keyframes cardSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(12px);
+      <style jsx global>
+        {`
+          @keyframes cardSlideIn {
+            from {
+              opacity: 0;
+              transform: translateY(12px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 }
