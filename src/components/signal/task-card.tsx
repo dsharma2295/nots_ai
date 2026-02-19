@@ -1,5 +1,4 @@
 "use client";
-
 import { useLiveRelativeTime } from "@/lib/hooks";
 import type { NodalTask } from "@/lib/mock-data";
 import {
@@ -7,15 +6,21 @@ import {
   Bookmark,
   Check,
   ChevronDown,
-  ExternalLink,
   Medal,
+  NotebookPen,
   Paperclip,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  CreateNoteModal,
+  NoteChips,
+  ViewNoteModal,
+  type NoteData,
+} from "./note-modal";
 import { PlatformDot } from "./platform-icon";
 import { SourceTimeline } from "./source-timeline";
-
+import { useToast } from "./toast";
 // =============================================================
 // TIER CONFIG — full card sheen
 // 1: Gold, 2: Silver, 3: Bronze
@@ -234,7 +239,52 @@ export function TaskCard({
   const attachCount = totalAttachments(task);
   const sd = STATUS_DOT[task.status] ?? STATUS_DOT.OPEN;
   const sl = STATUS_LABEL[task.status] ?? "Open";
-  const firstLink = task.sourceEvents[0]?.deepLink;
+
+  const { toast } = useToast();
+  const [notes, setNotes] = useState<NoteData[]>([]);
+  const [notesLoaded, setNotesLoaded] = useState(false);
+  const [showCreateNote, setShowCreateNote] = useState(false);
+  const [viewingNote, setViewingNote] = useState<NoteData | null>(null);
+  // Fetch notes when card expands
+  useEffect(() => {
+    if (expanded && !notesLoaded) {
+      fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list", taskId: task.id }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.notes) setNotes(data.notes);
+          setNotesLoaded(true);
+        })
+        .catch(() => setNotesLoaded(true));
+    }
+  }, [expanded, notesLoaded, task.id]);
+
+  const handleNoteCreated = useCallback(
+    (note: NoteData) => {
+      setNotes((prev) => [note, ...prev]);
+      toast("Note added");
+    },
+    [toast],
+  );
+
+  const handleNoteUpdated = useCallback(
+    (updated: NoteData) => {
+      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+      toast("Note saved");
+    },
+    [toast],
+  );
+
+  const handleNoteDeleted = useCallback(
+    (noteId: string) => {
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast("Note deleted");
+    },
+    [toast],
+  );
 
   const tierStyle = task.tier > 0 ? TIER_STYLE[task.tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
@@ -425,6 +475,12 @@ export function TaskCard({
               }`}
             />
           </button>
+          {(notesLoaded ? notes.length : (task.noteCount ?? 0)) > 0 && (
+            <span className="flex items-center gap-1 text-[11px] font-medium text-indigo-500 dark:text-indigo-400">
+              <NotebookPen className="h-3 w-3" />
+              {notesLoaded ? notes.length : task.noteCount}
+            </span>
+          )}
           {attachCount > 0 && (
             <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-600">
               <Paperclip className="h-3 w-3" />
@@ -521,19 +577,15 @@ export function TaskCard({
                 >
                   <Medal className="h-3.5 w-3.5" />{" "}
                 </button>
-                {firstLink && (
-                  <a
-                    href={firstLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open source"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
-                      text-zinc-400 hover:bg-indigo-50 hover:text-indigo-600
-                      dark:text-zinc-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
+                <button
+                  title="Add note"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
+                    text-zinc-400 hover:bg-indigo-50 hover:text-indigo-600
+                    dark:text-zinc-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+                  onClick={() => setShowCreateNote(true)}
+                >
+                  <NotebookPen className="h-3.5 w-3.5" />
+                </button>{" "}
               </div>
             )}
           </div>
@@ -545,8 +597,17 @@ export function TaskCard({
         className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
         <div className="overflow-hidden">
+          {notesLoaded && notes.length > 0 && (
+            <div className="border-t border-zinc-100 px-4 pb-0 pt-3 dark:border-zinc-800/50">
+              <NoteChips
+                notes={notes}
+                onClickNote={(note) => setViewingNote(note)}
+              />
+            </div>
+          )}
           <div className="border-t border-zinc-100 px-4 pb-4 pt-3 dark:border-zinc-800/50">
             <div className="mb-3 flex items-center gap-3">
+              {" "}
               <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />
               <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">
                 Provenance
@@ -557,6 +618,25 @@ export function TaskCard({
           </div>
         </div>
       </div>
+      {showCreateNote && (
+        <CreateNoteModal
+          taskId={task.id}
+          sourceEvents={task.sourceEvents}
+          onClose={() => setShowCreateNote(false)}
+          onCreate={handleNoteCreated}
+        />
+      )}
+      {viewingNote && (
+        <ViewNoteModal
+          note={viewingNote}
+          onClose={() => setViewingNote(null)}
+          onUpdate={(updated) => {
+            handleNoteUpdated(updated);
+            setViewingNote(updated);
+          }}
+          onDelete={handleNoteDeleted}
+        />
+      )}
     </div>
   );
 }

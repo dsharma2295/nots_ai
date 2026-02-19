@@ -13,13 +13,12 @@ async function getTasks(): Promise<NodalTask[]> {
       sourceLinks: {
         where: { dismissed: false },
         include: {
-          event: {
-            include: {
-              attachments: true,
-            },
-          },
+          event: { include: { attachments: true } },
         },
         orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { notes: true },
       },
     },
   });
@@ -37,6 +36,7 @@ async function getTasks(): Promise<NodalTask[]> {
     seenEventCount: t.seenEventCount,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
+
     sourceEvents: t.sourceLinks.map((link) => ({
       id: link.event.id,
       platform: link.event.platform as NodalTask["sourceEvents"][0]["platform"],
@@ -50,6 +50,7 @@ async function getTasks(): Promise<NodalTask[]> {
         mimeType: a.mimeType ?? undefined,
       })),
     })),
+    noteCount: t._count.notes,
   }));
 }
 

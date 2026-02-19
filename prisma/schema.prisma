@@ -127,9 +127,9 @@ model NodalTask {
   // MANY-TO-MANY: A task can have many source events,
   // and a source event can belong to many tasks.
   sourceLinks    TaskSourceLink[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  notes          Note[]
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([status])
@@ -240,10 +240,10 @@ model SourceEvent {
 
   // MANY-TO-MANY: This event can be linked to multiple tasks
   taskLinks TaskSourceLink[]
-
+  notes     Note[]
   // Timestamp of the ORIGINAL message, not when we ingested it
   timestamp DateTime
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime         @default(now()) @map("created_at")
 
   @@index([sourceHash])
   @@index([platform])
@@ -275,6 +275,64 @@ model Attachment {
   @@map("attachments")
 }
 
+model Note {
+  id            String       @id @default(cuid())
+  taskId        String       @map("task_id")
+  task          NodalTask    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  sourceEventId String?      @map("source_event_id")
+  sourceEvent   SourceEvent? @relation(fields: [sourceEventId], references: [id])
+  title         String?
+  content       String
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@index([taskId])
+  @@map("notes")
+}
+
+// =============================================================
+// SCHEMA + SQL INSTRUCTIONS FOR NOTES FEATURE
+// =============================================================
+//
+// STEP 1: Add to prisma/schema.prisma
+//
+// Add this model AFTER the Attachment model:
+//
+//   model Note {
+//     id            String       @id @default(cuid())
+//     taskId        String       @map("task_id")
+//     task          NodalTask    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+//     sourceEventId String?      @map("source_event_id")
+//     sourceEvent   SourceEvent? @relation(fields: [sourceEventId], references: [id])
+//     title         String?
+//     content       String
+//     createdAt     DateTime     @default(now()) @map("created_at")
+//     updatedAt     DateTime     @updatedAt @map("updated_at")
+//
+//     @@index([taskId])
+//     @@map("notes")
+//   }
+//
+// Add relation to NodalTask model (after sourceLinks):
+//   notes       Note[]
+//
+// Add relation to SourceEvent model (after taskLinks):
+//   notes       Note[]
+//
+// STEP 2: Run in Neon SQL Editor:
+//
+//   CREATE TABLE notes (
+//     id TEXT PRIMARY KEY,
+//     task_id TEXT NOT NULL REFERENCES nodal_tasks(id) ON DELETE CASCADE,
+//     source_event_id TEXT REFERENCES source_events(id),
+//     title TEXT,
+//     content TEXT NOT NULL,
+//     created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+//     updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+//   );
+//   CREATE INDEX idx_notes_task_id ON notes (task_id);
+//
+// STEP 3: npx prisma generate
 // =============================================================
 // MANUAL SQL (run after prisma migrate)
 // Prisma cannot manage pgvector indexes natively.

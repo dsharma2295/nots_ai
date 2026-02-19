@@ -19,6 +19,9 @@ async function getResolvedTasks(): Promise<NodalTask[]> {
         },
         orderBy: { createdAt: "asc" },
       },
+      _count: {
+        select: { notes: true },
+      },
     },
   });
 
@@ -48,6 +51,7 @@ async function getResolvedTasks(): Promise<NodalTask[]> {
         mimeType: a.mimeType ?? undefined,
       })),
     })),
+    noteCount: t._count.notes,
   }));
 }
 

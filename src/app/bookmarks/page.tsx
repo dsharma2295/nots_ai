@@ -18,6 +18,9 @@ async function getBookmarkedTasks(): Promise<NodalTask[]> {
         },
         orderBy: { createdAt: "asc" },
       },
+      _count: {
+        select: { notes: true },
+      },
     },
   });
 
@@ -32,6 +35,7 @@ async function getBookmarkedTasks(): Promise<NodalTask[]> {
     tier: t.tier,
     bookmarked: t.bookmarked,
     seenEventCount: t.seenEventCount,
+    noteCount: t._count.notes,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     sourceEvents: t.sourceLinks.map((link) => ({

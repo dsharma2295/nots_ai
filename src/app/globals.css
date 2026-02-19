@@ -124,3 +124,12 @@
     @apply bg-background text-foreground;
   }
 }
+/* Add to src/app/globals.css if not already present */
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
