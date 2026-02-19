@@ -9,9 +9,11 @@ import {
   Medal,
   NotebookPen,
   Paperclip,
+  Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ConfirmDeleteModal } from "./confirm-delete-modal";
 import {
   CreateNoteModal,
   NoteChips,
@@ -245,6 +247,7 @@ export function TaskCard({
   const [notesLoaded, setNotesLoaded] = useState(false);
   const [showCreateNote, setShowCreateNote] = useState(false);
   const [viewingNote, setViewingNote] = useState<NoteData | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   // Fetch notes when card expands
   useEffect(() => {
     if (expanded && !notesLoaded) {
@@ -285,7 +288,7 @@ export function TaskCard({
     },
     [toast],
   );
-
+  const noteCount = notesLoaded ? notes.length : (task.noteCount ?? 0);
   const tierStyle = task.tier > 0 ? TIER_STYLE[task.tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
   // State-based hover — persists while dropdowns are open
@@ -346,6 +349,27 @@ export function TaskCard({
     },
     [task.id, onTaskActionExec],
   );
+
+  const handleDelete = useCallback(
+    async (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setConfirmDelete(false);
+      setFadingOut(true);
+      await new Promise((r) => setTimeout(r, 450));
+      try {
+        await fetch("/api/tasks/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "deleteTask", taskId: task.id }),
+        });
+        toast("Task deleted");
+      } catch {
+        toast("Failed to delete", "error");
+      }
+    },
+    [task.id, toast, setConfirmDelete, setFadingOut],
+  );
+
   const totalEvents = task.sourceEvents.length;
   const unseenCount = totalEvents - (task.seenEventCount ?? 0);
   const isNewTask = (task.seenEventCount ?? 0) === 0 && totalEvents > 0;
@@ -475,12 +499,31 @@ export function TaskCard({
               }`}
             />
           </button>
-          {(notesLoaded ? notes.length : (task.noteCount ?? 0)) > 0 && (
-            <span className="flex items-center gap-1 text-[11px] font-medium text-indigo-500 dark:text-indigo-400">
-              <NotebookPen className="h-3 w-3" />
-              {notesLoaded ? notes.length : task.noteCount}
-            </span>
-          )}
+          <button
+            title={
+              noteCount > 0
+                ? `${noteCount} note${noteCount !== 1 ? "s" : ""}`
+                : "Add note"
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCreateNote(true);
+            }}
+            className="flex items-center gap-1"
+          >
+            <NotebookPen
+              className={`h-3 w-3 transition-colors ${
+                noteCount > 0
+                  ? "text-indigo-500 dark:text-indigo-400"
+                  : "text-zinc-300 hover:text-indigo-400 dark:text-zinc-700 dark:hover:text-indigo-400"
+              }`}
+            />
+            {noteCount > 0 && (
+              <span className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400">
+                {noteCount}
+              </span>
+            )}
+          </button>
           {attachCount > 0 && (
             <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-600">
               <Paperclip className="h-3 w-3" />
@@ -578,14 +621,17 @@ export function TaskCard({
                   <Medal className="h-3.5 w-3.5" />{" "}
                 </button>
                 <button
-                  title="Add note"
+                  title="Delete task"
                   className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors
-                    text-zinc-400 hover:bg-indigo-50 hover:text-indigo-600
-                    dark:text-zinc-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
-                  onClick={() => setShowCreateNote(true)}
+               text-zinc-400 hover:bg-red-50 hover:text-red-500
+               dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDelete(true);
+                  }}
                 >
-                  <NotebookPen className="h-3.5 w-3.5" />
-                </button>{" "}
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             )}
           </div>
@@ -635,6 +681,12 @@ export function TaskCard({
             setViewingNote(updated);
           }}
           onDelete={handleNoteDeleted}
+        />
+      )}
+      {confirmDelete && (
+        <ConfirmDeleteModal
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
         />
       )}
     </div>

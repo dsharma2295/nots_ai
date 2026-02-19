@@ -14,10 +14,12 @@ import {
   RotateCcw,
   Search,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
+import { ConfirmDeleteModal } from "./confirm-delete-modal";
 import {
   CreateNoteModal,
   NoteChips,
@@ -96,7 +98,9 @@ function groupByPriority(list: NodalTask[]) {
 }
 
 // =============================================================
-// BOOKMARKED CARD — with notes support
+// BOOKMARKED CARD — unified for Saved & Resolved
+// Saved:    bookmark · tier · notes · attachments · trash · mark done
+// Resolved: check · tier · notes · attachments · trash · restore
 // =============================================================
 
 function BookmarkedCard({
@@ -106,6 +110,7 @@ function BookmarkedCard({
   onRemoveBookmark,
   onMarkDone,
   onRestore,
+  onDelete,
 }: {
   task: NodalTask;
   index: number;
@@ -113,12 +118,14 @@ function BookmarkedCard({
   onRemoveBookmark: (taskId: string) => void;
   onMarkDone: (taskId: string) => void;
   onRestore: (taskId: string) => void;
+  onDelete: (taskId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [notes, setNotes] = useState<NoteData[]>([]);
   const [notesLoaded, setNotesLoaded] = useState(false);
   const [showCreateNote, setShowCreateNote] = useState(false);
   const [viewingNote, setViewingNote] = useState<NoteData | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
 
   const platforms = [...new Set(task.sourceEvents.map((e) => e.platform))];
@@ -192,6 +199,7 @@ function BookmarkedCard({
         >
           {/* Row 1 */}
           <div className="mb-2 flex items-center gap-2">
+            {/* Lead icon: bookmark (saved) or check (resolved) */}
             {isResolved ? (
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
             ) : (
@@ -206,6 +214,7 @@ function BookmarkedCard({
                 <Bookmark className="h-3.5 w-3.5 fill-blue-500 text-blue-500 transition-colors hover:fill-red-400 hover:text-red-400 dark:fill-blue-400 dark:text-blue-400 dark:hover:fill-red-400 dark:hover:text-red-400" />
               </button>
             )}
+            {/* Tier badge */}
             {tierBadge && (
               <span
                 className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${tierBadge.className}`}
@@ -213,30 +222,51 @@ function BookmarkedCard({
                 {tierBadge.label}
               </span>
             )}
-            {noteCount > 0 && (
-              <span className="flex items-center gap-1 text-[11px] font-medium text-indigo-500 dark:text-indigo-400">
-                <NotebookPen className="h-3 w-3" />
-                {noteCount}
-              </span>
-            )}
+            {/* Notes icon — always visible, clickable to create, indigo when notes exist */}
+            <button
+              title={
+                noteCount > 0
+                  ? `${noteCount} note${noteCount !== 1 ? "s" : ""}`
+                  : "Add note"
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCreateNote(true);
+              }}
+              className="flex items-center gap-1"
+            >
+              <NotebookPen
+                className={`h-3 w-3 transition-colors ${
+                  noteCount > 0
+                    ? "text-indigo-500 dark:text-indigo-400"
+                    : "text-zinc-300 hover:text-indigo-400 dark:text-zinc-700 dark:hover:text-indigo-400"
+                }`}
+              />
+              {noteCount > 0 && (
+                <span className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400">
+                  {noteCount}
+                </span>
+              )}
+            </button>
+            {/* Attachments */}
             {attachCount > 0 && (
               <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-600">
                 <Paperclip className="h-3 w-3" />
                 {attachCount}
               </span>
             )}
-            {/* Add note */}
+            {/* Trash */}
             <button
-              title="Add note"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-0 transition-all hover:bg-indigo-50 hover:text-indigo-600 group-hover/card:opacity-100 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+              title="Delete task"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowCreateNote(true);
+                setConfirmDelete(true);
               }}
             >
-              <NotebookPen className="h-3 w-3 text-zinc-400 dark:text-zinc-600" />
+              <Trash2 className="h-3 w-3" />
             </button>
-            {/* Mark done or Restore */}
+            {/* Mark done (saved) or Restore (resolved) */}
             {isResolved ? (
               <button
                 title="Restore to active"
@@ -325,6 +355,7 @@ function BookmarkedCard({
         </div>
       </div>
 
+      {/* Modals */}
       {showCreateNote && (
         <CreateNoteModal
           taskId={task.id}
@@ -344,6 +375,15 @@ function BookmarkedCard({
           onDelete={handleNoteDeleted}
         />
       )}
+      {confirmDelete && (
+        <ConfirmDeleteModal
+          onConfirm={() => {
+            setConfirmDelete(false);
+            onDelete(task.id);
+          }}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </>
   );
 }
@@ -360,7 +400,6 @@ export function BookmarkedStream({
   const [tasks, setTasks] = useState(initialTasks);
   const { toast } = useToast();
 
-  // Search + AI
   const [searchText, setSearchText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<AIQueryResponse | null>(null);
@@ -383,7 +422,7 @@ export function BookmarkedStream({
       if (data.text) setAiResponse(data as AIQueryResponse);
     } catch {
       setAiResponse({
-        text: "Something went wrong. Please try again.",
+        text: "Something went wrong.",
         actions: [],
         queryType: "summary",
         referencedTaskIds: [],
@@ -423,12 +462,11 @@ export function BookmarkedStream({
                   }
                 : null;
       if (!body) return;
-      const res = await fetch("/api/tasks/update", {
+      await fetch("/api/tasks/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("Action failed");
     },
     [],
   );
@@ -445,7 +483,6 @@ export function BookmarkedStream({
     }
   }
 
-  // Actions
   const handleRemoveBookmark = useCallback(
     async (taskId: string) => {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
@@ -501,7 +538,19 @@ export function BookmarkedStream({
     [toast],
   );
 
-  // Filter
+  const handleDelete = useCallback(
+    async (taskId: string) => {
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      toast("Task deleted");
+      await fetch("/api/tasks/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "deleteTask", taskId }),
+      });
+    },
+    [toast],
+  );
+
   const filtered = useMemo(() => {
     if (!filterText) return tasks;
     const q = filterText.toLowerCase();
@@ -521,7 +570,6 @@ export function BookmarkedStream({
   const activeGrouped = groupByPriority(activeTasks);
   const resolvedGrouped = groupByPriority(resolvedTasks);
 
-  // Empty
   if (tasks.length === 0 && !aiLoading && !aiResponse) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-20 dark:border-zinc-800/40">
@@ -575,7 +623,6 @@ export function BookmarkedStream({
         )}
       </div>
 
-      {/* AI */}
       {(aiLoading || aiResponse) && (
         <div className="mb-5">
           {aiLoading ? (
@@ -593,7 +640,6 @@ export function BookmarkedStream({
         </div>
       )}
 
-      {/* Two columns */}
       {!isAiMode && (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Saved */}
@@ -638,6 +684,7 @@ export function BookmarkedStream({
                           onRemoveBookmark={handleRemoveBookmark}
                           onMarkDone={handleMarkDone}
                           onRestore={handleRestore}
+                          onDelete={handleDelete}
                         />
                       ))}
                     </div>
@@ -689,6 +736,7 @@ export function BookmarkedStream({
                           onRemoveBookmark={handleRemoveBookmark}
                           onMarkDone={handleMarkDone}
                           onRestore={handleRestore}
+                          onDelete={handleDelete}
                         />
                       ))}
                     </div>
@@ -700,7 +748,6 @@ export function BookmarkedStream({
         </div>
       )}
 
-      {/* No results */}
       {!isAiMode && filtered.length === 0 && tasks.length > 0 && (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-16 dark:border-zinc-800/40">
           <Inbox className="mb-3 h-10 w-10 text-zinc-300 dark:text-zinc-800" />

@@ -18,6 +18,7 @@ const UpdateTaskSchema = z.object({
     "bookmark",
     "markSeen",
     "snooze",
+    "deleteTask",
   ]),
   status: TaskStatusEnum.optional(),
   priority: PriorityEnum.optional(),
@@ -172,6 +173,23 @@ export async function POST(req: NextRequest) {
         seenEventCount: data.seenEventCount,
       });
     }
+
+    // --- DELETE TASK ---
+    if (data.action === "deleteTask") {
+      // Delete notes first (cascade should handle it, but explicit is safer)
+      await db.note.deleteMany({ where: { taskId: data.taskId } });
+      // Delete source links
+      await db.taskSourceLink.deleteMany({ where: { taskId: data.taskId } });
+      // Delete the task itself
+      await db.nodalTask.delete({ where: { id: data.taskId } });
+
+      return NextResponse.json({
+        success: true,
+        action: "deleteTask",
+        taskId: data.taskId,
+      });
+    }
+
     // --- SNOOZE ---
     if (data.action === "snooze") {
       await db.nodalTask.update({

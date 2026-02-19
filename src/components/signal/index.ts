@@ -1,8 +1,10 @@
 export { AIResponseCard, AIResponseLoading } from "./ai-response";
 export { AutoRefresh } from "./auto-refresh";
 export { BookmarkedStream } from "./bookmarked-stream";
+export { ConfirmDeleteModal } from "./confirm-delete-modal";
 export { CreateNoteModal, NoteChips, ViewNoteModal } from "./note-modal";
 export { PlatformBadge, PlatformDot } from "./platform-icon";
+export { ResolvedDrawer } from "./resolved-drawer";
 export { ResolvedStream } from "./resolved-stream";
 export { SignalStream } from "./signal-stream";
 export { SourceTimeline } from "./source-timeline";
