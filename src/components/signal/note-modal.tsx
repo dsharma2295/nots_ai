@@ -1,7 +1,7 @@
 "use client";
 
 import type { SourceEvent } from "@/lib/mock-data";
-import { NotebookPen, Pencil, X } from "lucide-react";
+import { NotebookPen, Pencil, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PlatformDot } from "./platform-icon";
@@ -210,6 +210,7 @@ export function ViewNoteModal({
   const [title, setTitle] = useState(note.title ?? "");
   const [content, setContent] = useState(note.content);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -293,10 +294,17 @@ export function ViewNoteModal({
           animation: "noteModalIn 0.25s cubic-bezier(0.16,1,0.3,1)",
         }}
       >
-        {/* Top row: close + edit + delete */}
+        {/* Top row: trash + edit + close */}
         <div className="absolute right-4 top-4 flex items-center gap-1">
           {!editing && (
             <>
+              <button
+                title="Delete note"
+                onClick={() => setConfirmDelete(true)}
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
               <button
                 title="Edit note"
                 onClick={() => setEditing(true)}
@@ -305,16 +313,17 @@ export function ViewNoteModal({
                 <Pencil className="h-3.5 w-3.5" />
               </button>
               <button
-                title="Delete note"
-                onClick={handleDelete}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                title="Close"
+                onClick={onClose}
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
               </button>
             </>
           )}
           {editing && (
             <button
+              title="Close"
               onClick={() => {
                 setEditing(false);
                 setTitle(note.title ?? "");
@@ -411,6 +420,43 @@ export function ViewNoteModal({
           </div>
         )}
       </div>
+      {/* Delete confirmation overlay */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center"
+          onClick={() => setConfirmDelete(false)}
+        >
+          <div className="absolute inset-0 bg-black/30 dark:bg-black/50" />
+          <div
+            className="relative z-[10001] w-full max-w-xs rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-1 text-[14px] font-semibold text-zinc-900 dark:text-zinc-100">
+              Delete this note?
+            </p>
+            <p className="mb-4 text-[12px] text-zinc-500 dark:text-zinc-400">
+              This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDelete(false);
+                  handleDelete();
+                }}
+                className="rounded-lg bg-red-500 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );
