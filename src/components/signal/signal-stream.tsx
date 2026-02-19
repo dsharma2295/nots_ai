@@ -278,22 +278,25 @@ function KanbanColumn({
     value?: string,
   ) => Promise<void>;
 }) {
-  const PRIORITY_WEIGHT: Record<string, number> = {
-    CRITICAL: 0,
-    HIGH: 1,
-    MEDIUM: 2,
-    LOW: 3,
-  };
   const sorted = [...tasks].sort((a, b) => {
     const tierA = a.tier || 99;
     const tierB = b.tier || 99;
     if (tierA !== tierB) return tierA - tierB;
-    // Same tier (or both unranked) — sort by AI priority
-    return (
-      (PRIORITY_WEIGHT[a.priority] ?? 4) - (PRIORITY_WEIGHT[b.priority] ?? 4)
-    );
+    // Same tier: sort by latest provenance message, newest first
+    const latestA =
+      a.sourceEvents.length > 0
+        ? Math.max(
+            ...a.sourceEvents.map((e) => new Date(e.timestamp).getTime()),
+          )
+        : new Date(a.createdAt).getTime();
+    const latestB =
+      b.sourceEvents.length > 0
+        ? Math.max(
+            ...b.sourceEvents.map((e) => new Date(e.timestamp).getTime()),
+          )
+        : new Date(b.createdAt).getTime();
+    return latestB - latestA;
   });
-  const timeGroups = groupByTime(sorted);
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-800/60 dark:bg-zinc-900/80">
@@ -305,7 +308,7 @@ function KanbanColumn({
           {tasks.length}
         </span>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-2">
         {tasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
             <p className="text-[12px] text-zinc-400 dark:text-zinc-600">
@@ -313,25 +316,13 @@ function KanbanColumn({
             </p>
           </div>
         ) : (
-          timeGroups.map((group) => (
-            <div key={group.label}>
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
-                  {group.label}
-                </span>
-                <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/40" />
-              </div>
-              <div className="space-y-2">
-                {group.tasks.map((t, i) => (
-                  <TaskCard
-                    key={t.id}
-                    task={t}
-                    index={totalIndex + i}
-                    onTaskActionExec={onTaskActionExec}
-                  />
-                ))}
-              </div>
-            </div>
+          sorted.map((t) => (
+            <TaskCard
+              key={t.id}
+              task={t}
+              index={0}
+              onTaskActionExec={onTaskActionExec}
+            />
           ))
         )}
       </div>

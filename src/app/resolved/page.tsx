@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 async function getResolvedTasks(): Promise<NodalTask[]> {
   const tasks = await db.nodalTask.findMany({
     where: { status: "DONE" },
-    orderBy: { updatedAt: "desc" },
+    orderBy: { createdAt: "desc" },
     take: 100,
     include: {
       sourceLinks: {

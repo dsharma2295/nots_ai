@@ -79,11 +79,6 @@ export async function POST(req: NextRequest) {
         task: { id: task.id, title: task.title },
       });
     }
-    await broadcastTaskUpdate({
-      type: "task_updated",
-      taskId: data.taskId,
-      changes: { status: data.status },
-    });
     // --- UPDATE STATUS ---
     if (data.action === "updateStatus" && data.status) {
       await db.nodalTask.update({

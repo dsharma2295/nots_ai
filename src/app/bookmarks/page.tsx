@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 async function getBookmarkedTasks(): Promise<NodalTask[]> {
   const tasks = await db.nodalTask.findMany({
     where: { bookmarked: true },
-    orderBy: { updatedAt: "desc" },
+    orderBy: { createdAt: "desc" },
     take: 100,
     include: {
       sourceLinks: {

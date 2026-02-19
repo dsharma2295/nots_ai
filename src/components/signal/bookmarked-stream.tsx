@@ -60,7 +60,24 @@ function groupByPriority(list: NodalTask[]) {
   for (const key of ["CRITICAL", "HIGH", "MEDIUM", "LOW"]) {
     const matching = list
       .filter((t) => t.priority === key)
-      .sort((a, b) => (a.tier || 99) - (b.tier || 99));
+      .sort((a, b) => {
+        const tierA = a.tier || 99;
+        const tierB = b.tier || 99;
+        if (tierA !== tierB) return tierA - tierB;
+        const latestA =
+          a.sourceEvents.length > 0
+            ? Math.max(
+                ...a.sourceEvents.map((e) => new Date(e.timestamp).getTime()),
+              )
+            : new Date(a.createdAt).getTime();
+        const latestB =
+          b.sourceEvents.length > 0
+            ? Math.max(
+                ...b.sourceEvents.map((e) => new Date(e.timestamp).getTime()),
+              )
+            : new Date(b.createdAt).getTime();
+        return latestB - latestA;
+      });
     if (matching.length > 0) {
       const pl = PRIORITY_LABEL[key];
       result.push({ label: pl.text, color: pl.color, tasks: matching });
