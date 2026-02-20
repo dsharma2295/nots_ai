@@ -493,7 +493,8 @@ ${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-
         {/* Row 3: platforms + sources + intent + (chevron OR actions) */}
         <div className="flex items-center gap-2.5 overflow-hidden">
           {" "}
-          <div className="flex -space-x-1.5">
+          <div className="flex shrink-0 -space-x-1.5">
+            {" "}
             {platforms.map((p) => (
               <PlatformDot
                 key={p}
@@ -501,10 +502,10 @@ ${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-
               />
             ))}
           </div>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+          <span className="shrink-0 text-[11px] text-zinc-400 dark:text-zinc-500">
             {task.sourceEvents.length} message
-            {task.sourceEvents.length !== 1 ? "s" : ""}{" "}
-          </span>
+            {task.sourceEvents.length !== 1 ? "s" : ""}
+          </span>{" "}
           <span className="truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-500">
             {task.intent}
           </span>{" "}
