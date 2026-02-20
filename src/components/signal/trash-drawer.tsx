@@ -111,7 +111,7 @@ function TrashedCard({
               ))}
             </div>
             <span className="text-[10px] text-zinc-400 dark:text-zinc-600">
-              {task.sourceEvents.length} source
+              {task.sourceEvents.length} message
               {task.sourceEvents.length !== 1 ? "s" : ""}
             </span>
             {attachCount > 0 && (

@@ -16,7 +16,7 @@ async function getBookmarkedTasks(): Promise<NodalTask[]> {
         include: {
           event: { include: { attachments: true } },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
       },
       _count: {
         select: { notes: true },

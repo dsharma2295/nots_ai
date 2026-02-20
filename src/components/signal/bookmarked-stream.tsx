@@ -264,7 +264,7 @@ function BookmarkedCard({
               ))}
             </div>
             <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-              {task.sourceEvents.length} source
+              {task.sourceEvents.length} messsage
               {task.sourceEvents.length !== 1 ? "s" : ""}
             </span>
             <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-500">

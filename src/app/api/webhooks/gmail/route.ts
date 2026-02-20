@@ -21,6 +21,27 @@ import { NextRequest, NextResponse } from "next/server";
 
 let lastHistoryId: string | null = null;
 
+/**
+ * Strips quoted reply text from Gmail messages.
+ * Removes "On [date], [name] wrote:" blocks and ">" prefixed lines.
+ */
+function stripQuotedReply(text: string): string {
+  const lines = text.split("\n");
+  const cleaned: string[] = [];
+
+  for (const line of lines) {
+    // Stop at "On ... wrote:" pattern
+    if (/^On .+ wrote:$/i.test(line.trim())) break;
+    // Stop at "---------- Forwarded message ----------"
+    if (line.trim().startsWith("---------- Forwarded message")) break;
+    // Skip lines starting with ">"
+    if (line.trim().startsWith(">")) continue;
+    cleaned.push(line);
+  }
+
+  return cleaned.join("\n").trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -154,7 +175,7 @@ export async function POST(req: NextRequest) {
         data: {
           task: {
             platform: "GMAIL" as const,
-            rawContent: enrichedContent,
+            rawContent: stripQuotedReply(enrichedContent),
             sender: email.from,
             deepLink,
             timestamp: new Date(email.date).toISOString(),

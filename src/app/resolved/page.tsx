@@ -17,7 +17,7 @@ async function getResolvedTasks(): Promise<NodalTask[]> {
             include: { attachments: true },
           },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
       },
       _count: {
         select: { notes: true },

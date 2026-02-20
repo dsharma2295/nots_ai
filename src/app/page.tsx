@@ -17,7 +17,7 @@ async function getTasks(): Promise<NodalTask[]> {
         include: {
           event: { include: { attachments: true } },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
       },
       _count: {
         select: { notes: true },
@@ -68,7 +68,7 @@ async function getResolvedTasks(): Promise<NodalTask[]> {
         include: {
           event: { include: { attachments: true } },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
       },
       _count: {
         select: { notes: true },
@@ -117,7 +117,7 @@ async function getTrashedTasks(): Promise<NodalTask[]> {
       sourceLinks: {
         where: { dismissed: false },
         include: { event: { include: { attachments: true } } },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
       },
       _count: { select: { notes: true } },
     },
