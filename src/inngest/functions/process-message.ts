@@ -268,7 +268,7 @@ export const processMessage = inngest.createFunction(
         // Touch updatedAt so dashboard shows this task as recently active
         await db.nodalTask.update({
           where: { id: threadMergeTaskId },
-          data: { updatedAt: new Date(), seenEventCount: 0 },
+          data: { updatedAt: new Date() },
         });
         await broadcastTaskUpdate({
           type: "task_updated",
@@ -391,7 +391,7 @@ export const processMessage = inngest.createFunction(
         // Update embedding (rolling average would be better — overwrite for MVP)
         const vectorStr = `[${embedding.join(",")}]`;
         await db.$executeRawUnsafe(
-          `UPDATE nodal_tasks SET embedding = $1::vector, updated_at = NOW(), seen_event_count = 0 WHERE id = $2`,
+          `UPDATE nodal_tasks SET embedding = $1::vector, updated_at = NOW() WHERE id = $2`,
           vectorStr,
           stage2Result.taskId,
         );
@@ -474,7 +474,7 @@ export const processMessage = inngest.createFunction(
 
         const vectorStr = `[${embedding.join(",")}]`;
         await db.$executeRawUnsafe(
-          `UPDATE nodal_tasks SET embedding = $1::vector, updated_at = NOW(), seen_event_count = 0 WHERE id = $2`,
+          `UPDATE nodal_tasks SET embedding = $1::vector, updated_at = NOW() WHERE id = $2`,
           vectorStr,
           decision.mergeTargetId,
         );
