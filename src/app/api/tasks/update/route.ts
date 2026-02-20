@@ -43,6 +43,50 @@ const RequestSchema = z.union([UpdateTaskSchema, CreateManualTaskSchema]);
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Quick check for emptyTrash (no taskId needed)
+    if (body.action === "emptyTrash") {
+      const trashed = await db.nodalTask.findMany({
+        where: { status: "TRASHED" },
+        select: { id: true },
+      });
+      const ids = trashed.map((t) => t.id);
+      if (ids.length > 0) {
+        // Find orphaned source events (only linked to trashed tasks)
+        const exclusiveEvents = await db.$queryRawUnsafe<
+          { event_id: string }[]
+        >(
+          `SELECT DISTINCT tsl.event_id FROM task_source_links tsl
+           WHERE tsl.task_id = ANY($1::text[])
+           AND NOT EXISTS (
+             SELECT 1 FROM task_source_links other
+             WHERE other.event_id = tsl.event_id
+             AND other.task_id != ALL($1::text[])
+           )`,
+          ids,
+        );
+        const orphanEventIds = exclusiveEvents.map((e) => e.event_id);
+
+        await db.note.deleteMany({ where: { taskId: { in: ids } } });
+        await db.taskSourceLink.deleteMany({ where: { taskId: { in: ids } } });
+        await db.nodalTask.deleteMany({ where: { id: { in: ids } } });
+
+        if (orphanEventIds.length > 0) {
+          await db.attachment.deleteMany({
+            where: { eventId: { in: orphanEventIds } },
+          });
+          await db.sourceEvent.deleteMany({
+            where: { id: { in: orphanEventIds } },
+          });
+        }
+      }
+      return NextResponse.json({
+        success: true,
+        action: "emptyTrash",
+        count: ids.length,
+      });
+    }
+
     const parsed = RequestSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -214,16 +258,39 @@ export async function POST(req: NextRequest) {
 
     // --- PERMANENT DELETE ---
     if (data.action === "permanentDelete") {
+      // Get source event IDs linked only to this task
+      const exclusiveEvents = await db.$queryRawUnsafe<{ event_id: string }[]>(
+        `SELECT tsl.event_id FROM task_source_links tsl
+         WHERE tsl.task_id = $1
+         AND NOT EXISTS (
+           SELECT 1 FROM task_source_links other
+           WHERE other.event_id = tsl.event_id
+           AND other.task_id != $1
+         )`,
+        data.taskId,
+      );
+      const orphanEventIds = exclusiveEvents.map((e) => e.event_id);
+
       await db.note.deleteMany({ where: { taskId: data.taskId } });
       await db.taskSourceLink.deleteMany({ where: { taskId: data.taskId } });
       await db.nodalTask.delete({ where: { id: data.taskId } });
+
+      // Clean orphaned source events and their attachments
+      if (orphanEventIds.length > 0) {
+        await db.attachment.deleteMany({
+          where: { eventId: { in: orphanEventIds } },
+        });
+        await db.sourceEvent.deleteMany({
+          where: { id: { in: orphanEventIds } },
+        });
+      }
+
       return NextResponse.json({
         success: true,
         action: "permanentDelete",
         taskId: data.taskId,
       });
     }
-
     // --- SNOOZE ---
     if (data.action === "snooze") {
       await db.nodalTask.update({

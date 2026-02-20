@@ -18,7 +18,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { ConfirmDeleteModal } from "./confirm-delete-modal";
 import { CreateNoteModal, NoteChips, ViewNoteModal } from "./note-modal";
@@ -346,6 +346,10 @@ export function BookmarkedStream({
   const [tasks, setTasks] = useState(initialTasks);
   const { toast } = useToast();
 
+  // Sync when navigating back (server data may have changed)
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
   const [searchText, setSearchText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<AIQueryResponse | null>(null);

@@ -56,7 +56,6 @@ async function findThreadMatch(
 ): Promise<string | null> {
   if (!threadId) return null;
 
-  // Find a SourceEvent with the same threadId and platform
   const existing = await db.sourceEvent.findFirst({
     where: {
       threadId,
@@ -70,7 +69,10 @@ async function findThreadMatch(
     },
     include: {
       taskLinks: {
-        where: { dismissed: false },
+        where: {
+          dismissed: false,
+          task: { status: { notIn: ["DONE", "TRASHED", "ARCHIVED"] } },
+        },
         select: { taskId: true },
         take: 1,
       },
@@ -118,7 +120,10 @@ async function findSenderTimeMatch(
     },
     include: {
       taskLinks: {
-        where: { dismissed: false },
+        where: {
+          dismissed: false,
+          task: { status: { notIn: ["DONE", "TRASHED", "ARCHIVED"] } },
+        },
         select: { taskId: true },
         take: 1,
       },
@@ -238,12 +243,30 @@ export const processMessage = inngest.createFunction(
 
         await db.taskSourceLink.create({ data: linkData });
 
+        // If new message is substantially longer than existing title,
+        // it's likely the parent arriving after a reply. Update title.
+        const existingTask = await db.nodalTask.findUnique({
+          where: { id: threadMergeTaskId },
+          select: { title: true },
+        });
+        if (
+          existingTask &&
+          validTask.rawContent.length > existingTask.title.length * 2 &&
+          validTask.rawContent.length > 30
+        ) {
+          const { refinerOutput: titleRefine } =
+            await refineWithEmbedding(validTask);
+          await db.nodalTask.update({
+            where: { id: threadMergeTaskId },
+            data: { title: titleRefine.smartTitle },
+          });
+        }
+
         // Touch updatedAt so dashboard shows this task as recently active
         await db.nodalTask.update({
           where: { id: threadMergeTaskId },
-          data: { updatedAt: new Date() },
+          data: { updatedAt: new Date(), seenEventCount: 0 },
         });
-
         await broadcastTaskUpdate({
           type: "task_updated",
           taskId: threadMergeTaskId,
@@ -365,7 +388,7 @@ export const processMessage = inngest.createFunction(
         // Update embedding (rolling average would be better — overwrite for MVP)
         const vectorStr = `[${embedding.join(",")}]`;
         await db.$executeRawUnsafe(
-          `UPDATE nodal_tasks SET embedding = $1::vector, updated_at = NOW() WHERE id = $2`,
+          `UPDATE nodal_tasks SET embedding = $1::vector, updated_at = NOW(), seen_event_count = 0 WHERE id = $2`,
           vectorStr,
           stage2Result.taskId,
         );
@@ -448,11 +471,10 @@ export const processMessage = inngest.createFunction(
 
         const vectorStr = `[${embedding.join(",")}]`;
         await db.$executeRawUnsafe(
-          `UPDATE nodal_tasks SET embedding = $1::vector, updated_at = NOW() WHERE id = $2`,
+          `UPDATE nodal_tasks SET embedding = $1::vector, updated_at = NOW(), seen_event_count = 0 WHERE id = $2`,
           vectorStr,
           decision.mergeTargetId,
         );
-
         await broadcastTaskUpdate({
           type: "task_updated",
           taskId: decision.mergeTargetId,

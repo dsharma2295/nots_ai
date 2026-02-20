@@ -621,7 +621,7 @@ export function SignalStream({
       } finally {
         setTimeout(() => {
           pendingRef.current.delete(taskId);
-        }, 5000);
+        }, 16000);
       }
     },
     [toast],
@@ -973,20 +973,6 @@ export function SignalStream({
         Noise → Signal
         <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
       </div>
-      <style jsx global>
-        {`
-          @keyframes cardSlideIn {
-            from {
-              opacity: 0;
-              transform: translateY(12px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}
-      </style>
     </div>
   );
 }

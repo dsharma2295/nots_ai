@@ -215,10 +215,10 @@ export async function findSimilarTasks(
        intent,
        1 - (embedding <=> $1::vector) as similarity
      FROM nodal_tasks
-     WHERE embedding IS NOT NULL
+WHERE embedding IS NOT NULL
+       AND status NOT IN ('DONE', 'TRASHED', 'ARCHIVED')
        AND user_id = $2
-       AND status != 'ARCHIVED'
-     ORDER BY embedding <=> $1::vector
+            ORDER BY embedding <=> $1::vector
      LIMIT $3`,
     vectorStr,
     userId,
