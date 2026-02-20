@@ -40,6 +40,7 @@ async function getTasks(): Promise<NodalTask[]> {
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     trashedAt: t.trashedAt?.toISOString() ?? null,
+    hasBeenOpened: t.hasBeenOpened,
     sourceEvents: t.sourceLinks.map((link) => ({
       id: link.event.id,
       platform: link.event.platform as NodalTask["sourceEvents"][0]["platform"],
@@ -90,6 +91,7 @@ async function getResolvedTasks(): Promise<NodalTask[]> {
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     trashedAt: t.trashedAt?.toISOString() ?? null,
+    hasBeenOpened: t.hasBeenOpened,
     sourceEvents: t.sourceLinks.map((link) => ({
       id: link.event.id,
       platform: link.event.platform as NodalTask["sourceEvents"][0]["platform"],
@@ -135,6 +137,7 @@ async function getTrashedTasks(): Promise<NodalTask[]> {
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     trashedAt: t.trashedAt?.toISOString() ?? null,
+    hasBeenOpened: t.hasBeenOpened,
     sourceEvents: t.sourceLinks.map((link) => ({
       id: link.event.id,
       platform: link.event.platform as NodalTask["sourceEvents"][0]["platform"],

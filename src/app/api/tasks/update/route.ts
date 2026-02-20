@@ -210,9 +210,8 @@ export async function POST(req: NextRequest) {
     if (data.action === "markSeen" && data.seenEventCount !== undefined) {
       await db.nodalTask.update({
         where: { id: data.taskId },
-        data: { seenEventCount: data.seenEventCount },
+        data: { seenEventCount: data.seenEventCount, hasBeenOpened: true },
       });
-
       return NextResponse.json({
         success: true,
         action: "markSeen",

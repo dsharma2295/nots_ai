@@ -558,17 +558,6 @@ export const processMessage = inngest.createFunction(
 
       await db.taskSourceLink.create({ data: linkData });
 
-      if (vectorMatches.length > 0) {
-        for (const match of vectorMatches.filter((m) => m.similarity >= 0.75)) {
-          const ambiguousLink = CreateTaskSourceLinkSchema.parse({
-            taskId: match.id,
-            eventId: sourceEvent.id,
-            relevanceScore: match.similarity,
-          });
-          await db.taskSourceLink.create({ data: ambiguousLink });
-        }
-      }
-
       await broadcastTaskUpdate({
         type: "task_created",
         taskId: nodalTask.id,

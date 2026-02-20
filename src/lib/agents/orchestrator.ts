@@ -58,29 +58,37 @@ You will receive:
 2. A list of existing tasks with their similarity scores from vector search.
 
 DECISION RULES:
-- MERGE: The new message clearly belongs to an existing task. The content is about the same objective, project, or conversation thread. Similarity score should typically be > 0.85, BUT you may MERGE at lower scores (down to 0.70) if the semantic relationship is obviously the same task — for example, a follow-up message about the same document, project, or request.
-- CREATE: The new message represents a genuinely new task, objective, or topic. No existing task is a good match.
-- REVIEW: You are uncertain. Multiple tasks could be matches, or the message is truly ambiguous.
+- MERGE: The new message is CLEARLY about the SAME specific project, document, request, or conversation as an existing task. Both messages must reference the same concrete thing — not just the same general topic.
+- CREATE: The new message represents a different task, even if it's in the same general domain. Two messages about different documents, different requests, or different projects are SEPARATE tasks.
+- REVIEW: You are genuinely uncertain whether two items are the same task.
 
-IMPORTANT:
-- If the top match has similarity > 0.85, almost always choose MERGE.
-- If similarity is 0.70–0.85 AND the intent, subject matter, or project clearly matches, choose MERGE. Use your judgment — a follow-up about the same document or a reply in the same thread is a MERGE even at 0.75.
-- If the top two matches are within 0.05 of each other, choose REVIEW (ambiguous assignment).
-- If no match is above 0.70, choose CREATE.
-- Always explain your reasoning — this helps humans during HITL review.
-- Your confidence should reflect how certain you are about the decision (0.0-1.0).
-- When choosing MERGE, set mergeTargetId to the exact ID string provided in the match list.
+CRITICAL — DO NOT MERGE UNLESS:
+- The messages reference the SAME specific document, project name, feature, or request.
+- A score above 0.85 alone is NOT sufficient — you must verify the content is about the SAME thing.
+- "Landing page wireframes" and "Q1 investor update" are DIFFERENT tasks even if both are "document review."
+- "Database migration" and "API documentation" are DIFFERENT tasks even if both are "engineering."
+- Same intent (e.g., both are "document-review") does NOT mean same task.
 
-Respond ONLY with valid JSON matching this exact schema:
+THRESHOLDS:
+- Similarity > 0.90 AND content clearly matches → MERGE.
+- Similarity 0.85–0.90 → MERGE only if the specific subject matter is identical.
+- Similarity 0.80–0.85 → Almost always CREATE. Only MERGE if you are highly confident they reference the exact same thing.
+- Similarity < 0.80 → Always CREATE.
+- Top two matches within 0.05 spread → REVIEW.
+- Your confidence < 0.70 → REVIEW regardless.
+
+When choosing MERGE, set mergeTargetId to the exact ID string provided in the match list.
+Always explain your reasoning.
+
+Respond ONLY with valid JSON:
 {
   "action": "MERGE" | "CREATE" | "REVIEW",
-  "mergeTargetId": string | undefined,      // Required if action = MERGE
-  "similarityScore": number | undefined,     // The score that led to this decision
-  "confidence": number,                      // Your confidence (0.0-1.0)
-  "newTaskTitle": string | undefined,        // Required if action = CREATE
-  "reasoning": string                        // Always required — explain your decision
+  "mergeTargetId": string | undefined,
+  "similarityScore": number | undefined,
+  "confidence": number,
+  "newTaskTitle": string | undefined,
+  "reasoning": string
 }`;
-
 // =============================================================
 // ORCHESTRATE
 // Main entry point. Takes Refiner output + vector matches,
@@ -125,7 +133,7 @@ export async function orchestrate(
   }
 
   // FAST PATH: Top match clearly below threshold → CREATE
-  if (topMatch.similarity < SIMILARITY_THRESHOLD - 0.1) {
+  if (topMatch.similarity < SIMILARITY_THRESHOLD - 0.05) {
     return {
       action: "CREATE",
       confidence: 0.9,

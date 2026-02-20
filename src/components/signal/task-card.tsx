@@ -311,7 +311,8 @@ export function TaskCard({
   }, [task.id, onTaskActionExec, setConfirmDelete, setFadingOut]);
   const totalEvents = task.sourceEvents.length;
   const unseenCount = totalEvents - (task.seenEventCount ?? 0);
-  const isNewTask = (task.seenEventCount ?? 0) === 0 && totalEvents > 0;
+  const isNewTask =
+    !task.hasBeenOpened && (task.seenEventCount ?? 0) === 0 && totalEvents > 0;
   const hasNewMessages = !isNewTask && unseenCount > 0;
   const showIndicator = isNewTask || hasNewMessages;
   return (
