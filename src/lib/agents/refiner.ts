@@ -102,14 +102,17 @@ export async function refine(task: UniversalTask): Promise<RefinerOutput> {
  * low confidence so it gets flagged for human review.
  */
 function buildFallback(task: UniversalTask): RefinerOutput {
-  // Try to extract a reasonable title from the first sentence
-  const firstSentence = task.rawContent
-    .split(/[.!?\n]/)[0]
-    .trim()
-    .slice(0, 100);
-
+  // Extract first sentence, then truncate at last word boundary
+  const firstSentence = task.rawContent.split(/[.!?\n]/)[0].trim();
+  let title = firstSentence || task.rawContent;
+  if (title.length > 80) {
+    title = title.slice(0, 80);
+    const lastSpace = title.lastIndexOf(" ");
+    if (lastSpace > 20) title = title.slice(0, lastSpace);
+    title += "…";
+  }
   return {
-    smartTitle: firstSentence || task.rawContent.slice(0, 100),
+    smartTitle: title,
     intent: "unknown",
     extractedLinks: [],
     extractedDates: [],

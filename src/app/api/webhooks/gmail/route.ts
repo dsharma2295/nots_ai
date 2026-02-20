@@ -26,22 +26,30 @@ let lastHistoryId: string | null = null;
  * Removes "On [date], [name] wrote:" blocks and ">" prefixed lines.
  */
 function stripQuotedReply(text: string): string {
+  // Handle inline "On ... wrote:" (no line break before it)
+  const onWroteInline = text.search(/\s*On\s.+wrote:\s*$/im);
+  if (onWroteInline > 0) {
+    text = text.substring(0, onWroteInline).trim();
+  }
+
+  // Handle line-by-line patterns
   const lines = text.split("\n");
   const cleaned: string[] = [];
 
   for (const line of lines) {
-    // Stop at "On ... wrote:" pattern
-    if (/^On .+ wrote:$/i.test(line.trim())) break;
-    // Stop at "---------- Forwarded message ----------"
+    // Stop at "On [date], [name] wrote:" on its own line
+    if (/^On\s.+wrote:\s*$/i.test(line.trim())) break;
+    // Stop at forwarded message divider
     if (line.trim().startsWith("---------- Forwarded message")) break;
-    // Skip lines starting with ">"
+    // Stop at signature divider "-- "
+    if (line.trim() === "--" || line.trim() === "-- ") break;
+    // Skip ">" quoted lines
     if (line.trim().startsWith(">")) continue;
     cleaned.push(line);
   }
 
   return cleaned.join("\n").trim();
 }
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

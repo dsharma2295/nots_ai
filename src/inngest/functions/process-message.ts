@@ -245,23 +245,26 @@ export const processMessage = inngest.createFunction(
 
         // If new message is substantially longer than existing title,
         // it's likely the parent arriving after a reply. Update title.
+        // Only update title if the existing one looks like a raw fallback
+        // (longer than 40 chars suggests it's unrefined raw content, not a smart title)
         const existingTask = await db.nodalTask.findUnique({
           where: { id: threadMergeTaskId },
-          select: { title: true },
+          select: { title: true, confidence: true },
         });
         if (
           existingTask &&
-          validTask.rawContent.length > existingTask.title.length * 2 &&
-          validTask.rawContent.length > 30
+          existingTask.confidence < 0.5 &&
+          existingTask.title.length > 40
         ) {
           const { refinerOutput: titleRefine } =
             await refineWithEmbedding(validTask);
-          await db.nodalTask.update({
-            where: { id: threadMergeTaskId },
-            data: { title: titleRefine.smartTitle },
-          });
+          if (titleRefine.confidence > existingTask.confidence) {
+            await db.nodalTask.update({
+              where: { id: threadMergeTaskId },
+              data: { title: titleRefine.smartTitle },
+            });
+          }
         }
-
         // Touch updatedAt so dashboard shows this task as recently active
         await db.nodalTask.update({
           where: { id: threadMergeTaskId },
