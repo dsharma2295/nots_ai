@@ -1,6 +1,7 @@
 "use client";
 import { useCmdK } from "@/lib/hooks";
 import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
+import { useRealtimeContext } from "@/lib/realtime-provider";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -294,6 +295,7 @@ function KanbanColumn({
   tasks,
   totalIndex,
   onTaskActionExec,
+  recentArrivalIds,
 }: {
   title: string;
   icon: typeof Flame;
@@ -305,6 +307,7 @@ function KanbanColumn({
     action: string,
     value?: string,
   ) => Promise<void>;
+  recentArrivalIds: Set<string>;
 }) {
   const sorted = [...tasks].sort((a, b) => {
     const tierA = a.tier || 99;
@@ -382,6 +385,7 @@ function KanbanColumn({
                   task={t}
                   index={0}
                   onTaskActionExec={onTaskActionExec}
+                  isNewArrival={recentArrivalIds.has(t.id)}
                 />
               </motion.div>
             ))}
@@ -409,7 +413,7 @@ export function SignalStream({
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
   useCmdK(searchRef);
-
+  const { recentArrivalIds } = useRealtimeContext();
   // Local task state for optimistic updates (done removal, priority, tier)
   const { toast } = useToast();
   const [localTasks, setLocalTasks] = useState(serverTasks);
@@ -582,6 +586,17 @@ export function SignalStream({
             t.id === taskId ? { ...t, seenEventCount: parseInt(value, 10) } : t,
           ),
         );
+      } else if (action === "noteCount" && value) {
+        const count = parseInt(value, 10);
+        setLocalTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, noteCount: count } : t)),
+        );
+        setLocalResolvedTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, noteCount: count } : t)),
+        );
+        setLocalTrashedTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, noteCount: count } : t)),
+        );
       } else if (action === "delete") {
         setLocalTasks((prev) => {
           const deletedTask = prev.find((t) => t.id === taskId);
@@ -615,7 +630,9 @@ export function SignalStream({
                     }
                   : action === "delete"
                     ? { action: "deleteTask", taskId }
-                    : null;
+                    : action === "noteCount"
+                      ? null
+                      : null;
       if (!body) {
         pendingRef.current.delete(taskId);
         return;
@@ -920,6 +937,7 @@ export function SignalStream({
                   tasks={urgent}
                   totalIndex={0}
                   onTaskActionExec={executeTaskAction}
+                  recentArrivalIds={recentArrivalIds}
                 />
                 <KanbanColumn
                   title="Normal"
@@ -928,6 +946,7 @@ export function SignalStream({
                   tasks={active}
                   totalIndex={urgent.length}
                   onTaskActionExec={executeTaskAction}
+                  recentArrivalIds={recentArrivalIds}
                 />
                 <KanbanColumn
                   title="Low Priority"
@@ -936,7 +955,8 @@ export function SignalStream({
                   tasks={low}
                   totalIndex={urgent.length + active.length}
                   onTaskActionExec={executeTaskAction}
-                />
+                  recentArrivalIds={recentArrivalIds}
+                />{" "}
               </div>
             )}
           </div>

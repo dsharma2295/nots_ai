@@ -41,17 +41,19 @@ function ResolvedCard({
   onRestore,
   onBookmark,
   onDelete,
+  onNoteCountChange,
 }: {
   task: NodalTask;
   index: number;
   onRestore: (taskId: string) => void;
   onBookmark: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onNoteCountChange: (taskId: string, count: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
-  const notes = useNotes(task.id, expanded);
+  const notes = useNotes(task.id, expanded, onNoteCountChange);
   const noteCount = notes.count(task.noteCount ?? 0);
 
   const platforms = [...new Set(task.sourceEvents.map((e) => e.platform))];
@@ -419,6 +421,12 @@ export function ResolvedDrawer({
     [toast, onTaskDeleted],
   );
 
+  const handleNoteCountChange = useCallback((taskId: string, count: number) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, noteCount: count } : t)),
+    );
+  }, []);
+
   const filtered = useMemo(() => {
     if (!filterText) return tasks;
     const q = filterText.toLowerCase();
@@ -551,6 +559,7 @@ export function ResolvedDrawer({
                       onRestore={handleRestore}
                       onBookmark={handleBookmark}
                       onDelete={handleDelete}
+                      onNoteCountChange={handleNoteCountChange}
                     />
                   ))}
                 </div>

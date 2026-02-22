@@ -25,6 +25,7 @@ import { CreateNoteModal, NoteChips, ViewNoteModal } from "./note-modal";
 import { PlatformDot } from "./platform-icon";
 import { SourceTimeline } from "./source-timeline";
 import { useToast } from "./toast";
+
 const PRIORITY_LABEL: Record<string, { text: string; color: string }> = {
   CRITICAL: {
     text: "Critical",
@@ -106,6 +107,7 @@ function BookmarkedCard({
   onMarkDone,
   onRestore,
   onDelete,
+  onNoteCountChange,
 }: {
   task: NodalTask;
   index: number;
@@ -114,11 +116,12 @@ function BookmarkedCard({
   onMarkDone: (taskId: string) => void;
   onRestore: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onNoteCountChange: (taskId: string, count: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
-  const notes = useNotes(task.id, expanded);
+  const notes = useNotes(task.id, expanded, onNoteCountChange);
   const noteCount = notes.count(task.noteCount ?? 0);
 
   const platforms = [...new Set(task.sourceEvents.map((e) => e.platform))];
@@ -359,29 +362,36 @@ export function BookmarkedStream({
   const isAiMode = searchText.startsWith("/");
   const filterText = isAiMode ? "" : searchText;
 
-  const executeAiQuery = useCallback(async (query: string) => {
-    setAiLoading(true);
-    setAiResponse(null);
-    try {
-      const res = await fetch("/api/ai/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.slice(1).trim() }),
-      });
-      const data = await res.json();
-      if (data.text) setAiResponse(data as AIQueryResponse);
-    } catch {
-      setAiResponse({
-        text: "Something went wrong.",
-        actions: [],
-        queryType: "summary",
-        referencedTaskIds: [],
-      });
-    } finally {
-      setAiLoading(false);
-    }
+  const executeAiQuery = useCallback(
+    async (query: string) => {
+      setAiLoading(true);
+      setAiResponse(null);
+      try {
+        const res = await fetch("/api/ai/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query.slice(1).trim() }),
+        });
+        const data = await res.json();
+        if (data.text) setAiResponse(data as AIQueryResponse);
+      } catch {
+        setAiResponse({
+          text: "Something went wrong.",
+          actions: [],
+          queryType: "summary",
+          referencedTaskIds: [],
+        });
+      } finally {
+        setAiLoading(false);
+      }
+    },
+    [toast],
+  );
+  const handleNoteCountChange = useCallback((taskId: string, count: number) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, noteCount: count } : t)),
+    );
   }, []);
-
   const executeAiAction = useCallback(
     async (action: AIQueryResponse["actions"][number]) => {
       const body =
@@ -635,6 +645,7 @@ export function BookmarkedStream({
                           onMarkDone={handleMarkDone}
                           onRestore={handleRestore}
                           onDelete={handleDelete}
+                          onNoteCountChange={handleNoteCountChange}
                         />
                       ))}
                     </div>
@@ -687,6 +698,7 @@ export function BookmarkedStream({
                           onMarkDone={handleMarkDone}
                           onRestore={handleRestore}
                           onDelete={handleDelete}
+                          onNoteCountChange={handleNoteCountChange}
                         />
                       ))}
                     </div>

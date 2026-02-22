@@ -16,7 +16,11 @@ import { useCallback, useEffect, useState } from "react";
  *   // notes.showCreate, notes.setShowCreate
  *   // notes.viewing, notes.setViewing
  */
-export function useNotes(taskId: string, expanded: boolean) {
+export function useNotes(
+  taskId: string,
+  expanded: boolean,
+  onCountChange?: (taskId: string, count: number) => void,
+) {
   const [list, setList] = useState<NoteData[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -42,12 +46,15 @@ export function useNotes(taskId: string, expanded: boolean) {
 
   const onCreate = useCallback(
     (note: NoteData) => {
-      setList((prev) => [note, ...prev]);
+      setList((prev) => {
+        const next = [note, ...prev];
+        onCountChange?.(taskId, next.length);
+        return next;
+      });
       toast("Note added");
     },
-    [toast],
+    [toast, taskId, onCountChange],
   );
-
   const onUpdate = useCallback(
     (updated: NoteData) => {
       setList((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
@@ -59,12 +66,15 @@ export function useNotes(taskId: string, expanded: boolean) {
 
   const onDelete = useCallback(
     (noteId: string) => {
-      setList((prev) => prev.filter((n) => n.id !== noteId));
+      setList((prev) => {
+        const next = prev.filter((n) => n.id !== noteId);
+        onCountChange?.(taskId, next.length);
+        return next;
+      });
       toast("Note deleted");
     },
-    [toast],
+    [toast, taskId, onCountChange],
   );
-
   // Returns the display count — uses fetched data if loaded, server count otherwise
   const count = useCallback(
     (serverNoteCount: number) => {

@@ -258,7 +258,9 @@ export function TaskCard({
 
   const { toast } = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const notes = useNotes(task.id, expanded);
+  const notes = useNotes(task.id, expanded, (id, count) => {
+    onTaskActionExec?.(id, "noteCount", String(count));
+  });
   const noteCount = notes.count(task.noteCount ?? 0);
   const tierStyle = task.tier > 0 ? TIER_STYLE[task.tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;

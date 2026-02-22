@@ -494,27 +494,32 @@ export function NoteChips({
   if (notes.length === 0) return null;
 
   return (
-    <div className="relative mb-3">
+    <div className="group/notes relative mb-3">
       {/* Left arrow */}
       {showLeft && (
         <button
-          onClick={(e) => { e.stopPropagation(); scroll("left"); }}
-          className="absolute -left-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-90 dark:bg-zinc-800 dark:ring-zinc-700 dark:hover:bg-zinc-700"
+          onClick={(e) => {
+            e.stopPropagation();
+            scroll("left");
+          }}
+          className="absolute -left-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-zinc-100/90 opacity-0 transition-all group-hover/notes:opacity-100 active:scale-90 dark:bg-zinc-800/90"
         >
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">‹</span>
+          <span className="text-[9px] text-zinc-400 dark:text-zinc-500">‹</span>
         </button>
       )}
 
       {/* Right arrow */}
       {showRight && (
         <button
-          onClick={(e) => { e.stopPropagation(); scroll("right"); }}
-          className="absolute -right-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-90 dark:bg-zinc-800 dark:ring-zinc-700 dark:hover:bg-zinc-700"
+          onClick={(e) => {
+            e.stopPropagation();
+            scroll("right");
+          }}
+          className="absolute -right-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-zinc-100/90 opacity-0 transition-all group-hover/notes:opacity-100 active:scale-90 dark:bg-zinc-800/90"
         >
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">›</span>
+          <span className="text-[9px] text-zinc-400 dark:text-zinc-500">›</span>
         </button>
       )}
-
       {/* Chips */}
       <div
         ref={scrollRef}
