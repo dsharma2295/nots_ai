@@ -481,7 +481,7 @@ export function NoteChips({
               onClickNote(note);
             }}
             className={`group/note relative flex shrink-0 flex-col gap-1 rounded-md bg-amber-50 px-3 py-2.5 text-left shadow-[2px_2px_6px_rgba(0,0,0,0.06)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[2px_4px_12px_rgba(0,0,0,0.1)] dark:bg-amber-500/[0.07] dark:shadow-[2px_2px_6px_rgba(0,0,0,0.2)] dark:hover:shadow-[2px_4px_12px_rgba(0,0,0,0.3)] ${rotations[i % rotations.length]} hover:rotate-0`}
-            style={{ minWidth: "120px", maxWidth: "180px" }}
+            style={{ minWidth: "100px", maxWidth: "150px" }}
           >
             {/* Folded corner */}
             <div className="absolute right-0 top-0 h-3 w-3 rounded-bl-sm bg-gradient-to-bl from-amber-200/80 to-amber-50 dark:from-amber-500/20 dark:to-amber-500/[0.07]" />
@@ -511,7 +511,8 @@ export function NoteChips({
             )}
 
             {/* Content preview */}
-            <span className="line-clamp-2 text-[10px] leading-snug text-amber-800/70 dark:text-amber-300/50">
+            <span className="line-clamp-1 text-[10px] leading-snug text-amber-800/70 dark:text-amber-300/50">
+              {" "}
               {note.title
                 ? note.content.slice(0, 60)
                 : note.content.slice(0, 80)}

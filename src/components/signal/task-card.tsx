@@ -169,7 +169,7 @@ function PortalDropdown({
 
   useEffect(() => {
     if (!open) return;
-    function handler(e: MouseEvent) {
+    function handleClick(e: MouseEvent) {
       if (
         dropRef.current &&
         !dropRef.current.contains(e.target as Node) &&
@@ -179,15 +179,31 @@ function PortalDropdown({
         onClose();
       }
     }
+    function handleScroll() {
+      onClose();
+    }
+    function handleResize() {
+      onClose();
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+
     const id = setTimeout(() => {
-      document.addEventListener("mousedown", handler);
+      document.addEventListener("mousedown", handleClick);
+      window.addEventListener("scroll", handleScroll, true);
+      window.addEventListener("resize", handleResize);
+      document.addEventListener("keydown", handleKeyDown);
     }, 0);
     return () => {
       clearTimeout(id);
-      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open, onClose, anchorRef]);
-
   if (!open || !pos) return null;
 
   return createPortal(
@@ -214,9 +230,11 @@ export function TaskCard({
   task,
   index = 0,
   onTaskActionExec,
+  isNewArrival = false,
 }: {
   task: NodalTask;
   index?: number;
+  isNewArrival?: boolean;
   onTaskActionExec?: (
     taskId: string,
     action: string,
@@ -318,8 +336,8 @@ export function TaskCard({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       className={`group/card relative rounded-xl border shadow-sm transition-all duration-450 ease-out
-        ${cardClass}
-${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}      `}
+        ${isNewArrival ? "animate-arrival" : ""}
+        ${cardClass}${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}      `}
       style={{ willChange: "auto" }}
     >
       {/* ─── PORTAL DROPDOWNS ─── */}

@@ -5,10 +5,6 @@ import { getClientSupabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// =============================================================
-// Activity Event — what the pill displays
-// =============================================================
-
 export interface ActivityEvent {
   id: string;
   type: TaskEvent["type"];
@@ -20,17 +16,6 @@ export interface ActivityEvent {
 
 export type ConnectionState = "connected" | "disconnected" | "connecting";
 export type PulseState = "idle" | "processing" | "updated" | "activity";
-
-export interface RealtimeState {
-  connection: ConnectionState;
-  pulse: PulseState;
-  latestEvent: ActivityEvent | null;
-  history: ActivityEvent[];
-}
-
-// =============================================================
-// Hook
-// =============================================================
 
 export function useRealtimeRefresh(fallbackIntervalSeconds = 60) {
   const router = useRouter();
@@ -47,7 +32,6 @@ export function useRealtimeRefresh(fallbackIntervalSeconds = 60) {
   const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Clear arrival highlight after delay
   const markArrivalSeen = useCallback((taskId: string) => {
     setTimeout(() => {
       setRecentArrivalIds((prev) => {
@@ -66,63 +50,61 @@ export function useRealtimeRefresh(fallbackIntervalSeconds = 60) {
 
       const channel = supabase
         .channel("tasks")
-        .on("broadcast", { event: "task_change" }, (msg) => {
-          const payload = msg.payload as TaskEvent & {
-            platform?: string;
-            taskTitle?: string;
-          };
+        .on(
+          "broadcast",
+          { event: "task_change" },
+          (msg: {
+            payload: TaskEvent & { platform?: string; taskTitle?: string };
+          }) => {
+            const payload = msg.payload;
 
-          // Build activity event
-          const event: ActivityEvent = {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            type: payload.type,
-            taskId: payload.taskId,
-            platform: payload.platform,
-            taskTitle: payload.taskTitle,
-            timestamp: Date.now(),
-          };
+            console.log("[Realtime] Broadcast received:", payload);
 
-          // Update state
-          setLatestEvent(event);
-          setHistory((prev) => [event, ...prev].slice(0, 10));
+            const event: ActivityEvent = {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              type: payload.type,
+              taskId: payload.taskId,
+              platform: payload.platform,
+              taskTitle: payload.taskTitle,
+              timestamp: Date.now(),
+            };
 
-          // Track new arrivals for card highlight
-          if (
-            payload.type === "task_created" ||
-            payload.type === "task_updated"
-          ) {
-            setRecentArrivalIds((prev) => new Set(prev).add(payload.taskId));
-            markArrivalSeen(payload.taskId);
-          }
+            setLatestEvent(event);
+            setHistory((prev) => [event, ...prev].slice(0, 10));
 
-          // Pulse: processing → updated → activity → idle
-          setPulse("processing");
+            if (
+              payload.type === "task_created" ||
+              payload.type === "task_updated"
+            ) {
+              setRecentArrivalIds((prev) => new Set(prev).add(payload.taskId));
+              markArrivalSeen(payload.taskId);
+            }
 
-          if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
-          if (activityTimeoutRef.current)
-            clearTimeout(activityTimeoutRef.current);
+            setPulse("processing");
 
-          pulseTimeoutRef.current = setTimeout(() => {
-            setPulse("updated");
+            if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
+            if (activityTimeoutRef.current)
+              clearTimeout(activityTimeoutRef.current);
 
             pulseTimeoutRef.current = setTimeout(() => {
-              setPulse("activity");
-              setLatestEvent(event);
+              setPulse("updated");
 
-              activityTimeoutRef.current = setTimeout(() => {
-                setPulse("idle");
-                setLatestEvent(null);
-              }, 3000);
-            }, 800);
-          }, 600);
+              pulseTimeoutRef.current = setTimeout(() => {
+                setPulse("activity");
 
-          // Refresh server data
-          router.refresh();
-        })
-        .subscribe((status) => {
+                activityTimeoutRef.current = setTimeout(() => {
+                  setPulse("idle");
+                  setLatestEvent(null);
+                }, 3000);
+              }, 800);
+            }, 600);
+
+            router.refresh();
+          },
+        )
+        .subscribe((status: string) => {
           if (status === "SUBSCRIBED") {
             setConnection("connected");
-            setPulse("idle");
           } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
             setConnection("disconnected");
           }
@@ -137,7 +119,6 @@ export function useRealtimeRefresh(fallbackIntervalSeconds = 60) {
       };
     }
 
-    // Fallback: polling — initialize state outside effect
     const timer = setInterval(() => {
       router.refresh();
     }, fallbackIntervalSeconds * 1000);
