@@ -185,7 +185,11 @@ export const processMessage = inngest.createFunction(
             where: { id: taskId },
             data: { updatedAt: new Date() },
           });
-          await broadcastTaskUpdate({ type: "task_updated", taskId });
+          await broadcastTaskUpdate({
+            type: "task_updated",
+            taskId,
+            platform: validTask.platform,
+          });
           return { status: "NOISE_THREAD_TOUCHED", taskId };
         }
         return { status: "NOISE_NO_THREAD_MATCH" };
@@ -273,8 +277,8 @@ export const processMessage = inngest.createFunction(
         await broadcastTaskUpdate({
           type: "task_updated",
           taskId: threadMergeTaskId,
+          platform: validTask.platform,
         });
-
         return {
           status: "MERGED_VIA_THREAD",
           taskId: threadMergeTaskId,
@@ -399,8 +403,8 @@ export const processMessage = inngest.createFunction(
         await broadcastTaskUpdate({
           type: "task_updated",
           taskId: stage2Result.taskId,
+          platform: validTask.platform,
         });
-
         return {
           status: "MERGED_VIA_SENDER_TIME",
           taskId: stage2Result.taskId,
@@ -481,8 +485,8 @@ export const processMessage = inngest.createFunction(
         await broadcastTaskUpdate({
           type: "task_updated",
           taskId: decision.mergeTargetId,
+          platform: validTask.platform,
         });
-
         return {
           status: "MERGED",
           taskId: decision.mergeTargetId,
@@ -523,8 +527,9 @@ export const processMessage = inngest.createFunction(
         await broadcastTaskUpdate({
           type: "task_created",
           taskId: nodalTask.id,
+          platform: validTask.platform,
+          taskTitle: nodalTask.title,
         });
-
         return {
           status: "CREATED",
           taskId: nodalTask.id,
@@ -564,8 +569,9 @@ export const processMessage = inngest.createFunction(
       await broadcastTaskUpdate({
         type: "task_created",
         taskId: nodalTask.id,
+        platform: validTask.platform,
+        taskTitle: nodalTask.title,
       });
-
       return {
         status: "REVIEW",
         taskId: nodalTask.id,

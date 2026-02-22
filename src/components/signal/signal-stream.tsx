@@ -2,6 +2,7 @@
 import { useCmdK } from "@/lib/hooks";
 import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   Archive,
@@ -309,7 +310,6 @@ function KanbanColumn({
     const tierA = a.tier || 99;
     const tierB = b.tier || 99;
     if (tierA !== tierB) return tierA - tierB;
-    // Same tier: sort by latest provenance message, newest first
     const latestA =
       a.sourceEvents.length > 0
         ? Math.max(
@@ -324,6 +324,7 @@ function KanbanColumn({
         : new Date(b.createdAt).getTime();
     return latestB - latestA;
   });
+
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-800/60 dark:bg-zinc-900/80">
@@ -331,11 +332,22 @@ function KanbanColumn({
         <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
           {title}
         </span>
-        <span className="ml-auto rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400">
-          {tasks.length}
+        <span className="ml-auto flex items-center justify-center overflow-hidden rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800/60">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={tasks.length}
+              initial={{ y: -12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 12, opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="block text-[11px] font-medium tabular-nums text-zinc-500 dark:text-zinc-400"
+            >
+              {tasks.length}
+            </motion.span>
+          </AnimatePresence>
         </span>
       </div>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         {tasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
             <p className="text-[12px] text-zinc-400 dark:text-zinc-600">
@@ -343,14 +355,37 @@ function KanbanColumn({
             </p>
           </div>
         ) : (
-          sorted.map((t) => (
-            <TaskCard
-              key={t.id}
-              task={t}
-              index={0}
-              onTaskActionExec={onTaskActionExec}
-            />
-          ))
+          <AnimatePresence mode="popLayout" initial={false}>
+            {sorted.map((t) => (
+              <motion.div
+                key={t.id}
+                layout
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.97,
+                  transition: { duration: 0.2, ease: "easeIn" },
+                }}
+                transition={{
+                  layout: {
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 30,
+                    mass: 0.8,
+                  },
+                  opacity: { duration: 0.2 },
+                  scale: { duration: 0.2 },
+                }}
+              >
+                <TaskCard
+                  task={t}
+                  index={0}
+                  onTaskActionExec={onTaskActionExec}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         )}
       </div>
     </div>
@@ -507,22 +542,20 @@ export function SignalStream({
 
       // Optimistic update
       if (action === "done") {
-        setTimeout(() => {
-          setLocalTasks((prev) => {
-            const doneTask = prev.find((t) => t.id === taskId);
-            if (doneTask) {
-              setLocalResolvedTasks((resolved) => [
-                { ...doneTask, status: "DONE" as NodalTask["status"] },
-                ...resolved,
-              ]);
-            }
-            return prev.map((t) =>
-              t.id === taskId
-                ? { ...t, status: "DONE" as NodalTask["status"] }
-                : t,
-            );
-          });
-        }, 500);
+        setLocalTasks((prev) => {
+          const doneTask = prev.find((t) => t.id === taskId);
+          if (doneTask) {
+            setLocalResolvedTasks((resolved) => [
+              { ...doneTask, status: "DONE" as NodalTask["status"] },
+              ...resolved,
+            ]);
+          }
+          return prev.map((t) =>
+            t.id === taskId
+              ? { ...t, status: "DONE" as NodalTask["status"] }
+              : t,
+          );
+        });
       } else if (action === "priority" && value) {
         setLocalTasks((prev) =>
           prev.map((t) =>
@@ -550,22 +583,20 @@ export function SignalStream({
           ),
         );
       } else if (action === "delete") {
-        setTimeout(() => {
-          setLocalTasks((prev) => {
-            const deletedTask = prev.find((t) => t.id === taskId);
-            if (deletedTask) {
-              setLocalTrashedTasks((trashed) => [
-                {
-                  ...deletedTask,
-                  status: "TRASHED" as NodalTask["status"],
-                  trashedAt: new Date().toISOString(),
-                },
-                ...trashed,
-              ]);
-            }
-            return prev.filter((t) => t.id !== taskId);
-          });
-        }, 500);
+        setLocalTasks((prev) => {
+          const deletedTask = prev.find((t) => t.id === taskId);
+          if (deletedTask) {
+            setLocalTrashedTasks((trashed) => [
+              {
+                ...deletedTask,
+                status: "TRASHED" as NodalTask["status"],
+                trashedAt: new Date().toISOString(),
+              },
+              ...trashed,
+            ]);
+          }
+          return prev.filter((t) => t.id !== taskId);
+        });
       }
       const body =
         action === "done"

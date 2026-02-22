@@ -271,15 +271,13 @@ export function TaskCard({
   }, []);
 
   const handleMarkDone = useCallback(
-    async (e: React.MouseEvent) => {
+    (e: React.MouseEvent) => {
       e.stopPropagation();
       setFadingOut(true);
-      await new Promise((r) => setTimeout(r, 450));
       onTaskActionExec?.(task.id, "done");
     },
     [task.id, onTaskActionExec],
   );
-
   const handlePriorityChange = useCallback(
     (priority: string) => {
       closePriority();
@@ -303,10 +301,9 @@ export function TaskCard({
     [task.id, onTaskActionExec],
   );
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     setConfirmDelete(false);
     setFadingOut(true);
-    await new Promise((r) => setTimeout(r, 300));
     onTaskActionExec?.(task.id, "delete");
   }, [task.id, onTaskActionExec, setConfirmDelete, setFadingOut]);
   const totalEvents = task.sourceEvents.length;
@@ -322,14 +319,8 @@ export function TaskCard({
       onMouseLeave={handleMouseLeave}
       className={`group/card relative rounded-xl border shadow-sm transition-all duration-450 ease-out
         ${cardClass}
-${fadingOut ? "pointer-events-none scale-[0.97] opacity-0" : "scale-100 opacity-100 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}
-        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}      `}
-      style={{
-        animation: fadingOut
-          ? "none"
-          : "cardSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) backwards",
-        animationDelay: fadingOut ? "0ms" : `${index * 50}ms`,
-      }}
+${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}      `}
+      style={{ willChange: "auto" }}
     >
       {/* ─── PORTAL DROPDOWNS ─── */}
       <PortalDropdown

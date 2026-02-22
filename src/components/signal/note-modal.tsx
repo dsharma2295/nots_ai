@@ -462,41 +462,59 @@ export function NoteChips({
 }) {
   if (notes.length === 0) return null;
 
+  const rotations = [
+    "-rotate-[1.2deg]",
+    "rotate-[0.6deg]",
+    "-rotate-[0.5deg]",
+    "rotate-[1deg]",
+    "-rotate-[0.8deg]",
+  ];
+
   return (
     <div className="mb-3">
-      <div className="mb-2 flex items-center gap-3">
-        <div className="h-px flex-1 bg-indigo-100 dark:bg-indigo-500/10" />
-        <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-indigo-400 dark:text-indigo-500">
-          Notes
-        </span>
-        <div className="h-px flex-1 bg-indigo-100 dark:bg-indigo-500/10" />
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {notes.map((note) => (
+      <div className="flex gap-3 overflow-x-auto pb-2 pt-1 scrollbar-none">
+        {notes.map((note, i) => (
           <button
             key={note.id}
             onClick={(e) => {
               e.stopPropagation();
               onClickNote(note);
             }}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border-l-2 border-indigo-400 bg-indigo-50/60 px-2.5 py-1.5 text-left transition-all hover:bg-indigo-50 hover:shadow-sm dark:border-indigo-500/40 dark:bg-indigo-500/[0.06] dark:hover:bg-indigo-500/10"
+            className={`group/note relative flex shrink-0 flex-col gap-1 rounded-md bg-amber-50 px-3 py-2.5 text-left shadow-[2px_2px_6px_rgba(0,0,0,0.06)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[2px_4px_12px_rgba(0,0,0,0.1)] dark:bg-amber-500/[0.07] dark:shadow-[2px_2px_6px_rgba(0,0,0,0.2)] dark:hover:shadow-[2px_4px_12px_rgba(0,0,0,0.3)] ${rotations[i % rotations.length]} hover:rotate-0`}
+            style={{ minWidth: "120px", maxWidth: "180px" }}
           >
-            <NotebookPen className="h-3 w-3 shrink-0 text-indigo-400 dark:text-indigo-500" />
+            {/* Folded corner */}
+            <div className="absolute right-0 top-0 h-3 w-3 rounded-bl-sm bg-gradient-to-bl from-amber-200/80 to-amber-50 dark:from-amber-500/20 dark:to-amber-500/[0.07]" />
+
+            {/* Platform dot if linked */}
             {note.sourceEvent && (
-              <PlatformDot
-                platform={
-                  note.sourceEvent.platform as
-                    | "SLACK"
-                    | "GMAIL"
-                    | "JIRA"
-                    | "TRELLO"
-                    | "ASANA"
-                    | "MANUAL"
-                }
-              />
+              <div className="mb-0.5">
+                <PlatformDot
+                  platform={
+                    note.sourceEvent.platform as
+                      | "SLACK"
+                      | "GMAIL"
+                      | "JIRA"
+                      | "TRELLO"
+                      | "ASANA"
+                      | "MANUAL"
+                  }
+                />
+              </div>
             )}
-            <span className="max-w-[140px] truncate text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
-              {note.title || note.content.slice(0, 30)}
+
+            {/* Title */}
+            {note.title && (
+              <span className="line-clamp-1 text-[11px] font-semibold text-amber-900 dark:text-amber-200">
+                {note.title}
+              </span>
+            )}
+
+            {/* Content preview */}
+            <span className="line-clamp-2 text-[10px] leading-snug text-amber-800/70 dark:text-amber-300/50">
+              {note.title
+                ? note.content.slice(0, 60)
+                : note.content.slice(0, 80)}
             </span>
           </button>
         ))}

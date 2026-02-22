@@ -55,9 +55,10 @@ export function getClientSupabase() {
 export type TaskEvent = {
   type: "task_created" | "task_updated" | "task_deleted";
   taskId: string;
+  platform?: string;
+  taskTitle?: string;
   changes?: Record<string, unknown>;
 };
-
 export async function broadcastTaskUpdate(event: TaskEvent) {
   const supabase = getServerSupabase();
   if (!supabase) return;
