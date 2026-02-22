@@ -460,11 +460,66 @@ export function NoteChips({
   notes: NoteData[];
   onClickNote: (note: NoteData) => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowLeft(el.scrollLeft > 4);
+    setShowRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      ro.disconnect();
+    };
+  }, [checkScroll, notes.length]);
+
+  const scroll = useCallback((dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({
+      left: dir === "left" ? -140 : 140,
+      behavior: "smooth",
+    });
+  }, []);
+
   if (notes.length === 0) return null;
 
   return (
-    <div className="mb-3">
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+    <div className="relative mb-3">
+      {/* Left arrow */}
+      {showLeft && (
+        <button
+          onClick={(e) => { e.stopPropagation(); scroll("left"); }}
+          className="absolute -left-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-90 dark:bg-zinc-800 dark:ring-zinc-700 dark:hover:bg-zinc-700"
+        >
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">‹</span>
+        </button>
+      )}
+
+      {/* Right arrow */}
+      {showRight && (
+        <button
+          onClick={(e) => { e.stopPropagation(); scroll("right"); }}
+          className="absolute -right-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-90 dark:bg-zinc-800 dark:ring-zinc-700 dark:hover:bg-zinc-700"
+        >
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">›</span>
+        </button>
+      )}
+
+      {/* Chips */}
+      <div
+        ref={scrollRef}
+        className="flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-none"
+      >
         {notes.map((note) => (
           <button
             key={note.id}

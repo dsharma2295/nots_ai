@@ -67,10 +67,12 @@ export function useNotes(taskId: string, expanded: boolean) {
 
   // Returns the display count — uses fetched data if loaded, server count otherwise
   const count = useCallback(
-    (serverNoteCount: number) => (loaded ? list.length : serverNoteCount),
+    (serverNoteCount: number) => {
+      if (loaded) return list.length;
+      return Math.max(serverNoteCount, list.length);
+    },
     [loaded, list.length],
   );
-
   return {
     list,
     loaded,
