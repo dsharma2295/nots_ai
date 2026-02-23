@@ -494,70 +494,77 @@ export function NoteChips({
   if (notes.length === 0) return null;
 
   return (
-    <div className="group/notes relative mb-3">
+    <div className="group/notes mb-3">
       <div className="mb-2 flex items-center gap-3">
         <div className="h-px flex-1 bg-indigo-100 dark:bg-indigo-500/10" />
         <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-indigo-400 dark:text-indigo-500">
           Notes
         </span>
         <div className="h-px flex-1 bg-indigo-100 dark:bg-indigo-500/10" />
-      </div>{" "}
-      {/* Left arrow */}
-      {showLeft && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            scroll("left");
-          }}
-          className="absolute -left-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-zinc-100/90 opacity-0 transition-all group-hover/notes:opacity-100 active:scale-90 dark:bg-zinc-800/90"
-        >
-          <span className="text-[9px] text-zinc-400 dark:text-zinc-500">‹</span>
-        </button>
-      )}
-      {/* Right arrow */}
-      {showRight && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            scroll("right");
-          }}
-          className="absolute -right-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-zinc-100/90 opacity-0 transition-all group-hover/notes:opacity-100 active:scale-90 dark:bg-zinc-800/90"
-        >
-          <span className="text-[9px] text-zinc-400 dark:text-zinc-500">›</span>
-        </button>
-      )}
-      {/* Chips */}
-      <div
-        ref={scrollRef}
-        className="flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-none"
-      >
-        {notes.map((note) => (
+      </div>
+      {/* Chips row with arrows */}
+      <div className="relative">
+        {/* Left arrow */}
+        {showLeft && (
           <button
-            key={note.id}
             onClick={(e) => {
               e.stopPropagation();
-              onClickNote(note);
+              scroll("left");
             }}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white/60 px-2.5 py-1.5 text-left ring-1 ring-zinc-200/80 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:ring-zinc-300 dark:bg-white/[0.03] dark:ring-zinc-700/50 dark:hover:ring-zinc-600"
+            className="absolute -left-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm opacity-0 transition-all group-hover/notes:opacity-100 active:scale-90 dark:border-zinc-600 dark:bg-zinc-700"
           >
-            {note.sourceEvent && (
-              <PlatformDot
-                platform={
-                  note.sourceEvent.platform as
-                    | "SLACK"
-                    | "GMAIL"
-                    | "JIRA"
-                    | "TRELLO"
-                    | "ASANA"
-                    | "MANUAL"
-                }
-              />
-            )}
-            <span className="max-w-[100px] truncate text-[10px] font-medium text-zinc-600 dark:text-zinc-400">
-              {note.title || note.content.slice(0, 25)}
+            <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-300">
+              ‹
             </span>
           </button>
-        ))}
+        )}
+        {/* Right arrow */}
+        {showRight && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              scroll("right");
+            }}
+            className="absolute -right-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm opacity-0 transition-all group-hover/notes:opacity-100 active:scale-90 dark:border-zinc-600 dark:bg-zinc-700"
+          >
+            <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-300">
+              ›
+            </span>
+          </button>
+        )}
+        {/* Chips */}
+        <div
+          ref={scrollRef}
+          className="flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-none"
+        >
+          {notes.map((note) => (
+            <button
+              key={note.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClickNote(note);
+              }}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white/60 px-2.5 py-1.5 text-left ring-1 ring-zinc-200/80 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:ring-zinc-300 dark:bg-white/[0.03] dark:ring-zinc-700/50 dark:hover:ring-zinc-600"
+            >
+              {note.sourceEvent && (
+                <PlatformDot
+                  platform={
+                    note.sourceEvent.platform as
+                      | "SLACK"
+                      | "GMAIL"
+                      | "JIRA"
+                      | "TRELLO"
+                      | "ASANA"
+                      | "MANUAL"
+                  }
+                />
+              )}
+              <span className="max-w-[100px] truncate text-[10px] font-medium text-zinc-600 dark:text-zinc-400">
+                {note.title || note.content.slice(0, 25)}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

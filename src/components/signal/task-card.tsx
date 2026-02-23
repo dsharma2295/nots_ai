@@ -266,13 +266,16 @@ export function TaskCard({
   const noteCount = notes.count(task.noteCount ?? 0);
   const tierStyle = task.tier > 0 ? TIER_STYLE[task.tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
-  // State-based hover — persists while dropdowns are open
+  // State-based hover — persists while dropdowns are open or keyboard focused
   const handleMouseEnter = useCallback(() => setShowActions(true), []);
   const handleMouseLeave = useCallback(() => {
-    if (!priorityOpen && !tierOpen) {
+    if (!priorityOpen && !tierOpen && !isKeyboardFocused) {
       setShowActions(false);
     }
-  }, [priorityOpen, tierOpen]);
+  }, [priorityOpen, tierOpen, isKeyboardFocused]);
+
+  // Show actions when keyboard-focused (derived, not effect)
+  const actionsVisible = showActions || isKeyboardFocused;
 
   const closePriority = useCallback(() => {
     setPriorityOpen(false);
@@ -555,7 +558,7 @@ export function TaskCard({
             {task.intent}
           </span>{" "}
           <div className="ml-auto flex items-center">
-            {!showActions ? (
+            {!actionsVisible ? (
               <ChevronDown
                 className={`h-3.5 w-3.5 text-zinc-300 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:text-zinc-500 ${
                   expanded ? "rotate-180" : ""
