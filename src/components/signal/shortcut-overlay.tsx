@@ -11,10 +11,10 @@ const GROUPS = [
   {
     title: "Navigation",
     shortcuts: [
-      { keys: ["↑", "K"], label: "Previous card" },
-      { keys: ["↓", "J"], label: "Next card" },
-      { keys: ["←", "H"], label: "Previous column" },
-      { keys: ["→", "L"], label: "Next column" },
+      { keys: ["↑"], label: "Previous card" },
+      { keys: ["↓"], label: "Next card" },
+      { keys: ["←"], label: "Previous column" },
+      { keys: ["→"], label: "Next column" },
       { keys: ["Enter"], label: "Expand / collapse" },
       { keys: ["Esc"], label: "Clear focus" },
     ],

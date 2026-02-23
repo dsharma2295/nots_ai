@@ -7,8 +7,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // Keyboard Navigation Hook
 //
 // Manages a "focused card" concept for the kanban dashboard.
-// Tracks which card is focused via keyboard, dispatches actions,
-// and clears focus on mouse interaction.
+// Arrow keys navigate between cards/columns.
+// Letter keys trigger actions on the focused card.
+// Mouse movement (real, not scroll-induced) clears keyboard focus.
 // =============================================================
 
 export interface KeyboardNavState {
@@ -39,6 +40,7 @@ export function useKeyboardNav({
   const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
   const [showOverlay, setShowOverlay] = useState(false);
   const isKeyboardActive = useRef(false);
+  const lastMousePos = useRef<{ x: number; y: number } | null>(null);
 
   // Build flat index for navigation
   const getPosition = useCallback(() => {
@@ -60,17 +62,27 @@ export function useKeyboardNav({
     [columns],
   );
 
-  // Clear focus on mouse movement
+  // Clear focus on REAL mouse movement (not scroll-induced)
   useEffect(() => {
-    const handler = () => {
-      if (isKeyboardActive.current) {
-        isKeyboardActive.current = false;
-        setFocusedCardId(null);
-      }
+    const handler = (e: MouseEvent) => {
+      if (!isKeyboardActive.current) return;
+
+      const prev = lastMousePos.current;
+      const curr = { x: e.clientX, y: e.clientY };
+      lastMousePos.current = curr;
+
+      // Skip if this is the first event (no baseline) or coords didn't change
+      if (!prev) return;
+      if (prev.x === curr.x && prev.y === curr.y) return;
+
+      // Real mouse movement — clear keyboard focus
+      isKeyboardActive.current = false;
+      setFocusedCardId(null);
     };
-    window.addEventListener("mousemove", handler, { once: true });
+
+    window.addEventListener("mousemove", handler);
     return () => window.removeEventListener("mousemove", handler);
-  });
+  }, []);
 
   // Main keyboard handler
   useEffect(() => {
@@ -80,7 +92,6 @@ export function useKeyboardNav({
       // Don't intercept when typing in inputs
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-        // Only handle Escape in inputs
         if (e.key === "Escape") {
           (e.target as HTMLElement).blur();
           e.preventDefault();
@@ -123,10 +134,10 @@ export function useKeyboardNav({
         return;
       }
 
-      // Navigation
+      // Navigation — Arrow keys only
       const pos = getPosition();
 
-      if (e.key === "ArrowDown" || e.key === "j") {
+      if (e.key === "ArrowDown") {
         e.preventDefault();
         isKeyboardActive.current = true;
         if (!pos) {
@@ -138,24 +149,27 @@ export function useKeyboardNav({
             }
           }
         } else {
-          const next = getCardAt(pos.col, pos.row + 1);
-          if (next) setFocusedCardId(next);
+          const nextRow = pos.row + 1;
+          const column = columns[pos.col];
+          if (column && nextRow < column.cards.length) {
+            setFocusedCardId(column.cards[nextRow].id);
+          }
+          // At bottom of column — stay on current card
         }
         return;
       }
 
-      if (e.key === "ArrowUp" || e.key === "k") {
+      if (e.key === "ArrowUp") {
         e.preventDefault();
         isKeyboardActive.current = true;
         if (!pos) return;
         if (pos.row > 0) {
-          const next = getCardAt(pos.col, pos.row - 1);
-          if (next) setFocusedCardId(next);
+          setFocusedCardId(columns[pos.col].cards[pos.row - 1].id);
         }
         return;
       }
 
-      if (e.key === "ArrowRight" || e.key === "l") {
+      if (e.key === "ArrowRight") {
         e.preventDefault();
         isKeyboardActive.current = true;
         if (!pos) return;
@@ -169,7 +183,7 @@ export function useKeyboardNav({
         return;
       }
 
-      if (e.key === "ArrowLeft" || e.key === "h") {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         isKeyboardActive.current = true;
         if (!pos) return;
@@ -188,7 +202,6 @@ export function useKeyboardNav({
 
       if (e.key === "Enter") {
         e.preventDefault();
-        // Expand handled by task-card via focusedCardId
         return;
       }
 
