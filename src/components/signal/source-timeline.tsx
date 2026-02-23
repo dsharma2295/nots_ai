@@ -58,7 +58,7 @@ export function SourceTimeline({ events }: { events: SourceEvent[] }) {
           }}
         >
           <div
-            className={`absolute -left-[19px] top-4 h-2.5 w-2.5 rounded-full ring-[3px] ring-white dark:ring-[#0a0a0f] ${getPlatformDotClass(evt.platform)}`}
+            className={`absolute -left-[19px] top-[22px] h-2.5 w-2.5 rounded-full ring-[3px] ring-white dark:ring-zinc-800 ${getPlatformDotClass(evt.platform)}`}
           />
 
           <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3.5 transition-all duration-200 hover:border-zinc-200 dark:border-zinc-800/50 dark:bg-[#0f0f18] dark:hover:border-zinc-700/60">

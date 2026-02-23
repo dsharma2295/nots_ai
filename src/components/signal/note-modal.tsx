@@ -535,7 +535,7 @@ export function NoteChips({
         {/* Chips */}
         <div
           ref={scrollRef}
-          className="flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-none"
+          className="flex gap-1.5 overflow-x-auto px-1 pt-1 pb-1 scrollbar-none"
         >
           {notes.map((note) => (
             <button
