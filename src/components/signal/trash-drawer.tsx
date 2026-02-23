@@ -224,21 +224,6 @@ export function TrashDrawer({
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (focusedId) {
-          setFocusedId(null);
-        } else {
-          onClose();
-        }
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose, focusedId, setFocusedId]);
-
   const handleRestore = useCallback(
     async (taskId: string) => {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
