@@ -37,8 +37,9 @@ const GROUPS = [
     shortcuts: [
       { keys: ["⌘", "K"], label: "Search" },
       { keys: ["/"], label: "AI mode" },
-      { keys: ["R"], label: "Resolved drawer" },
-      { keys: ["X"], label: "Trash drawer" },
+      { keys: ["R"], label: "Toggle resolved" },
+      { keys: ["X"], label: "Toggle trash" },
+      { keys: ["Esc"], label: "Clear focus / close" },
       { keys: ["?"], label: "This overlay" },
     ],
   },

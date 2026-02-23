@@ -1,6 +1,7 @@
 "use client";
 
 import { useLiveRelativeTime } from "@/lib/hooks";
+import { useListKeyboardNav } from "@/lib/hooks/use-list-keyboard-nav";
 import type { NodalTask } from "@/lib/mock-data";
 import {
   ChevronDown,
@@ -37,11 +38,13 @@ function TrashedCard({
   index,
   onRestore,
   onPermanentDelete,
+  isKeyboardFocused = false,
 }: {
   task: NodalTask;
   index: number;
   onRestore: (taskId: string) => void;
   onPermanentDelete: (taskId: string) => void;
+  isKeyboardFocused?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -52,10 +55,26 @@ function TrashedCard({
     0,
   );
 
+  // Keyboard actions when focused
+  useEffect(() => {
+    if (!isKeyboardFocused) return;
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        setExpanded((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isKeyboardFocused]);
+
   return (
     <>
       <div
-        className="group/card rounded-xl border border-red-200/40 bg-white opacity-40 transition-all duration-300 hover:-translate-y-0.5 hover:opacity-70 dark:border-red-900/30 dark:bg-zinc-800"
+        data-task-id={task.id}
+        className={`group/card rounded-xl border border-red-200/40 bg-white opacity-40 transition-all duration-300 hover:-translate-y-0.5 hover:opacity-70 dark:border-red-900/30 dark:bg-zinc-800 ${isKeyboardFocused ? "!opacity-70 ring-2 ring-indigo-500/50" : ""}`}
         style={{
           animation: "drawerCardIn 0.35s cubic-bezier(0.16,1,0.3,1) backwards",
           animationDelay: `${index * 40}ms`,
@@ -208,11 +227,17 @@ export function TrashDrawer({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (focusedId) {
+          setFocusedId(null);
+        } else {
+          onClose();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  }, [open, onClose, focusedId, setFocusedId]);
 
   const handleRestore = useCallback(
     async (taskId: string) => {
@@ -264,6 +289,20 @@ export function TrashDrawer({
         t.sourceEvents.some((e) => e.rawContent.toLowerCase().includes(q)),
     );
   }, [tasks, searchText]);
+
+  const handleKeyAction = useCallback(
+    (id: string, key: string) => {
+      if (key === "r") handleRestore(id);
+      // Enter handled inside TrashedCard
+    },
+    [handleRestore],
+  );
+
+  const { focusedId, setFocusedId } = useListKeyboardNav({
+    items: filtered,
+    onAction: handleKeyAction,
+    disabled: !open,
+  });
 
   if (typeof window === "undefined") return null;
 
@@ -374,6 +413,7 @@ export function TrashDrawer({
                   index={i}
                   onRestore={handleRestore}
                   onPermanentDelete={handlePermanentDelete}
+                  isKeyboardFocused={focusedId === task.id}
                 />
               ))}
             </div>

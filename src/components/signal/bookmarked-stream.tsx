@@ -1,6 +1,7 @@
 "use client";
 
 import { useCmdK, useLiveRelativeTime } from "@/lib/hooks";
+import { useListKeyboardNav } from "@/lib/hooks/use-list-keyboard-nav";
 import { useNotes } from "@/lib/hooks/use-notes";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
@@ -108,6 +109,7 @@ function BookmarkedCard({
   onRestore,
   onDelete,
   onNoteCountChange,
+  isKeyboardFocused = false,
 }: {
   task: NodalTask;
   index: number;
@@ -117,6 +119,7 @@ function BookmarkedCard({
   onRestore: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onNoteCountChange: (taskId: string, count: number) => void;
+  isKeyboardFocused?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -130,12 +133,33 @@ function BookmarkedCard({
     0,
   );
   const tierBadge = task.tier > 0 ? TIER_BADGE[task.tier] : null;
+
+  // Keyboard actions when focused
+  useEffect(() => {
+    if (!isKeyboardFocused) return;
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        setExpanded((prev) => !prev);
+      }
+      if (e.key === "n" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        notes.setShowCreate(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isKeyboardFocused, notes]);
+
   return (
     <>
       <div
+        data-task-id={task.id}
         className={`group/card rounded-xl border border-zinc-200 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:shadow-lg dark:hover:shadow-black/20 ${
           isResolved ? "opacity-60 hover:opacity-100" : ""
-        }`}
+        } ${isKeyboardFocused ? "!opacity-100 ring-2 ring-indigo-500/50" : ""}`}
         style={{
           animation: "cardSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) backwards",
           animationDelay: `${index * 40}ms`,
@@ -530,6 +554,29 @@ export function BookmarkedStream({
   const activeGrouped = groupByPriority(activeTasks);
   const resolvedGrouped = groupByPriority(resolvedTasks);
 
+  // Flat list for keyboard nav (active groups first, then resolved)
+  const allCards = useMemo(() => {
+    const list: NodalTask[] = [];
+    for (const g of activeGrouped) list.push(...g.tasks);
+    for (const g of resolvedGrouped) list.push(...g.tasks);
+    return list;
+  }, [activeGrouped, resolvedGrouped]);
+
+  const handleKeyAction = useCallback(
+    (id: string, key: string) => {
+      if (key === "d") handleMarkDone(id);
+      if (key === "b") handleRemoveBookmark(id);
+      if (key === "t") handleDelete(id);
+      // Enter and N handled inside BookmarkedCard
+    },
+    [handleMarkDone, handleRemoveBookmark, handleDelete],
+  );
+
+  const { focusedId } = useListKeyboardNav({
+    items: allCards,
+    onAction: handleKeyAction,
+  });
+
   if (tasks.length === 0 && !aiLoading && !aiResponse) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-20 dark:border-zinc-800/40">
@@ -646,6 +693,7 @@ export function BookmarkedStream({
                           onRestore={handleRestore}
                           onDelete={handleDelete}
                           onNoteCountChange={handleNoteCountChange}
+                          isKeyboardFocused={focusedId === task.id}
                         />
                       ))}
                     </div>
@@ -699,6 +747,7 @@ export function BookmarkedStream({
                           onRestore={handleRestore}
                           onDelete={handleDelete}
                           onNoteCountChange={handleNoteCountChange}
+                          isKeyboardFocused={focusedId === task.id}
                         />
                       ))}
                     </div>

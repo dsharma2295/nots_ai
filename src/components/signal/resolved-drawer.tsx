@@ -1,6 +1,7 @@
 "use client";
 
 import { useLiveRelativeTime } from "@/lib/hooks";
+import { useListKeyboardNav } from "@/lib/hooks/use-list-keyboard-nav";
 import { useNotes } from "@/lib/hooks/use-notes";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
@@ -42,6 +43,7 @@ function ResolvedCard({
   onBookmark,
   onDelete,
   onNoteCountChange,
+  isKeyboardFocused = false,
 }: {
   task: NodalTask;
   index: number;
@@ -49,6 +51,7 @@ function ResolvedCard({
   onBookmark: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onNoteCountChange: (taskId: string, count: number) => void;
+  isKeyboardFocused?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -61,10 +64,31 @@ function ResolvedCard({
     (a, e) => a + e.attachments.length,
     0,
   );
+
+  // Keyboard actions when focused
+  useEffect(() => {
+    if (!isKeyboardFocused) return;
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        setExpanded((prev) => !prev);
+      }
+      if (e.key === "n" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        notes.setShowCreate(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isKeyboardFocused, notes]);
+
   return (
     <>
       <div
-        className="group/card rounded-xl border border-zinc-200 bg-white opacity-60 transition-all duration-300 hover:-translate-y-0.5 hover:opacity-100 dark:border-zinc-700 dark:bg-zinc-800"
+        data-task-id={task.id}
+        className={`group/card rounded-xl border border-zinc-200 bg-white opacity-60 transition-all duration-300 hover:-translate-y-0.5 hover:opacity-100 dark:border-zinc-700 dark:bg-zinc-800 ${isKeyboardFocused ? "!opacity-100 ring-2 ring-indigo-500/50" : ""}`}
         style={{
           animation: "drawerCardIn 0.35s cubic-bezier(0.16,1,0.3,1) backwards",
           animationDelay: `${index * 40}ms`,
@@ -284,15 +308,6 @@ export function ResolvedDrawer({
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
-
   const executeAiQuery = useCallback(async (query: string) => {
     setAiLoading(true);
     setAiResponse(null);
@@ -437,6 +452,37 @@ export function ResolvedDrawer({
     );
   }, [tasks, filterText]);
 
+  const handleKeyAction = useCallback(
+    (id: string, key: string) => {
+      if (key === "r") handleRestore(id);
+      if (key === "b") handleBookmark(id);
+      if (key === "t") handleDelete(id);
+      // Enter and N handled inside ResolvedCard
+    },
+    [handleRestore, handleBookmark, handleDelete],
+  );
+
+  const { focusedId, setFocusedId } = useListKeyboardNav({
+    items: filtered,
+    onAction: handleKeyAction,
+    disabled: !open,
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (focusedId) {
+          setFocusedId(null);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose, focusedId, setFocusedId]);
+
   if (typeof window === "undefined") return null;
 
   return createPortal(
@@ -560,6 +606,7 @@ export function ResolvedDrawer({
                       onBookmark={handleBookmark}
                       onDelete={handleDelete}
                       onNoteCountChange={handleNoteCountChange}
+                      isKeyboardFocused={focusedId === task.id}
                     />
                   ))}
                 </div>

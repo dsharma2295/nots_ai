@@ -766,8 +766,8 @@ export function SignalStream({
   const { focusedCardId, showOverlay, setShowOverlay } = useKeyboardNav({
     columns: keyboardColumns,
     onAction: executeTaskAction,
-    onOpenResolved: () => setDrawerOpen(true),
-    onOpenTrash: () => setTrashOpen(true),
+    onOpenResolved: () => setDrawerOpen((prev) => !prev),
+    onOpenTrash: () => setTrashOpen((prev) => !prev),
     searchRef,
     disabled: isAiMode || drawerOpen || trashOpen,
   });

@@ -86,8 +86,6 @@ export function useKeyboardNav({
 
   // Main keyboard handler
   useEffect(() => {
-    if (disabled) return;
-
     const handler = (e: KeyboardEvent) => {
       // Don't intercept when typing in inputs
       const tag = (e.target as HTMLElement)?.tagName;
@@ -99,25 +97,27 @@ export function useKeyboardNav({
         return;
       }
 
-      // Overlay toggle
+      // Overlay toggle — always available
       if (e.key === "?" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         setShowOverlay((prev) => !prev);
         return;
       }
 
-      // Close overlay on Escape
+      // Close overlay on Escape — always available
       if (e.key === "Escape") {
         if (showOverlay) {
           setShowOverlay(false);
           e.preventDefault();
           return;
         }
-        setFocusedCardId(null);
+        if (!disabled) {
+          setFocusedCardId(null);
+        }
         return;
       }
 
-      // Global shortcuts (no focused card needed)
+      // Global shortcuts — always available (toggle drawers)
       if (e.key === "r" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         onOpenResolved();
@@ -128,6 +128,10 @@ export function useKeyboardNav({
         onOpenTrash();
         return;
       }
+
+      // Everything below requires enabled state
+      if (disabled) return;
+
       if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         searchRef.current?.focus();
