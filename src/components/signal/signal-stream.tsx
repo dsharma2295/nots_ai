@@ -732,13 +732,35 @@ export function SignalStream({
   );
   const active = filtered.filter((t) => t.priority === "MEDIUM");
   const low = filtered.filter((t) => t.priority === "LOW");
+  // Sort helper — must match KanbanColumn's internal sort exactly
+  const sortCards = useCallback((cards: NodalTask[]) => {
+    return [...cards].sort((a, b) => {
+      const tierA = a.tier || 99;
+      const tierB = b.tier || 99;
+      if (tierA !== tierB) return tierA - tierB;
+      const latestA =
+        a.sourceEvents.length > 0
+          ? Math.max(
+              ...a.sourceEvents.map((e) => new Date(e.timestamp).getTime()),
+            )
+          : new Date(a.createdAt).getTime();
+      const latestB =
+        b.sourceEvents.length > 0
+          ? Math.max(
+              ...b.sourceEvents.map((e) => new Date(e.timestamp).getTime()),
+            )
+          : new Date(b.createdAt).getTime();
+      return latestB - latestA;
+    });
+  }, []);
+
   const keyboardColumns = useMemo(
     () => [
-      { id: "urgent", cards: urgent },
-      { id: "active", cards: active },
-      { id: "low", cards: low },
+      { id: "urgent", cards: sortCards(urgent) },
+      { id: "active", cards: sortCards(active) },
+      { id: "low", cards: sortCards(low) },
     ],
-    [urgent, active, low],
+    [urgent, active, low, sortCards],
   );
 
   const { focusedCardId, showOverlay, setShowOverlay } = useKeyboardNav({

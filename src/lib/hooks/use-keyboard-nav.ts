@@ -117,6 +117,11 @@ export function useKeyboardNav({
         onOpenTrash();
         return;
       }
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
 
       // Navigation
       const pos = getPosition();

@@ -98,7 +98,7 @@ export function ShortcutOverlay({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed left-1/2 top-1/2 z-[9999] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-200 bg-white/95 p-6 shadow-2xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-900/95"
+            className="fixed left-1/2 top-1/2 z-[9999] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-200 bg-white/95 p-6 shadow-2xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-900/95"
           >
             {/* Header */}
             <div className="mb-5 flex items-center justify-between">
@@ -112,8 +112,18 @@ export function ShortcutOverlay({
                 <span className="text-[14px]">✕</span>
               </button>
             </div>
-            {/* Groups */}
-            <div className="space-y-5">
+
+            {/* Entry instruction */}
+            <div className="mb-5 rounded-lg bg-indigo-50 px-3 py-2 dark:bg-indigo-500/10">
+              <p className="text-[12px] text-indigo-700 dark:text-indigo-300">
+                Press any <KeyBadge>↑</KeyBadge> <KeyBadge>↓</KeyBadge>{" "}
+                <KeyBadge>←</KeyBadge> <KeyBadge>→</KeyBadge> arrow key to
+                select the first card, then navigate and act.
+              </p>
+            </div>
+
+            {/* 3-column grid */}
+            <div className="grid grid-cols-3 gap-5">
               {GROUPS.map((group) => (
                 <div key={group.title}>
                   <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500">
@@ -150,7 +160,7 @@ export function ShortcutOverlay({
             {/* Footer */}
             <div className="mt-5 border-t border-zinc-100 pt-3 dark:border-zinc-800/60">
               <p className="text-center text-[10px] text-zinc-400 dark:text-zinc-500">
-                Focus a card with arrow keys, then use action keys
+                Press <KeyBadge>?</KeyBadge> to toggle this overlay
               </p>
             </div>
           </motion.div>
