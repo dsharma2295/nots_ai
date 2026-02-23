@@ -46,7 +46,9 @@ function ExpandableText({ text }: { text: string }) {
 export function SourceTimeline({ events }: { events: SourceEvent[] }) {
   return (
     <div className="relative ml-1 pl-5">
-      <div className="absolute left-1.5 top-2 bottom-2 w-px bg-zinc-200 dark:bg-zinc-800/60" />
+      {events.length > 1 && (
+        <div className="absolute left-1.5 top-[23px] bottom-5 w-px bg-zinc-200 dark:bg-zinc-700" />
+      )}
 
       {events.map((evt, i) => (
         <div
@@ -58,7 +60,7 @@ export function SourceTimeline({ events }: { events: SourceEvent[] }) {
           }}
         >
           <div
-            className={`absolute -left-[19px] top-[22px] h-2.5 w-2.5 rounded-full ring-[3px] ring-white dark:ring-zinc-800 ${getPlatformDotClass(evt.platform)}`}
+            className={`absolute -left-[19px] top-[18px] h-2.5 w-2.5 rounded-full ring-[3px] ring-white dark:ring-zinc-800 ${getPlatformDotClass(evt.platform)}`}
           />
 
           <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3.5 transition-all duration-200 hover:border-zinc-200 dark:border-zinc-800/50 dark:bg-[#0f0f18] dark:hover:border-zinc-700/60">
