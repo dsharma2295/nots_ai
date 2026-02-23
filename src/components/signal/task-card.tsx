@@ -29,18 +29,18 @@ const TIER_STYLE: Record<
   { card: string; badge: string; label: string }
 > = {
   1: {
-    card: "border-amber-400/50 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-white dark:border-amber-500/40 dark:from-amber-900/40 dark:via-amber-950/20 dark:to-zinc-800",
+    card: "border-amber-400/50 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-white dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800 dark:border-amber-500/50",
     badge: "bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm",
     label: "P1",
   },
   2: {
-    card: "border-slate-300/60 bg-gradient-to-br from-slate-100/80 via-slate-50/40 to-white dark:border-slate-500/30 dark:from-slate-700/30 dark:via-slate-800/15 dark:to-zinc-800",
+    card: "border-slate-300/60 bg-gradient-to-br from-slate-100/80 via-slate-50/40 to-white dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800 dark:border-slate-400/40",
     badge:
       "bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800 shadow-sm",
     label: "P2",
   },
   3: {
-    card: "border-amber-700/30 bg-gradient-to-br from-orange-50/60 via-amber-50/30 to-white dark:border-amber-700/30 dark:from-amber-900/30 dark:via-orange-950/15 dark:to-zinc-800",
+    card: "border-amber-700/30 bg-gradient-to-br from-orange-50/60 via-amber-50/30 to-white dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800 dark:border-amber-600/40",
     badge:
       "bg-gradient-to-r from-amber-700 to-amber-600 text-amber-100 shadow-sm",
     label: "P3",
@@ -373,7 +373,7 @@ export function TaskCard({
       onMouseLeave={handleMouseLeave}
       className={`group/card relative rounded-xl border shadow-sm transition-all duration-450 ease-out
         ${isNewArrival ? "animate-arrival" : ""}
-        ${cardClass}${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}        ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}      `}
+        ${cardClass} ${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"} ${task.needsReview ? "ring-1 ring-amber-400/30" : ""} ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}`}
       style={{ willChange: "auto" }}
     >
       {/* ─── PORTAL DROPDOWNS ─── */}
