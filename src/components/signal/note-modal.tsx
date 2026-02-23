@@ -495,6 +495,13 @@ export function NoteChips({
 
   return (
     <div className="group/notes relative mb-3">
+      <div className="mb-2 flex items-center gap-3">
+        <div className="h-px flex-1 bg-indigo-100 dark:bg-indigo-500/10" />
+        <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-indigo-400 dark:text-indigo-500">
+          Notes
+        </span>
+        <div className="h-px flex-1 bg-indigo-100 dark:bg-indigo-500/10" />
+      </div>{" "}
       {/* Left arrow */}
       {showLeft && (
         <button
@@ -507,7 +514,6 @@ export function NoteChips({
           <span className="text-[9px] text-zinc-400 dark:text-zinc-500">‹</span>
         </button>
       )}
-
       {/* Right arrow */}
       {showRight && (
         <button

@@ -1,5 +1,6 @@
 "use client";
 import { useCmdK } from "@/lib/hooks";
+import { useKeyboardNav } from "@/lib/hooks/use-keyboard-nav";
 import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
 import { useRealtimeContext } from "@/lib/realtime-provider";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
@@ -24,6 +25,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { AIResponseCard, AIResponseLoading } from "./ai-response";
 import { getPlatformFilterStyle } from "./platform-icon";
 import { ResolvedDrawer } from "./resolved-drawer";
+import { ShortcutOverlay } from "./shortcut-overlay";
 import { TaskCard } from "./task-card";
 import { TaskCardSkeleton } from "./task-card-skeleton";
 import { useToast } from "./toast";
@@ -296,6 +298,7 @@ function KanbanColumn({
   totalIndex,
   onTaskActionExec,
   recentArrivalIds,
+  focusedCardId,
 }: {
   title: string;
   icon: typeof Flame;
@@ -308,6 +311,7 @@ function KanbanColumn({
     value?: string,
   ) => Promise<void>;
   recentArrivalIds: Set<string>;
+  focusedCardId: string | null;
 }) {
   const sorted = [...tasks].sort((a, b) => {
     const tierA = a.tier || 99;
@@ -386,7 +390,8 @@ function KanbanColumn({
                   index={0}
                   onTaskActionExec={onTaskActionExec}
                   isNewArrival={recentArrivalIds.has(t.id)}
-                />
+                  isKeyboardFocused={focusedCardId === t.id}
+                />{" "}
               </motion.div>
             ))}
           </AnimatePresence>
@@ -630,9 +635,7 @@ export function SignalStream({
                     }
                   : action === "delete"
                     ? { action: "deleteTask", taskId }
-                    : action === "noteCount"
-                      ? null
-                      : null;
+                    : null;
       if (!body) {
         pendingRef.current.delete(taskId);
         return;
@@ -729,6 +732,23 @@ export function SignalStream({
   );
   const active = filtered.filter((t) => t.priority === "MEDIUM");
   const low = filtered.filter((t) => t.priority === "LOW");
+  const keyboardColumns = useMemo(
+    () => [
+      { id: "urgent", cards: urgent },
+      { id: "active", cards: active },
+      { id: "low", cards: low },
+    ],
+    [urgent, active, low],
+  );
+
+  const { focusedCardId, showOverlay, setShowOverlay } = useKeyboardNav({
+    columns: keyboardColumns,
+    onAction: executeTaskAction,
+    onOpenResolved: () => setDrawerOpen(true),
+    onOpenTrash: () => setTrashOpen(true),
+    searchRef,
+    disabled: isAiMode || drawerOpen || trashOpen,
+  });
 
   const taskDates = useMemo(() => {
     const s = new Set<string>();
@@ -828,7 +848,7 @@ export function SignalStream({
           placeholder={
             isAiMode
               ? "Ask anything about your tasks... (Enter to send)"
-              : "Search tasks...  ⌘K  |  / for AI"
+              : "Search tasks...  ⌘K  |  / for AI  |  ? shortcuts"
           }
           value={filters.search}
           onChange={(e) => handleSearchChange(e.target.value)}
@@ -938,6 +958,7 @@ export function SignalStream({
                   totalIndex={0}
                   onTaskActionExec={executeTaskAction}
                   recentArrivalIds={recentArrivalIds}
+                  focusedCardId={focusedCardId}
                 />
                 <KanbanColumn
                   title="Normal"
@@ -947,6 +968,7 @@ export function SignalStream({
                   totalIndex={urgent.length}
                   onTaskActionExec={executeTaskAction}
                   recentArrivalIds={recentArrivalIds}
+                  focusedCardId={focusedCardId}
                 />
                 <KanbanColumn
                   title="Low Priority"
@@ -956,6 +978,7 @@ export function SignalStream({
                   totalIndex={urgent.length + active.length}
                   onTaskActionExec={executeTaskAction}
                   recentArrivalIds={recentArrivalIds}
+                  focusedCardId={focusedCardId}
                 />{" "}
               </div>
             )}
@@ -1018,12 +1041,28 @@ export function SignalStream({
           setLocalTrashedTasks([]);
         }}
       />{" "}
+      <ShortcutOverlay
+        open={showOverlay}
+        onClose={() => setShowOverlay(false)}
+      />
       {/* Footer */}
-      <div className="mt-10 flex items-center justify-center gap-2 text-[10px] text-zinc-300 dark:text-zinc-700">
-        <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
-        Noise → Signal
-        <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
-      </div>
+      <div className="mt-10 flex flex-col items-center gap-2">
+        <div className="flex items-center gap-2 text-[10px] text-zinc-300 dark:text-zinc-700">
+          <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
+          Noise → Signal
+          <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+        <button
+          onClick={() => setShowOverlay(true)}
+          className="flex items-center gap-1.5 text-[10px] text-zinc-300 transition-colors hover:text-zinc-500 dark:text-zinc-700 dark:hover:text-zinc-500"
+        >
+          Press
+          <kbd className="rounded border border-zinc-200 px-1 py-0.5 text-[9px] font-medium dark:border-zinc-700">
+            ?
+          </kbd>
+          for keyboard shortcuts
+        </button>
+      </div>{" "}
     </div>
   );
 }
