@@ -24,6 +24,7 @@ const GROUPS = [
     shortcuts: [
       { keys: ["D"], label: "Mark done" },
       { keys: ["B"], label: "Bookmark" },
+      { keys: ["N"], label: "Add note" },
       { keys: ["T"], label: "Trash" },
       { keys: ["1"], label: "Set P1 (Gold)" },
       { keys: ["2"], label: "Set P2 (Silver)" },

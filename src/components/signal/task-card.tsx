@@ -345,7 +345,7 @@ export function TaskCard({
     }
   }, [isKeyboardFocused]);
 
-  // Keyboard nav: Enter to expand/collapse
+  // Keyboard nav: Enter to expand/collapse, N to open notes
   useEffect(() => {
     if (!isKeyboardFocused) return;
     const handler = (e: KeyboardEvent) => {
@@ -357,6 +357,10 @@ export function TaskCard({
           onTaskActionExec?.(task.id, "markSeen", String(totalEvents));
         }
       }
+      if (e.key === "n" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        notes.setShowCreate(true);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -367,6 +371,7 @@ export function TaskCard({
     task.id,
     totalEvents,
     onTaskActionExec,
+    notes,
   ]);
 
   return (
