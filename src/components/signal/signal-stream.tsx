@@ -115,7 +115,7 @@ function MiniCalendar({
   }
 
   return (
-    <div className="w-full rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-700/60 dark:bg-zinc-800/80">
+    <div className="w-full rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
       <div className="mb-2 flex items-center justify-between">
         <button
           onClick={() => setViewDate(new Date(year, month - 1, 1))}
@@ -334,7 +334,7 @@ function KanbanColumn({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-700/60 dark:bg-zinc-800/80">
+      <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800">
         <Icon className={`h-4 w-4 ${iconColor}`} />
         <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
           {title}

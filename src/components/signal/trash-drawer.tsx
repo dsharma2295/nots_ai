@@ -55,7 +55,7 @@ function TrashedCard({
   return (
     <>
       <div
-        className="group/card rounded-xl border border-red-200/40 bg-white opacity-40 transition-all duration-300 hover:-translate-y-0.5 hover:opacity-70 dark:border-red-900/30 dark:bg-zinc-800/80"
+        className="group/card rounded-xl border border-red-200/40 bg-white opacity-40 transition-all duration-300 hover:-translate-y-0.5 hover:opacity-70 dark:border-red-900/30 dark:bg-zinc-800"
         style={{
           animation: "drawerCardIn 0.35s cubic-bezier(0.16,1,0.3,1) backwards",
           animationDelay: `${index * 40}ms`,

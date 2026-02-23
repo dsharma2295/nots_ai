@@ -133,7 +133,7 @@ function BookmarkedCard({
   return (
     <>
       <div
-        className={`group/card rounded-xl border border-zinc-200 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-700/60 dark:bg-zinc-800/80 dark:hover:shadow-lg dark:hover:shadow-black/20 ${
+        className={`group/card rounded-xl border border-zinc-200 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:shadow-lg dark:hover:shadow-black/20 ${
           isResolved ? "opacity-60 hover:opacity-100" : ""
         }`}
         style={{

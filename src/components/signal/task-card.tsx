@@ -29,18 +29,18 @@ const TIER_STYLE: Record<
   { card: string; badge: string; label: string }
 > = {
   1: {
-    card: "border-amber-400/50 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-white dark:border-amber-400/40 dark:from-amber-500/20 dark:via-yellow-500/10 dark:to-zinc-800/90",
+    card: "border-amber-400/50 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-white dark:border-amber-500/40 dark:from-amber-900/40 dark:via-amber-950/20 dark:to-zinc-800",
     badge: "bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm",
     label: "P1",
   },
   2: {
-    card: "border-slate-300/60 bg-gradient-to-br from-slate-100/80 via-slate-50/40 to-white dark:border-slate-400/30 dark:from-slate-400/15 dark:via-slate-300/8 dark:to-zinc-800/90",
+    card: "border-slate-300/60 bg-gradient-to-br from-slate-100/80 via-slate-50/40 to-white dark:border-slate-500/30 dark:from-slate-700/30 dark:via-slate-800/15 dark:to-zinc-800",
     badge:
       "bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800 shadow-sm",
     label: "P2",
   },
   3: {
-    card: "border-amber-700/30 bg-gradient-to-br from-orange-50/60 via-amber-50/30 to-white dark:border-amber-700/30 dark:from-amber-800/15 dark:via-orange-900/8 dark:to-zinc-800/90",
+    card: "border-amber-700/30 bg-gradient-to-br from-orange-50/60 via-amber-50/30 to-white dark:border-amber-700/30 dark:from-amber-900/30 dark:via-orange-950/15 dark:to-zinc-800",
     badge:
       "bg-gradient-to-r from-amber-700 to-amber-600 text-amber-100 shadow-sm",
     label: "P3",
@@ -48,7 +48,7 @@ const TIER_STYLE: Record<
 };
 
 const DEFAULT_CARD =
-  "border-zinc-200 bg-white dark:border-zinc-700/60 dark:bg-zinc-800/80";
+  "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800";
 
 // =============================================================
 // COLUMN / TIER OPTIONS

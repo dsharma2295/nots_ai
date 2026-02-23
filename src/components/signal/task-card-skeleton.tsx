@@ -3,7 +3,7 @@
 export function TaskCardSkeleton({ index = 0 }: { index?: number }) {
   return (
     <div
-      className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700/60 dark:bg-zinc-800/80"
+      className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800"
       style={{
         animation: "cardSlideIn 0.4s ease-out backwards",
         animationDelay: `${index * 80}ms`,

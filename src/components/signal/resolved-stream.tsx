@@ -247,7 +247,7 @@ export function ResolvedStream({
             return (
               <div
                 key={task.id}
-                className="group/card rounded-xl border border-zinc-200 bg-white opacity-60 transition-all duration-300 hover:opacity-100 dark:border-zinc-700/60 dark:bg-zinc-800/80"
+                className="group/card rounded-xl border border-zinc-200 bg-white opacity-60 transition-all duration-300 hover:opacity-100 dark:border-zinc-700 dark:bg-zinc-800"
                 style={{
                   animation:
                     "cardSlideIn 0.45s cubic-bezier(0.16,1,0.3,1) backwards",

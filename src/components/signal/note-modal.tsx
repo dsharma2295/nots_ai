@@ -97,7 +97,7 @@ export function CreateNoteModal({
 
       {/* Modal */}
       <div
-        className="relative z-[9999] w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700/60 dark:bg-zinc-900"
+        className="relative z-[9999] w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
         style={{
           animation: "noteModalIn 0.25s cubic-bezier(0.16,1,0.3,1)",
@@ -127,7 +127,7 @@ export function CreateNoteModal({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Add a title (optional)"
-          className="mb-3 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300/30 dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
+          className="mb-3 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300/30 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
           maxLength={200}
         />
 
@@ -135,7 +135,7 @@ export function CreateNoteModal({
         <select
           value={selectedEventId}
           onChange={(e) => setSelectedEventId(e.target.value)}
-          className="mb-3 w-full appearance-none rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[13px] text-zinc-700 outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300/30 dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:text-zinc-300 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
+          className="mb-3 w-full appearance-none rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[13px] text-zinc-700 outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300/30 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
         >
           <option value="">General (no specific source)</option>
           {sourceEvents.map((evt) => (
@@ -152,7 +152,7 @@ export function CreateNoteModal({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Write your note..."
-          className="mb-4 h-32 w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300/30 dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
+          className="mb-4 h-32 w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300/30 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
           maxLength={5000}
         />
 
@@ -275,7 +275,7 @@ export function ViewNoteModal({
 
       {/* Modal */}
       <div
-        className="relative z-[9999] w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700/60 dark:bg-zinc-900"
+        className="relative z-[9999] w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
         style={{
           animation: "noteModalIn 0.25s cubic-bezier(0.16,1,0.3,1)",
@@ -375,7 +375,7 @@ export function ViewNoteModal({
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="mb-4 h-40 w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300/30 dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
+            className="mb-4 h-40 w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300/30 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
             maxLength={5000}
           />
         ) : (
