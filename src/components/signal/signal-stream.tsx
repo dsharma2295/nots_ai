@@ -115,7 +115,7 @@ function MiniCalendar({
   }
 
   return (
-    <div className="w-full rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800/60 dark:bg-zinc-900/50">
+    <div className="w-full rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-700/60 dark:bg-zinc-800/80">
       <div className="mb-2 flex items-center justify-between">
         <button
           onClick={() => setViewDate(new Date(year, month - 1, 1))}
@@ -133,7 +133,7 @@ function MiniCalendar({
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="mb-1 grid grid-cols-7 text-center text-[9px] font-medium text-zinc-400 dark:text-zinc-600">
+      <div className="mb-1 grid grid-cols-7 text-center text-[9px] font-medium text-zinc-400 dark:text-zinc-500">
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
           <span key={i}>{d}</span>
         ))}
@@ -156,7 +156,7 @@ function MiniCalendar({
                     ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
                     : hasTask
                       ? "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                      : "text-zinc-300 dark:text-zinc-700"
+                      : "text-zinc-300 dark:text-zinc-500"
               }`}
             >
               {day}
@@ -257,14 +257,14 @@ function SmartStats({
       <div className="ml-auto flex items-center gap-1">
         <Link
           href="/bookmarks"
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-blue-500 active:scale-95 dark:text-zinc-600 dark:hover:text-blue-400"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-blue-500 active:scale-95 dark:text-zinc-500 dark:hover:text-blue-400"
         >
           <Bookmark className="h-3.5 w-3.5" />
           Bookmarks
         </Link>
         <button
           onClick={onOpenTrash}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-red-500 active:scale-95 dark:text-zinc-600 dark:hover:text-red-400"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-red-500 active:scale-95 dark:text-zinc-500 dark:hover:text-red-400"
         >
           <Trash2 className="h-3.5 w-3.5" />
           Trash
@@ -276,7 +276,7 @@ function SmartStats({
         </button>
         <button
           onClick={onOpenResolved}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-indigo-500 active:scale-95 dark:text-zinc-600 dark:hover:text-indigo-400"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-400 transition-all hover:text-indigo-500 active:scale-95 dark:text-zinc-500 dark:hover:text-indigo-400"
         >
           <Archive className="h-3.5 w-3.5" />
           View resolved
@@ -334,7 +334,7 @@ function KanbanColumn({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-800/60 dark:bg-zinc-900/80">
+      <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-700/60 dark:bg-zinc-800/80">
         <Icon className={`h-4 w-4 ${iconColor}`} />
         <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
           {title}
@@ -357,7 +357,7 @@ function KanbanColumn({
       <div className="flex flex-col gap-2">
         {tasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
-            <p className="text-[12px] text-zinc-400 dark:text-zinc-600">
+            <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
               No tasks
             </p>
           </div>
@@ -776,7 +776,7 @@ export function SignalStream({
       className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
         act
           ? actStyle
-          : "text-zinc-400 ring-1 ring-zinc-200 hover:ring-zinc-300 dark:text-zinc-600 dark:ring-zinc-800 dark:hover:ring-zinc-700"
+          : "text-zinc-400 ring-1 ring-zinc-200 hover:ring-zinc-300 dark:text-zinc-500 dark:ring-zinc-800 dark:hover:ring-zinc-700"
       }`}
     >
       {label}
@@ -816,7 +816,7 @@ export function SignalStream({
             className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all active:scale-[0.97] ${
               filters.showReviewOnly
                 ? "bg-amber-100 text-amber-700 ring-1 ring-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:ring-amber-500/25"
-                : "text-zinc-400 ring-1 ring-zinc-200 dark:text-zinc-600 dark:ring-zinc-800"
+                : "text-zinc-400 ring-1 ring-zinc-200 dark:text-zinc-500 dark:ring-zinc-800"
             }`}
           >
             <AlertTriangle className="h-3 w-3" />
@@ -840,7 +840,7 @@ export function SignalStream({
         {isAiMode ? (
           <Sparkles className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-500 dark:text-indigo-400" />
         ) : (
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-600" />
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
         )}
         <input
           ref={searchRef}
@@ -930,7 +930,7 @@ export function SignalStream({
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-20 dark:border-zinc-800/40">
                 <Inbox className="mb-3 h-12 w-12 animate-float text-zinc-300 dark:text-zinc-800" />
-                <p className="text-sm text-zinc-500 dark:text-zinc-600">
+                <p className="text-sm text-zinc-500 dark:text-zinc-500">
                   No signals found{" "}
                 </p>
                 <button
@@ -1047,14 +1047,14 @@ export function SignalStream({
       />
       {/* Footer */}
       <div className="mt-10 flex flex-col items-center gap-2">
-        <div className="flex items-center gap-2 text-[10px] text-zinc-300 dark:text-zinc-700">
+        <div className="flex items-center gap-2 text-[10px] text-zinc-300 dark:text-zinc-500">
           <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
           Noise → Signal
           <span className="h-px w-8 bg-zinc-200 dark:bg-zinc-800" />
         </div>
         <button
           onClick={() => setShowOverlay(true)}
-          className="flex items-center gap-1.5 text-[10px] text-zinc-300 transition-colors hover:text-zinc-500 dark:text-zinc-700 dark:hover:text-zinc-500"
+          className="flex items-center gap-1.5 text-[10px] text-zinc-300 transition-colors hover:text-zinc-500 dark:text-zinc-500 dark:hover:text-zinc-500"
         >
           Press
           <kbd className="rounded border border-zinc-200 px-1 py-0.5 text-[9px] font-medium dark:border-zinc-700">

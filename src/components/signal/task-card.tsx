@@ -29,18 +29,18 @@ const TIER_STYLE: Record<
   { card: string; badge: string; label: string }
 > = {
   1: {
-    card: "border-amber-400/50 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-white dark:border-amber-400/30 dark:from-amber-500/[0.08] dark:via-yellow-500/[0.04] dark:to-zinc-900/40",
+    card: "border-amber-400/50 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-white dark:border-amber-400/40 dark:from-amber-500/20 dark:via-yellow-500/10 dark:to-zinc-800/90",
     badge: "bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm",
     label: "P1",
   },
   2: {
-    card: "border-slate-300/60 bg-gradient-to-br from-slate-100/80 via-slate-50/40 to-white dark:border-slate-400/25 dark:from-slate-400/[0.07] dark:via-slate-300/[0.03] dark:to-zinc-900/40",
+    card: "border-slate-300/60 bg-gradient-to-br from-slate-100/80 via-slate-50/40 to-white dark:border-slate-400/30 dark:from-slate-400/15 dark:via-slate-300/8 dark:to-zinc-800/90",
     badge:
       "bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800 shadow-sm",
     label: "P2",
   },
   3: {
-    card: "border-amber-700/30 bg-gradient-to-br from-orange-50/60 via-amber-50/30 to-white dark:border-amber-700/20 dark:from-amber-800/[0.06] dark:via-orange-900/[0.03] dark:to-zinc-900/40",
+    card: "border-amber-700/30 bg-gradient-to-br from-orange-50/60 via-amber-50/30 to-white dark:border-amber-700/30 dark:from-amber-800/15 dark:via-orange-900/8 dark:to-zinc-800/90",
     badge:
       "bg-gradient-to-r from-amber-700 to-amber-600 text-amber-100 shadow-sm",
     label: "P3",
@@ -48,7 +48,7 @@ const TIER_STYLE: Record<
 };
 
 const DEFAULT_CARD =
-  "border-zinc-200 bg-white dark:border-zinc-800/60 dark:bg-zinc-900/40";
+  "border-zinc-200 bg-white dark:border-zinc-700/60 dark:bg-zinc-800/80";
 
 // =============================================================
 // COLUMN / TIER OPTIONS
@@ -231,6 +231,7 @@ export function TaskCard({
   index = 0,
   onTaskActionExec,
   isNewArrival = false,
+  isKeyboardFocused = false,
 }: {
   task: NodalTask;
   index?: number;
@@ -240,6 +241,7 @@ export function TaskCard({
     action: string,
     value?: string,
   ) => Promise<void>;
+  isKeyboardFocused?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
@@ -332,6 +334,38 @@ export function TaskCard({
     !task.hasBeenOpened && (task.seenEventCount ?? 0) === 0 && totalEvents > 0;
   const hasNewMessages = !isNewTask && unseenCount > 0;
   const showIndicator = isNewTask || hasNewMessages;
+
+  // Keyboard nav: scroll focused card into view
+  useEffect(() => {
+    if (isKeyboardFocused && cardRef.current) {
+      cardRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [isKeyboardFocused]);
+
+  // Keyboard nav: Enter to expand/collapse
+  useEffect(() => {
+    if (!isKeyboardFocused) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const willExpand = !expanded;
+        setExpanded(willExpand);
+        if (willExpand && showIndicator) {
+          onTaskActionExec?.(task.id, "markSeen", String(totalEvents));
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [
+    isKeyboardFocused,
+    expanded,
+    showIndicator,
+    task.id,
+    totalEvents,
+    onTaskActionExec,
+  ]);
+
   return (
     <div
       ref={cardRef}
@@ -339,7 +373,7 @@ export function TaskCard({
       onMouseLeave={handleMouseLeave}
       className={`group/card relative rounded-xl border shadow-sm transition-all duration-450 ease-out
         ${isNewArrival ? "animate-arrival" : ""}
-        ${cardClass}${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}      `}
+        ${cardClass}${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"}        ${task.needsReview ? "ring-1 ring-amber-400/30" : ""}        ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}      `}
       style={{ willChange: "auto" }}
     >
       {/* ─── PORTAL DROPDOWNS ─── */}
@@ -443,7 +477,7 @@ export function TaskCard({
               className={`h-3 w-3 transition-colors ${
                 task.bookmarked
                   ? "fill-blue-500 text-blue-500 dark:fill-blue-400 dark:text-blue-400"
-                  : "text-zinc-300 hover:text-blue-400 dark:text-zinc-700 dark:hover:text-blue-400"
+                  : "text-zinc-300 hover:text-blue-400 dark:text-zinc-500 dark:hover:text-blue-400"
               }`}
             />
           </button>
@@ -463,7 +497,7 @@ export function TaskCard({
               className={`h-3 w-3 transition-colors ${
                 noteCount > 0
                   ? "text-indigo-500 dark:text-indigo-400"
-                  : "text-zinc-300 hover:text-indigo-400 dark:text-zinc-700 dark:hover:text-indigo-400"
+                  : "text-zinc-300 hover:text-indigo-400 dark:text-zinc-500 dark:hover:text-indigo-400"
               }`}
             />
             {noteCount > 0 && (
@@ -473,7 +507,7 @@ export function TaskCard({
             )}
           </button>
           {attachCount > 0 && (
-            <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-600">
+            <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-500">
               <Paperclip className="h-3 w-3" />
               {attachCount}
             </span>
@@ -523,7 +557,7 @@ export function TaskCard({
           <div className="ml-auto flex items-center">
             {!showActions ? (
               <ChevronDown
-                className={`h-3.5 w-3.5 text-zinc-300 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:text-zinc-700 ${
+                className={`h-3.5 w-3.5 text-zinc-300 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:text-zinc-500 ${
                   expanded ? "rotate-180" : ""
                 }`}
               />
@@ -536,7 +570,7 @@ export function TaskCard({
                   title="Mark done"
                   className="flex h-7 w-7 items-center justify-center rounded-lg transition-all
                     text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600 active:scale-90
-                    dark:text-zinc-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
+                    dark:text-zinc-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                   onClick={handleMarkDone}
                 >
                   <Check className="h-3.5 w-3.5" />
@@ -546,7 +580,7 @@ export function TaskCard({
                   title="Move to column"
                   className="flex h-7 w-7 items-center justify-center rounded-lg transition-all
                     text-zinc-400 hover:bg-orange-50 hover:text-orange-600 active:scale-90
-                    dark:text-zinc-600 dark:hover:bg-orange-500/10 dark:hover:text-orange-400"
+                    dark:text-zinc-400 dark:hover:bg-orange-500/10 dark:hover:text-orange-400"
                   onClick={() => {
                     setPriorityOpen(!priorityOpen);
                     setTierOpen(false);
@@ -559,7 +593,7 @@ export function TaskCard({
                   title="Set emphasis tier"
                   className="flex h-7 w-7 items-center justify-center rounded-lg transition-all
                     text-zinc-400 hover:bg-amber-50 hover:text-amber-600 active:scale-90
-                    dark:text-zinc-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
+                    dark:text-zinc-400 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                   onClick={() => {
                     setTierOpen(!tierOpen);
                     setPriorityOpen(false);
@@ -571,7 +605,7 @@ export function TaskCard({
                   title="Delete task"
                   className="flex h-7 w-7 items-center justify-center rounded-lg transition-all
                     text-zinc-400 hover:bg-red-50 hover:text-red-500 active:scale-90
-                    dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                    dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                   onClick={(e) => {
                     e.stopPropagation();
                     setConfirmDelete(true);
@@ -601,7 +635,7 @@ export function TaskCard({
             <div className="mb-3 flex items-center gap-3">
               {" "}
               <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />
-              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
                 Provenance
               </span>
               <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />

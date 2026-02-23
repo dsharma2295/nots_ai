@@ -343,7 +343,7 @@ export function ViewNoteModal({
                 {note.title || "Untitled Note"}
               </h2>
             )}
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-600">
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
               {createdDate}
             </p>
           </div>

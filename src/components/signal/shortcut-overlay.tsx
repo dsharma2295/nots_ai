@@ -132,7 +132,7 @@ export function ShortcutOverlay({
                           {shortcut.keys.map((key, i) => (
                             <span key={i} className="flex items-center gap-1">
                               {i > 0 && (
-                                <span className="text-[9px] text-zinc-300 dark:text-zinc-600">
+                                <span className="text-[9px] text-zinc-300 dark:text-zinc-500">
                                   +
                                 </span>
                               )}
@@ -149,7 +149,7 @@ export function ShortcutOverlay({
 
             {/* Footer */}
             <div className="mt-5 border-t border-zinc-100 pt-3 dark:border-zinc-800/60">
-              <p className="text-center text-[10px] text-zinc-400 dark:text-zinc-600">
+              <p className="text-center text-[10px] text-zinc-400 dark:text-zinc-500">
                 Focus a card with arrow keys, then use action keys
               </p>
             </div>

@@ -187,7 +187,7 @@ export function AIResponseCard({
 
         {/* Warning for modification actions */}
         {response.actions.length > 0 && (
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-600">
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500">
             <AlertTriangle className="h-3 w-3" />
             Click to confirm each action
           </div>

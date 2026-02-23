@@ -136,7 +136,7 @@ function ActivityDropdown({
           {/* Events */}
           {events.length === 0 ? (
             <div className="px-3.5 py-6 text-center">
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-600">
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
                 No activity yet
               </p>
             </div>
@@ -168,14 +168,14 @@ function ActivityDropdown({
                       )}
                     </p>
                     {evt.taskTitle && (
-                      <p className="mt-0.5 truncate text-[10px] text-zinc-400 dark:text-zinc-600">
+                      <p className="mt-0.5 truncate text-[10px] text-zinc-400 dark:text-zinc-500">
                         {truncate(evt.taskTitle, 50)}
                       </p>
                     )}
                   </div>
 
                   {/* Time */}
-                  <span className="shrink-0 text-[9px] tabular-nums text-zinc-300 dark:text-zinc-700">
+                  <span className="shrink-0 text-[9px] tabular-nums text-zinc-300 dark:text-zinc-500">
                     {formatTime(evt.timestamp)}
                   </span>
                 </div>

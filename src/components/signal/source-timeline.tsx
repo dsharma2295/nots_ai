@@ -67,7 +67,7 @@ export function SourceTimeline({ events }: { events: SourceEvent[] }) {
               <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
                 {evt.sender}
               </span>
-              <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-600">
+              <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
                 {formatTime(evt.timestamp)}
               </span>
             </div>
@@ -97,7 +97,7 @@ export function SourceTimeline({ events }: { events: SourceEvent[] }) {
               href={evt.deepLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2.5 inline-flex items-center gap-1 text-[11px] text-zinc-400 transition-colors duration-200 hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
+              className="mt-2.5 inline-flex items-center gap-1 text-[11px] text-zinc-400 transition-colors duration-200 hover:text-indigo-500 dark:text-zinc-500 dark:hover:text-indigo-400"
             >
               Open source
               <ArrowUpRight className="h-3 w-3" />

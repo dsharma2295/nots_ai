@@ -133,7 +133,7 @@ function BookmarkedCard({
   return (
     <>
       <div
-        className={`group/card rounded-xl border border-zinc-200 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/40 dark:hover:shadow-lg dark:hover:shadow-black/20 ${
+        className={`group/card rounded-xl border border-zinc-200 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-700/60 dark:bg-zinc-800/80 dark:hover:shadow-lg dark:hover:shadow-black/20 ${
           isResolved ? "opacity-60 hover:opacity-100" : ""
         }`}
         style={{
@@ -192,7 +192,7 @@ function BookmarkedCard({
                 className={`h-3 w-3 transition-colors ${
                   noteCount > 0
                     ? "text-indigo-500 dark:text-indigo-400"
-                    : "text-zinc-300 hover:text-indigo-400 dark:text-zinc-700 dark:hover:text-indigo-400"
+                    : "text-zinc-300 hover:text-indigo-400 dark:text-zinc-500 dark:hover:text-indigo-400"
                 }`}
               />
               {noteCount > 0 && (
@@ -203,7 +203,7 @@ function BookmarkedCard({
             </button>
             {/* Attachments */}
             {attachCount > 0 && (
-              <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-600">
+              <span className="flex items-center gap-0.5 text-[11px] text-zinc-400 dark:text-zinc-500">
                 <Paperclip className="h-3 w-3" />
                 {attachCount}
               </span>
@@ -211,7 +211,7 @@ function BookmarkedCard({
             {/* Trash */}
             <button
               title="Delete task"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 active:scale-90 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 active:scale-90 group-hover/card:opacity-100 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
               onClick={(e) => {
                 e.stopPropagation();
                 setConfirmDelete(true);
@@ -223,7 +223,7 @@ function BookmarkedCard({
             {isResolved ? (
               <button
                 title="Restore to active"
-                className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-all hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+                className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-all hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 group-hover/card:opacity-100 dark:text-zinc-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRestore(task.id);
@@ -234,7 +234,7 @@ function BookmarkedCard({
             ) : (
               <button
                 title="Mark done"
-                className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-all hover:bg-emerald-50 hover:text-emerald-600 active:scale-90 group-hover/card:opacity-100 dark:text-zinc-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
+                className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-all hover:bg-emerald-50 hover:text-emerald-600 active:scale-90 group-hover/card:opacity-100 dark:text-zinc-500 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                 onClick={(e) => {
                   e.stopPropagation();
                   onMarkDone(task.id);
@@ -274,7 +274,7 @@ function BookmarkedCard({
               {task.intent}
             </span>
             <ChevronDown
-              className={`ml-auto h-3.5 w-3.5 text-zinc-300 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:text-zinc-700 ${
+              className={`ml-auto h-3.5 w-3.5 text-zinc-300 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:text-zinc-500 ${
                 expanded ? "rotate-180" : ""
               }`}
             />
@@ -297,7 +297,7 @@ function BookmarkedCard({
             <div className="border-t border-zinc-100 px-4 pb-4 pt-3 dark:border-zinc-800/50">
               <div className="mb-3 flex items-center gap-3">
                 <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />
-                <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">
+                <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
                   Provenance
                 </span>
                 <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />
@@ -534,7 +534,7 @@ export function BookmarkedStream({
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-20 dark:border-zinc-800/40">
         <Inbox className="mb-3 h-12 w-12 animate-float text-zinc-300 dark:text-zinc-800" />
-        <p className="text-sm text-zinc-500 dark:text-zinc-600">
+        <p className="text-sm text-zinc-500 dark:text-zinc-500">
           No bookmarked tasks
         </p>
         <Link
@@ -554,7 +554,7 @@ export function BookmarkedStream({
         {isAiMode ? (
           <Sparkles className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-500 dark:text-indigo-400" />
         ) : (
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-600" />
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
         )}
         <input
           ref={searchRef}
@@ -615,7 +615,7 @@ export function BookmarkedStream({
             </div>
             {activeTasks.length === 0 ? (
               <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
-                <p className="text-[12px] text-zinc-400 dark:text-zinc-600">
+                <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
                   No saved bookmarks
                 </p>
               </div>
@@ -668,7 +668,7 @@ export function BookmarkedStream({
             </div>
             {resolvedTasks.length === 0 ? (
               <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
-                <p className="text-[12px] text-zinc-400 dark:text-zinc-600">
+                <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
                   No resolved bookmarks
                 </p>
               </div>
@@ -713,7 +713,7 @@ export function BookmarkedStream({
       {!isAiMode && filtered.length === 0 && tasks.length > 0 && (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-16 dark:border-zinc-800/40">
           <Inbox className="mb-3 h-10 w-10 animate-float text-zinc-300 dark:text-zinc-800" />
-          <p className="text-sm text-zinc-500 dark:text-zinc-600">
+          <p className="text-sm text-zinc-500 dark:text-zinc-500">
             No bookmarks match &ldquo;{filterText}&rdquo;
           </p>
           <button
