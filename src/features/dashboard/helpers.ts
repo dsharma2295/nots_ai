@@ -1,4 +1,4 @@
-import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
+import type { NodalTask, Platform, TaskStatus } from "@/types";
 
 export const ALL_PLATFORMS: Platform[] = ["SLACK", "GMAIL", "JIRA", "TRELLO", "ASANA"];
 export const ALL_STATUSES: TaskStatus[] = ["OPEN", "IN_PROGRESS", "BLOCKED", "DONE"];

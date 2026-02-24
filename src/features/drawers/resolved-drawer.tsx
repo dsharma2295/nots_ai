@@ -3,7 +3,7 @@
 import { useLiveRelativeTime } from "@/hooks";
 import { useListKeyboardNav } from "@/features/keyboard/hooks/use-list-keyboard-nav";
 import { useNotes } from "@/hooks/use-notes";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
   Bookmark,

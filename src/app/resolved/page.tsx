@@ -1,7 +1,7 @@
 import { ResolvedStream } from "@/features/drawers/resolved-stream";
 import { ThemeToggle } from "@/components/theme-toggle";
 import db from "@/lib/db";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import Link from "next/link";
 export const dynamic = "force-dynamic";
 async function getResolvedTasks(): Promise<NodalTask[]> {

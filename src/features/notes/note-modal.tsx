@@ -1,6 +1,6 @@
 "use client";
 
-import type { SourceEvent } from "@/lib/mock-data";
+import type { SourceEvent } from "@/types";
 import { NotebookPen, Pencil, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";

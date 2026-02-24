@@ -1,6 +1,6 @@
 "use client";
 
-import type { Platform } from "@/lib/mock-data";
+import type { Platform } from "@/types";
 import { Diamond, Hash, LayoutGrid, Mail, Pencil, Target } from "lucide-react";
 
 // =============================================================

@@ -1,7 +1,7 @@
 "use client";
 import { useLiveRelativeTime } from "@/hooks";
 import { useNotes } from "@/hooks/use-notes";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import {
   ArrowRightLeft,
   Bookmark,

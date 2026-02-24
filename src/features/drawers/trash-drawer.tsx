@@ -2,7 +2,7 @@
 
 import { useLiveRelativeTime } from "@/hooks";
 import { useListKeyboardNav } from "@/features/keyboard/hooks/use-list-keyboard-nav";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import {
   ChevronDown,
   Inbox,

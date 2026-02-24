@@ -1,6 +1,6 @@
 "use client";
 import { useCmdK } from "@/hooks";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
   Bookmark,

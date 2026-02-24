@@ -1,7 +1,7 @@
 import { BookmarkedStream } from "@/features/bookmarks/bookmarked-stream";
 import { ThemeToggle } from "@/components/theme-toggle";
 import db from "@/lib/db";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import Link from "next/link";
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
 "use client";
 import { useCmdK } from "@/hooks";
 import { useKeyboardNav } from "@/features/keyboard/hooks/use-keyboard-nav";
-import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
+import type { NodalTask, Platform, TaskStatus } from "@/types";
 import { useRealtimeContext } from "@/lib/realtime-provider";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {

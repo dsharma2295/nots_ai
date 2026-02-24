@@ -1,8 +1,8 @@
 import { AutoRefresh } from "@/components/auto-refresh";
-import { SignalStream } from "@/features/dashboard/signal-stream";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SignalStream } from "@/features/dashboard/signal-stream";
 import db from "@/lib/db";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -167,14 +167,42 @@ export default async function Home() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/20">
-              <span className="text-sm font-black text-white">N</span>
+            {/* Logo mark — funnel: wide mouth narrows to a single drop */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                {/* Funnel body: trapezoid, wide at top narrowing down */}
+                <path
+                  d="M2 3h14L11 9.5H7L2 3Z"
+                  className="fill-zinc-800 dark:fill-zinc-100"
+                  opacity="0.18"
+                />
+                {/* Funnel neck: the narrowed channel */}
+                <path
+                  d="M7 9.5h4v2.5H7V9.5Z"
+                  className="fill-zinc-800 dark:fill-zinc-100"
+                  opacity="0.55"
+                />
+                {/* Single drop: the refined signal output */}
+                <circle
+                  cx="9"
+                  cy="15"
+                  r="1.5"
+                  className="fill-zinc-800 dark:fill-zinc-100"
+                />
+              </svg>
             </div>
-            <div className="flex items-baseline gap-1">
-              <h1 className="text-base font-semibold text-zinc-900 dark:text-white">
+            <div className="flex items-baseline gap-0.5">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-white">
                 Nots
               </h1>
-              <span className="text-base text-zinc-400 dark:text-zinc-500">
+              <span className="text-base tracking-tight text-zinc-400 dark:text-zinc-500">
                 .ai
               </span>
             </div>
