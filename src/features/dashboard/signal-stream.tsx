@@ -1,9 +1,17 @@
 "use client";
-import { useCmdK } from "@/hooks";
+import { getPlatformFilterStyle } from "@/components/platform-icon";
+import { useToast } from "@/components/toast";
+import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
+import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
+import { TrashDrawer } from "@/features/drawers/trash-drawer";
 import { useKeyboardNav } from "@/features/keyboard/hooks/use-keyboard-nav";
-import type { NodalTask, Platform, TaskStatus } from "@/types";
+import { ShortcutOverlay } from "@/features/keyboard/shortcut-overlay";
+import { TaskCardSkeleton } from "@/features/task-card/task-card-skeleton";
+import { useCmdK } from "@/hooks";
 import { useRealtimeContext } from "@/lib/realtime-provider";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
+import type { NodalTask } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   Flame,
@@ -14,15 +22,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
-import { getPlatformFilterStyle } from "@/components/platform-icon";
-import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
-import { ShortcutOverlay } from "@/features/keyboard/shortcut-overlay";
-import { TaskCardSkeleton } from "@/features/task-card/task-card-skeleton";
-import { useToast } from "@/components/toast";
-import { TrashDrawer } from "@/features/drawers/trash-drawer";
 import { ALL_PLATFORMS, ALL_STATUSES, type Filters } from "./helpers";
 import { KanbanColumn } from "./kanban-column";
 import { MiniCalendar } from "./mini-calendar";
@@ -485,12 +485,42 @@ export function SignalStream({
         onOpenTrash={() => setTrashOpen(true)}
       />{" "}
       {/* Search bar */}
-      <div className="relative mb-4">
-        {isAiMode ? (
-          <Sparkles className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-500 dark:text-indigo-400" />
-        ) : (
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
-        )}
+      <motion.div
+        className="relative mb-4 rounded-xl"
+        animate={{
+          boxShadow: isAiMode
+            ? "0 0 0 2px rgba(99,102,241,0.25), 0 4px 12px rgba(99,102,241,0.08)"
+            : "0 1px 3px rgba(0,0,0,0.06)",
+        }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+      >
+        {/* Icon — crossfades with rotation between Search and Sparkles */}
+        <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
+          <AnimatePresence mode="wait">
+            {isAiMode ? (
+              <motion.div
+                key="sparkles"
+                initial={{ opacity: 0, rotate: 20, scale: 0.8 }}
+                animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                exit={{ opacity: 0, rotate: -20, scale: 0.8 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <Sparkles className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="search"
+                initial={{ opacity: 0, rotate: -20, scale: 0.8 }}
+                animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                exit={{ opacity: 0, rotate: 20, scale: 0.8 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         <input
           ref={searchRef}
           type="text"
@@ -502,18 +532,28 @@ export function SignalStream({
           value={filters.search}
           onChange={(e) => handleSearchChange(e.target.value)}
           onKeyDown={handleSearchKeyDown}
-          className={`h-10 w-full rounded-xl pl-10 pr-4 text-sm outline-none transition-all duration-300 ${
+          className={`h-10 w-full rounded-xl pl-10 pr-4 text-sm outline-none transition-colors duration-250 ${
             isAiMode
-              ? "border-indigo-400 bg-indigo-50 text-indigo-900 shadow-md shadow-indigo-500/10 ring-2 ring-indigo-500/30 placeholder:text-indigo-400 dark:border-indigo-500/40 dark:bg-indigo-500/[0.06] dark:text-indigo-100 dark:shadow-indigo-500/5 dark:ring-indigo-500/20 dark:placeholder:text-indigo-500/60"
-              : "border border-zinc-200 bg-white text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/30 dark:border-zinc-800/80 dark:bg-zinc-900/50 dark:text-zinc-100 dark:shadow-inner dark:shadow-black/20 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40 dark:focus:ring-indigo-500/15"
+              ? "border border-indigo-400/60 bg-indigo-50 text-indigo-900 placeholder:text-indigo-400 dark:border-indigo-500/40 dark:bg-indigo-500/[0.06] dark:text-indigo-100 dark:placeholder:text-indigo-500/60"
+              : "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-800/80 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40"
           }`}
         />
-        {isAiMode && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
-            AI
-          </div>
-        )}
-      </div>
+
+        {/* AI badge — fades in when AI mode active */}
+        <AnimatePresence>
+          {isAiMode && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, x: 6 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.8, x: 6 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400"
+            >
+              AI
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>{" "}
       {/* AI Response */}
       {(aiLoading || aiResponse) && (
         <div className="mb-5">

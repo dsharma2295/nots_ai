@@ -1,4 +1,13 @@
 "use client";
+import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
+import { PlatformDot } from "@/components/platform-icon";
+import { useToast } from "@/components/toast";
+import {
+  CreateNoteModal,
+  NoteChips,
+  ViewNoteModal,
+} from "@/features/notes/note-modal";
+import { SourceTimeline } from "@/features/timeline/source-timeline";
 import { useLiveRelativeTime } from "@/hooks";
 import { useNotes } from "@/hooks/use-notes";
 import type { NodalTask } from "@/types";
@@ -13,11 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
-import { CreateNoteModal, NoteChips, ViewNoteModal } from "@/features/notes/note-modal";
-import { PlatformDot } from "@/components/platform-icon";
-import { SourceTimeline } from "@/features/timeline/source-timeline";
-import { useToast } from "@/components/toast";
+import { PortalDropdown } from "./portal-dropdown";
 import {
   COLUMN_OPTIONS,
   DEFAULT_CARD,
@@ -26,7 +31,6 @@ import {
   TIER_OPTIONS,
   TIER_STYLE,
 } from "./tier-config";
-import { PortalDropdown } from "./portal-dropdown";
 
 // =============================================================
 // HELPERS
@@ -204,8 +208,8 @@ export function TaskCard({
       onMouseLeave={handleMouseLeave}
       className={`group/card relative rounded-xl border shadow-sm transition-all duration-450 ease-out
         ${isNewArrival ? "animate-arrival" : ""}
-        ${cardClass} ${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"} ${task.needsReview ? "ring-1 ring-amber-400/30" : ""} ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}`}
-      style={{ willChange: "auto" }}
+        ${cardClass} ${fadingOut ? "pointer-events-none" : "hover:shadow-md hover:shadow-zinc-200/80 dark:hover:shadow-lg dark:hover:shadow-black/30"} ${task.needsReview ? "ring-1 ring-amber-400/30" : ""} ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}`}
+      style={{ willChange: "transform" }}
     >
       {/* ─── PORTAL DROPDOWNS ─── */}
       <PortalDropdown
