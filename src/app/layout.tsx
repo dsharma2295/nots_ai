@@ -1,4 +1,4 @@
-import { ToastProvider } from "@/components/signal/toast";
+import { ToastProvider } from "@/components/toast";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";

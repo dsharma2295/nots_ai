@@ -1,6 +1,6 @@
-import { AutoRefresh } from "@/components/signal/auto-refresh";
-import { SignalStream } from "@/components/signal/signal-stream";
-import { ThemeToggle } from "@/components/signal/theme-toggle";
+import { AutoRefresh } from "@/components/auto-refresh";
+import { SignalStream } from "@/features/dashboard/signal-stream";
+import { ThemeToggle } from "@/components/theme-toggle";
 import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
 

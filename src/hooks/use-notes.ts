@@ -1,7 +1,7 @@
 "use client";
 
-import type { NoteData } from "@/components/signal/note-modal";
-import { useToast } from "@/components/signal/toast";
+import type { NoteData } from "@/features/notes/note-modal";
+import { useToast } from "@/components/toast";
 import { useCallback, useEffect, useState } from "react";
 
 /**

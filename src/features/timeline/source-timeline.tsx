@@ -2,7 +2,7 @@
 import type { SourceEvent } from "@/lib/mock-data";
 import { ArrowUpRight, Paperclip } from "lucide-react";
 import { useState } from "react";
-import { PlatformBadge, getPlatformDotClass } from "./platform-icon";
+import { PlatformBadge, getPlatformDotClass } from "@/components/platform-icon";
 
 function formatTime(iso: string): string {
   const d = new Date(iso);

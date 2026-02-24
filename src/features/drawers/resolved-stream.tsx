@@ -1,5 +1,5 @@
 "use client";
-import { useCmdK } from "@/lib/hooks";
+import { useCmdK } from "@/hooks";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
@@ -14,10 +14,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AIResponseCard, AIResponseLoading } from "./ai-response";
-import { PlatformDot } from "./platform-icon";
-import { SourceTimeline } from "./source-timeline";
-import { useToast } from "./toast";
+import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
+import { PlatformDot } from "@/components/platform-icon";
+import { SourceTimeline } from "@/features/timeline/source-timeline";
+import { useToast } from "@/components/toast";
 
 export function ResolvedStream({
   tasks: initialTasks,

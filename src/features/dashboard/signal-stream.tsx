@@ -1,6 +1,6 @@
 "use client";
-import { useCmdK } from "@/lib/hooks";
-import { useKeyboardNav } from "@/lib/hooks/use-keyboard-nav";
+import { useCmdK } from "@/hooks";
+import { useKeyboardNav } from "@/features/keyboard/hooks/use-keyboard-nav";
 import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
 import { useRealtimeContext } from "@/lib/realtime-provider";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
@@ -22,14 +22,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AIResponseCard, AIResponseLoading } from "./ai-response";
-import { getPlatformFilterStyle } from "./platform-icon";
-import { ResolvedDrawer } from "./resolved-drawer";
-import { ShortcutOverlay } from "./shortcut-overlay";
-import { TaskCard } from "./task-card";
-import { TaskCardSkeleton } from "./task-card-skeleton";
-import { useToast } from "./toast";
-import { TrashDrawer } from "./trash-drawer";
+import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
+import { getPlatformFilterStyle } from "@/components/platform-icon";
+import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
+import { ShortcutOverlay } from "@/features/keyboard/shortcut-overlay";
+import { TaskCard } from "@/features/task-card/task-card";
+import { TaskCardSkeleton } from "@/features/task-card/task-card-skeleton";
+import { useToast } from "@/components/toast";
+import { TrashDrawer } from "@/features/drawers/trash-drawer";
 // =============================================================
 // CONSTANTS
 // =============================================================

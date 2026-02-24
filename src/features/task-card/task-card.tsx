@@ -1,6 +1,6 @@
 "use client";
-import { useLiveRelativeTime } from "@/lib/hooks";
-import { useNotes } from "@/lib/hooks/use-notes";
+import { useLiveRelativeTime } from "@/hooks";
+import { useNotes } from "@/hooks/use-notes";
 import type { NodalTask } from "@/lib/mock-data";
 import {
   ArrowRightLeft,
@@ -14,11 +14,11 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ConfirmDeleteModal } from "./confirm-delete-modal";
-import { CreateNoteModal, NoteChips, ViewNoteModal } from "./note-modal";
-import { PlatformDot } from "./platform-icon";
-import { SourceTimeline } from "./source-timeline";
-import { useToast } from "./toast";
+import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
+import { CreateNoteModal, NoteChips, ViewNoteModal } from "@/features/notes/note-modal";
+import { PlatformDot } from "@/components/platform-icon";
+import { SourceTimeline } from "@/features/timeline/source-timeline";
+import { useToast } from "@/components/toast";
 // =============================================================
 // TIER CONFIG — full card sheen
 // 1: Gold, 2: Silver, 3: Bronze

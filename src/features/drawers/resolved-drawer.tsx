@@ -1,8 +1,8 @@
 "use client";
 
-import { useLiveRelativeTime } from "@/lib/hooks";
-import { useListKeyboardNav } from "@/lib/hooks/use-list-keyboard-nav";
-import { useNotes } from "@/lib/hooks/use-notes";
+import { useLiveRelativeTime } from "@/hooks";
+import { useListKeyboardNav } from "@/features/keyboard/hooks/use-list-keyboard-nav";
+import { useNotes } from "@/hooks/use-notes";
 import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
@@ -20,12 +20,12 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AIResponseCard, AIResponseLoading } from "./ai-response";
-import { ConfirmDeleteModal } from "./confirm-delete-modal";
-import { CreateNoteModal, NoteChips, ViewNoteModal } from "./note-modal";
-import { PlatformDot } from "./platform-icon";
-import { SourceTimeline } from "./source-timeline";
-import { useToast } from "./toast";
+import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
+import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
+import { CreateNoteModal, NoteChips, ViewNoteModal } from "@/features/notes/note-modal";
+import { PlatformDot } from "@/components/platform-icon";
+import { SourceTimeline } from "@/features/timeline/source-timeline";
+import { useToast } from "@/components/toast";
 function LiveTime({ iso }: { iso: string }) {
   const t = useLiveRelativeTime(iso);
   return <>{t}</>;

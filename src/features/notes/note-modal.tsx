@@ -4,7 +4,7 @@ import type { SourceEvent } from "@/lib/mock-data";
 import { NotebookPen, Pencil, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { PlatformDot } from "./platform-icon";
+import { PlatformDot } from "@/components/platform-icon";
 
 // =============================================================
 // TYPES

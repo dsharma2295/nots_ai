@@ -1,7 +1,7 @@
 "use client";
 
-import { useLiveRelativeTime } from "@/lib/hooks";
-import { useListKeyboardNav } from "@/lib/hooks/use-list-keyboard-nav";
+import { useLiveRelativeTime } from "@/hooks";
+import { useListKeyboardNav } from "@/features/keyboard/hooks/use-list-keyboard-nav";
 import type { NodalTask } from "@/lib/mock-data";
 import {
   ChevronDown,
@@ -14,10 +14,10 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ConfirmDeleteModal } from "./confirm-delete-modal";
-import { PlatformDot } from "./platform-icon";
-import { SourceTimeline } from "./source-timeline";
-import { useToast } from "./toast";
+import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
+import { PlatformDot } from "@/components/platform-icon";
+import { SourceTimeline } from "@/features/timeline/source-timeline";
+import { useToast } from "@/components/toast";
 
 function LiveTime({ iso }: { iso: string }) {
   const t = useLiveRelativeTime(iso);
