@@ -13,108 +13,24 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
 import { CreateNoteModal, NoteChips, ViewNoteModal } from "@/features/notes/note-modal";
 import { PlatformDot } from "@/components/platform-icon";
 import { SourceTimeline } from "@/features/timeline/source-timeline";
 import { useToast } from "@/components/toast";
-// =============================================================
-// TIER CONFIG — full card sheen
-// 1: Gold, 2: Silver, 3: Bronze
-// =============================================================
-
-const TIER_STYLE: Record<
-  number,
-  { card: string; badge: string; label: string }
-> = {
-  1: {
-    card: "border-amber-400/50 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-white dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800 dark:border-amber-500/50",
-    badge: "bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm",
-    label: "P1",
-  },
-  2: {
-    card: "border-slate-300/60 bg-gradient-to-br from-slate-100/80 via-slate-50/40 to-white dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800 dark:border-slate-400/40",
-    badge:
-      "bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800 shadow-sm",
-    label: "P2",
-  },
-  3: {
-    card: "border-amber-700/30 bg-gradient-to-br from-orange-50/60 via-amber-50/30 to-white dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800 dark:border-amber-600/40",
-    badge:
-      "bg-gradient-to-r from-amber-700 to-amber-600 text-amber-100 shadow-sm",
-    label: "P3",
-  },
-};
-
-const DEFAULT_CARD =
-  "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800";
-
-// =============================================================
-// COLUMN / TIER OPTIONS
-// =============================================================
-
-const COLUMN_OPTIONS = [
-  {
-    label: "Urgent",
-    priority: "HIGH" as const,
-    color:
-      "text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-500/10",
-  },
-  {
-    label: "Normal",
-    priority: "MEDIUM" as const,
-    color:
-      "text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10",
-  },
-  {
-    label: "Low Priority",
-    priority: "LOW" as const,
-    color:
-      "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-500/10",
-  },
-];
-
-const TIER_OPTIONS = [
-  {
-    tier: 1,
-    label: "Gold",
-    sublabel: "P1",
-    badgeClass: "bg-gradient-to-r from-amber-500 to-yellow-400 text-black",
-  },
-  {
-    tier: 2,
-    label: "Silver",
-    sublabel: "P2",
-    badgeClass: "bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800",
-  },
-  {
-    tier: 3,
-    label: "Bronze",
-    sublabel: "P3",
-    badgeClass: "bg-gradient-to-r from-amber-700 to-amber-600 text-amber-100",
-  },
-];
+import {
+  COLUMN_OPTIONS,
+  DEFAULT_CARD,
+  STATUS_DOT,
+  STATUS_LABEL,
+  TIER_OPTIONS,
+  TIER_STYLE,
+} from "./tier-config";
+import { PortalDropdown } from "./portal-dropdown";
 
 // =============================================================
 // HELPERS
 // =============================================================
-
-const STATUS_DOT: Record<string, string> = {
-  OPEN: "bg-emerald-500",
-  IN_PROGRESS: "bg-blue-500",
-  BLOCKED: "bg-red-500",
-  DONE: "bg-zinc-400 dark:bg-zinc-600",
-  ARCHIVED: "bg-zinc-300 dark:bg-zinc-700",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  OPEN: "Open",
-  IN_PROGRESS: "Active",
-  BLOCKED: "Blocked",
-  DONE: "Done",
-  ARCHIVED: "Archived",
-};
 
 function LiveTime({ iso }: { iso: string }) {
   const t = useLiveRelativeTime(iso);
@@ -127,99 +43,6 @@ function uniquePlatforms(task: NodalTask): string[] {
 
 function totalAttachments(task: NodalTask): number {
   return task.sourceEvents.reduce((a, e) => a + e.attachments.length, 0);
-}
-
-// =============================================================
-// PORTAL DROPDOWN — renders at document.body, never clipped
-// =============================================================
-
-function PortalDropdown({
-  anchorRef,
-  open,
-  onClose,
-  children,
-}: {
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  const [pos, setPos] = useState<{
-    top?: number;
-    bottom?: number;
-    left: number;
-  } | null>(null);
-  const dropRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open || !anchorRef.current) return;
-    const rect = anchorRef.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-
-    if (spaceBelow > 200 || spaceBelow > spaceAbove) {
-      setPos({ top: rect.bottom + 4, left: rect.right - 160 });
-    } else {
-      setPos({
-        bottom: window.innerHeight - rect.top + 4,
-        left: rect.right - 160,
-      });
-    }
-  }, [open, anchorRef]);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (
-        dropRef.current &&
-        !dropRef.current.contains(e.target as Node) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    }
-    function handleScroll() {
-      onClose();
-    }
-    function handleResize() {
-      onClose();
-    }
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-
-    const id = setTimeout(() => {
-      document.addEventListener("mousedown", handleClick);
-      window.addEventListener("scroll", handleScroll, true);
-      window.addEventListener("resize", handleResize);
-      document.addEventListener("keydown", handleKeyDown);
-    }, 0);
-    return () => {
-      clearTimeout(id);
-      document.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("scroll", handleScroll, true);
-      window.removeEventListener("resize", handleResize);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, onClose, anchorRef]);
-  if (!open || !pos) return null;
-
-  return createPortal(
-    <div
-      ref={dropRef}
-      className="fixed z-[9999] w-40 rounded-xl border border-zinc-200 bg-white py-1 shadow-2xl dark:border-zinc-700 dark:bg-zinc-800"
-      style={{
-        top: pos.top,
-        bottom: pos.bottom,
-        left: Math.max(8, pos.left),
-      }}
-    >
-      {children}
-    </div>,
-    document.body,
-  );
 }
 
 // =============================================================
