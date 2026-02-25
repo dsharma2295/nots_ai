@@ -88,9 +88,13 @@ export function TaskCard({
 
   const { toast } = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const notes = useNotes(task.id, expanded, (id, count) => {
-    onTaskActionExec?.(id, "noteCount", String(count));
-  });
+  const handleNoteCountChange = useCallback(
+    (id: string, count: number) => {
+      onTaskActionExec?.(id, "noteCount", String(count));
+    },
+    [onTaskActionExec],
+  );
+  const notes = useNotes(task.id, expanded, handleNoteCountChange);
   const noteCount = notes.count(task.noteCount ?? 0);
   const tierStyle = task.tier > 0 ? TIER_STYLE[task.tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
@@ -286,7 +290,7 @@ export function TaskCard({
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
           >
             <span
-              className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${opt.badgeClass}`}
+              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold leading-none ${opt.badgeClass}`}
             >
               {opt.sublabel}
             </span>
@@ -339,7 +343,7 @@ export function TaskCard({
           </span>
           {tierStyle && (
             <span
-              className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${tierStyle.badge}`}
+              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold leading-none ${tierStyle.badge}`}
             >
               {tierStyle.label}
             </span>

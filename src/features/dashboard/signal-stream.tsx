@@ -490,7 +490,13 @@ export function SignalStream({
     return s;
   }, [localTasks]);
 
-  const reviewCount = localTasks.filter((t) => t.needsReview).length;
+  const reviewCount = localTasks.filter(
+    (t) =>
+      t.needsReview &&
+      t.status !== "DONE" &&
+      t.status !== "TRASHED" &&
+      t.status !== "ARCHIVED",
+  ).length;
 
   // Filter pill helper
   const pill = (
@@ -763,7 +769,9 @@ export function SignalStream({
           if (restored) {
             setLocalTasks((prev) => [
               { ...restored, status: "OPEN" as NodalTask["status"] },
-              ...prev,
+              // Remove the existing DONE version so SmartStats doesn't
+              // double-count it — without this the counter never reverts.
+              ...prev.filter((t) => t.id !== taskId),
             ]);
             setLocalResolvedTasks((prev) =>
               prev.filter((t) => t.id !== taskId),

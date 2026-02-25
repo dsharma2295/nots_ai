@@ -1,20 +1,18 @@
 "use client";
 
-import type { NoteData } from "@/features/notes/note-modal";
 import { useToast } from "@/components/toast";
-import { useCallback, useEffect, useState } from "react";
+import type { NoteData } from "@/features/notes/note-modal";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * useNotes — manages notes for a task card.
  * Fetches notes lazily when `expanded` becomes true.
  * Provides CRUD callbacks with optimistic updates + toasts.
  *
- * Usage:
- *   const notes = useNotes(task.id, expanded);
- *   // notes.list, notes.loaded, notes.count(serverCount)
- *   // notes.onCreate, notes.onUpdate, notes.onDelete
- *   // notes.showCreate, notes.setShowCreate
- *   // notes.viewing, notes.setViewing
+ * onCountChange is stored in a ref so onCreate/onDelete always
+ * call the latest version without needing it in their dep arrays —
+ * this prevents the stale-closure bug where the counter doesn't
+ * update until the card is clicked again.
  */
 export function useNotes(
   taskId: string,
@@ -26,6 +24,13 @@ export function useNotes(
   const [showCreate, setShowCreate] = useState(false);
   const [viewing, setViewing] = useState<NoteData | null>(null);
   const { toast } = useToast();
+
+  // Keep onCountChange in a ref so callbacks always use the latest
+  // version without requiring it as a useCallback dependency.
+  const onCountChangeRef = useRef(onCountChange);
+  useEffect(() => {
+    onCountChangeRef.current = onCountChange;
+  }, [onCountChange]);
 
   // Fetch notes when card first expands
   useEffect(() => {
@@ -48,13 +53,15 @@ export function useNotes(
     (note: NoteData) => {
       setList((prev) => {
         const next = [note, ...prev];
-        onCountChange?.(taskId, next.length);
+        // Use ref to always call the latest onCountChange
+        onCountChangeRef.current?.(taskId, next.length);
         return next;
       });
       toast("Note added");
     },
-    [toast, taskId, onCountChange],
+    [toast, taskId],
   );
+
   const onUpdate = useCallback(
     (updated: NoteData) => {
       setList((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
@@ -68,14 +75,18 @@ export function useNotes(
     (noteId: string) => {
       setList((prev) => {
         const next = prev.filter((n) => n.id !== noteId);
-        onCountChange?.(taskId, next.length);
+        // Use ref to always call the latest onCountChange
+        onCountChangeRef.current?.(taskId, next.length);
         return next;
       });
       toast("Note deleted");
     },
-    [toast, taskId, onCountChange],
+    [toast, taskId],
   );
-  // Returns the display count — uses fetched data if loaded, server count otherwise
+
+  // Returns the display count:
+  // - If notes have been fetched (loaded=true), use local list length
+  // - Otherwise fall back to the server-provided count from props
   const count = useCallback(
     (serverNoteCount: number) => {
       if (loaded) return list.length;
@@ -83,6 +94,7 @@ export function useNotes(
     },
     [loaded, list.length],
   );
+
   return {
     list,
     loaded,
