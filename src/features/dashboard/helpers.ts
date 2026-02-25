@@ -1,12 +1,114 @@
-import type { NodalTask, Platform, TaskStatus } from "@/types";
+import type { NodalTask, Platform, TaskStatus } from "@/lib/mock-data";
 
-export const ALL_PLATFORMS: Platform[] = ["SLACK", "GMAIL", "JIRA", "TRELLO", "ASANA"];
-export const ALL_STATUSES: TaskStatus[] = ["OPEN", "IN_PROGRESS", "BLOCKED", "DONE"];
+export const ALL_PLATFORMS: Platform[] = [
+  "SLACK",
+  "GMAIL",
+  "JIRA",
+  "TRELLO",
+  "ASANA",
+];
+export const ALL_STATUSES: TaskStatus[] = [
+  "OPEN",
+  "IN_PROGRESS",
+  "BLOCKED",
+  "DONE",
+];
+
+// =============================================================
+// INTENT GROUPS
+// Maps Gemini's free-form intent strings to 5 semantic buckets.
+// Matching is fuzzy (includes) to handle slight variations.
+// =============================================================
+
+export type IntentGroup =
+  | "all"
+  | "action" // task-assignment, bug-fix, fix, deploy, implement
+  | "review" // document-review, code-review, review
+  | "respond" // question, approval-request, feedback-request
+  | "attend" // meeting-request, calendar, schedule
+  | "read"; // information-sharing, announcement, fyi, update
+
+export const INTENT_GROUPS: {
+  id: IntentGroup;
+  label: string;
+  keywords: string[];
+}[] = [
+  { id: "all", label: "All", keywords: [] },
+  {
+    id: "action",
+    label: "Action",
+    keywords: [
+      "task",
+      "bug",
+      "fix",
+      "deploy",
+      "implement",
+      "build",
+      "create",
+      "update",
+      "assign",
+    ],
+  },
+  {
+    id: "review",
+    label: "Review",
+    keywords: ["review", "check", "audit", "verify", "inspect", "approve"],
+  },
+  {
+    id: "respond",
+    label: "Respond",
+    keywords: [
+      "question",
+      "approval",
+      "feedback",
+      "response",
+      "reply",
+      "clarif",
+    ],
+  },
+  {
+    id: "attend",
+    label: "Attend",
+    keywords: ["meeting", "calendar", "schedule", "sync", "standup", "call"],
+  },
+  {
+    id: "read",
+    label: "Read",
+    keywords: [
+      "information",
+      "sharing",
+      "announcement",
+      "fyi",
+      "update",
+      "notice",
+      "inform",
+    ],
+  },
+];
+
+export function matchIntentGroup(intent: string, group: IntentGroup): boolean {
+  if (group === "all") return true;
+  const g = INTENT_GROUPS.find((g) => g.id === group);
+  if (!g) return true;
+  const lower = intent.toLowerCase().replace(/[-_]/g, " ");
+  return g.keywords.some((kw) => lower.includes(kw));
+}
+
+// =============================================================
+// FILTERS
+// spotlightPlatforms: if non-empty, only show tasks from those
+// platforms (exclusive spotlight mode). Empty = show all.
+// intentGroup: filter by semantic intent bucket.
+// =============================================================
 
 export interface Filters {
+  // Legacy fields kept for any downstream code that reads them
   platforms: Set<Platform>;
   statuses: Set<TaskStatus>;
   showReviewOnly: boolean;
+  // New fields
+  spotlightPlatforms: Set<Platform>;
+  intentGroup: IntentGroup;
   search: string;
   selectedDate: string | null;
 }

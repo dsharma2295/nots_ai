@@ -23,7 +23,14 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ALL_PLATFORMS, ALL_STATUSES, type Filters } from "./helpers";
+import {
+  ALL_PLATFORMS,
+  ALL_STATUSES,
+  INTENT_GROUPS,
+  matchIntentGroup,
+  type Filters,
+  type IntentGroup,
+} from "./helpers";
 import { KanbanColumn } from "./kanban-column";
 import { MiniCalendar } from "./mini-calendar";
 import { SmartStats } from "./smart-stats";
@@ -227,39 +234,58 @@ function useIsDark() {
 
 function PlatformFilterPill({
   platforms,
-  active,
+  spotlight,
+  hasData,
   onToggle,
 }: {
   platforms: string[];
-  active: Set<string>;
+  spotlight: Set<string>;
+  hasData: Set<string>;
   onToggle: (p: string) => void;
 }) {
   const isDark = useIsDark();
+  const anySpotlit = spotlight.size > 0;
 
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-xl border border-zinc-200/70 bg-zinc-100/60 p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] backdrop-blur-sm dark:border-zinc-700/50 dark:bg-zinc-800/50 dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]">
+    <div className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200/70 bg-zinc-100/60 p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] backdrop-blur-sm dark:border-zinc-700/50 dark:bg-zinc-800/50 dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]">
       {platforms.map((p) => {
         const cfg = PLATFORM_CONFIG[p];
         if (!cfg) return null;
         const { Icon, label, brand, chipBg, chipBgDark, inactiveIcon } = cfg;
-        const isActive = active.has(p);
+        const isSpotlit = spotlight.has(p);
+        const hasTaskData = hasData.has(p);
+
+        // Three visual states:
+        // 1. Spotlit — brand color + raised white chip
+        // 2. Has data + not spotlit + no spotlight active — muted brand color
+        // 3. Has data + not spotlit + spotlight active — even more muted (de-emphasised)
+        // 4. No data — fully grey, no interaction
+        const isDisabled = !hasTaskData;
+        const opacity = isDisabled
+          ? 0.25
+          : isSpotlit
+            ? 1
+            : anySpotlit
+              ? 0.35
+              : 0.6;
 
         return (
           <motion.button
             key={p}
-            onClick={() => onToggle(p)}
-            title={label}
-            whileTap={{ scale: 0.93 }}
-            animate={{ opacity: isActive ? 1 : 0.55 }}
+            onClick={() => !isDisabled && onToggle(p)}
+            title={`${label}${isDisabled ? " (no tasks)" : ""}`}
+            animate={{ opacity, scale: isSpotlit ? 1 : 0.95 }}
             transition={{ duration: 0.15 }}
-            className="relative flex h-7 w-7 items-center justify-center rounded-lg transition-opacity duration-150"
+            disabled={isDisabled}
+            className="relative flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
             style={{
-              background: isActive
+              cursor: isDisabled ? "default" : "pointer",
+              background: isSpotlit
                 ? isDark
                   ? chipBgDark
                   : "rgba(255,255,255,0.95)"
                 : "transparent",
-              boxShadow: isActive
+              boxShadow: isSpotlit
                 ? isDark
                   ? "0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)"
                   : "0 1px 3px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)"
@@ -269,11 +295,15 @@ function PlatformFilterPill({
             <Icon
               className="h-3.5 w-3.5"
               style={{
-                color: isActive
-                  ? brand
-                  : isDark
-                    ? inactiveIcon.replace("0.3", "0.35")
-                    : inactiveIcon,
+                color: isDisabled
+                  ? isDark
+                    ? "rgba(255,255,255,0.2)"
+                    : "rgba(0,0,0,0.2)"
+                  : isSpotlit
+                    ? brand
+                    : isDark
+                      ? inactiveIcon.replace("0.3", "0.5")
+                      : inactiveIcon,
               }}
             />
           </motion.button>
@@ -330,6 +360,8 @@ export function SignalStream({
     platforms: new Set(ALL_PLATFORMS),
     statuses: new Set(ALL_STATUSES),
     showReviewOnly: false,
+    spotlightPlatforms: new Set<(typeof ALL_PLATFORMS)[number]>(),
+    intentGroup: "all",
     search: "",
     selectedDate: null,
   });
@@ -343,13 +375,6 @@ export function SignalStream({
 
   const isAiMode = filters.search.startsWith("/");
   const filterText = isAiMode ? "" : filters.search;
-
-  function tog<T>(set: Set<T>, val: T): Set<T> {
-    const n = new Set(set);
-    if (n.has(val)) n.delete(val);
-    else n.add(val);
-    return n;
-  }
 
   // Execute AI query
   const executeAiQuery = useCallback(async (query: string) => {
@@ -663,10 +688,21 @@ export function SignalStream({
         t.status === "TRASHED"
       )
         return false;
-      const tp = new Set(t.sourceEvents.map((e) => e.platform));
-      if (![...tp].some((p) => filters.platforms.has(p))) return false;
-      if (!filters.statuses.has(t.status)) return false;
-      if (filters.showReviewOnly && !t.needsReview) return false;
+
+      // Platform spotlight: if any platforms are spotlighted,
+      // only show tasks that have at least one source event from
+      // one of the spotlighted platforms.
+      if (filters.spotlightPlatforms.size > 0) {
+        const taskPlatforms = new Set(t.sourceEvents.map((e) => e.platform));
+        if (![...filters.spotlightPlatforms].some((p) => taskPlatforms.has(p)))
+          return false;
+      }
+
+      // Intent group filter
+      if (filters.intentGroup !== "all") {
+        if (!matchIntentGroup(t.intent, filters.intentGroup)) return false;
+      }
+
       if (filterText) {
         const q = filterText.toLowerCase();
         if (
@@ -749,56 +785,81 @@ export function SignalStream({
       t.status !== "ARCHIVED",
   ).length;
 
-  // Filter pill helper
-  const pill = (
-    act: boolean,
-    actStyle: string,
-    label: string,
-    onClick: () => void,
-  ) => (
-    <button
-      key={label}
-      onClick={onClick}
-      className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
-        act
-          ? actStyle
-          : "text-zinc-400 ring-1 ring-zinc-200 hover:ring-zinc-300 dark:text-zinc-500 dark:ring-zinc-800 dark:hover:ring-zinc-700"
-      }`}
-    >
-      {label}
-    </button>
-  );
+  // Platforms that have at least one active task — used to dim
+  // platforms with no data rather than disabling entirely.
+  const activePlatforms = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of localTasks) {
+      if (
+        t.status === "DONE" ||
+        t.status === "TRASHED" ||
+        t.status === "ARCHIVED"
+      )
+        continue;
+      for (const e of t.sourceEvents) s.add(e.platform);
+    }
+    return s;
+  }, [localTasks]);
+
+  // Toggle spotlight: clicking a platform that's already spotlighted
+  // removes it. If the result would be empty, clear spotlight (show all).
+  function handlePlatformSpotlight(platform: string) {
+    setFilters((f) => {
+      const next = new Set(f.spotlightPlatforms);
+      if (next.has(platform as Platform)) {
+        next.delete(platform as Platform);
+      } else {
+        next.add(platform as Platform);
+      }
+      return { ...f, spotlightPlatforms: next };
+    });
+  }
 
   const filterBar = (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {/* Platform filter — raised glossy segmented control */}
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Platform spotlight — brand icons, active data platforms colored */}
       <PlatformFilterPill
         platforms={ALL_PLATFORMS}
-        active={filters.platforms}
-        onToggle={(p) =>
-          setFilters((f) => ({
-            ...f,
-            platforms: tog(f.platforms, p as Platform),
-          }))
-        }
+        spotlight={filters.spotlightPlatforms}
+        hasData={activePlatforms}
+        onToggle={handlePlatformSpotlight}
       />
-      <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-      {ALL_STATUSES.map((s) => {
-        const a = filters.statuses.has(s);
-        const label =
-          s === "IN_PROGRESS"
-            ? "Active"
-            : s.charAt(0) + s.slice(1).toLowerCase();
-        return pill(
-          a,
-          "bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 dark:bg-zinc-700/30 dark:text-zinc-300 dark:ring-zinc-600/30",
-          label,
-          () => setFilters((f) => ({ ...f, statuses: tog(f.statuses, s) })),
-        );
-      })}
+
+      {/* Divider */}
+      <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+
+      {/* Intent-based category filter */}
+      <div className="flex items-center gap-1">
+        {INTENT_GROUPS.map((group) => {
+          const isActive = filters.intentGroup === group.id;
+          return (
+            <button
+              key={group.id}
+              onClick={() =>
+                setFilters((f) => ({
+                  ...f,
+                  intentGroup:
+                    f.intentGroup === group.id
+                      ? "all"
+                      : (group.id as IntentGroup),
+                }))
+              }
+              className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-150 active:scale-[0.97] ${
+                isActive
+                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                  : "text-zinc-400 hover:text-zinc-600 hover:ring-1 hover:ring-zinc-200 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:ring-zinc-700"
+              }`}
+            >
+              {group.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Review badge — only shown when there are tasks needing review */}
       {reviewCount > 0 && (
         <>
-          <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
           <button
             onClick={() =>
               setFilters((f) => ({ ...f, showReviewOnly: !f.showReviewOnly }))
@@ -926,7 +987,11 @@ export function SignalStream({
                 Filters
               </span>
               <span className="text-[11px] text-zinc-400">
-                {filters.platforms.size}/{ALL_PLATFORMS.length}
+                {filters.spotlightPlatforms.size > 0
+                  ? `${filters.spotlightPlatforms.size} platform${filters.spotlightPlatforms.size > 1 ? "s" : ""}`
+                  : filters.intentGroup !== "all"
+                    ? filters.intentGroup
+                    : "All"}
               </span>
             </button>
             {mobileOpen && (
@@ -970,6 +1035,8 @@ export function SignalStream({
                       platforms: new Set(ALL_PLATFORMS),
                       statuses: new Set(ALL_STATUSES),
                       showReviewOnly: false,
+                      spotlightPlatforms: new Set(),
+                      intentGroup: "all",
                       search: "",
                       selectedDate: null,
                     })
