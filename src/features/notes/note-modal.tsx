@@ -223,11 +223,13 @@ export function ViewNoteModal({
   }, [deleteState]);
 
   // Escape hierarchy: confirming → idle → editing cancel → close
+  // stopPropagation on ALL paths so the event never reaches the
+  // resolved drawer's own Escape listener (which would close the drawer).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        e.stopPropagation();
         if (deleteState === "confirming") {
-          e.stopPropagation();
           setDeleteState("idle");
         } else if (editing) {
           setEditing(false);
@@ -269,17 +271,17 @@ export function ViewNoteModal({
   }, [note.id, title, content, saving, onUpdate]);
 
   const handleDelete = useCallback(async () => {
+    // Close immediately for instant UX — no waiting for network.
+    // Optimistically remove the note from local state via onDelete,
+    // then fire the API silently in the background.
+    onDelete(note.id);
+    onClose();
     try {
-      const res = await fetch("/api/notes", {
+      await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "delete", noteId: note.id }),
       });
-      const data = await res.json();
-      if (data.success) {
-        onDelete(note.id);
-        onClose();
-      }
     } catch (err) {
       console.error("[Note] Delete failed:", err);
     }
@@ -317,76 +319,74 @@ export function ViewNoteModal({
         onClick={(e) => e.stopPropagation()}
         transition={{ type: "spring", stiffness: 320, damping: 30 }}
       >
-        {/* Top row: inline delete + edit + close */}
-        <div className="absolute right-4 top-4 flex items-center gap-1">
+        {/* Top row — right-anchored, confirming pill overlays edit+close */}
+        <div className="absolute right-4 top-4 flex items-center">
           {!editing && (
-            <>
-              {/* ── Inline expanding delete ── */}
-              <motion.div layout className="flex items-center overflow-hidden">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {deleteState === "idle" ? (
-                    <motion.button
-                      key="trash-icon"
-                      layout
-                      title="Delete note"
-                      onClick={() => setDeleteState("confirming")}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ duration: 0.15 }}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-red-50 hover:text-red-500 active:scale-90 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </motion.button>
-                  ) : (
-                    <motion.div
-                      key="confirm-row"
-                      layout
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 28,
-                      }}
-                      className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 dark:border-red-500/20 dark:bg-red-500/10"
-                    >
-                      <span className="whitespace-nowrap text-[11px] font-medium text-red-500 dark:text-red-400">
-                        Delete?
-                      </span>
-                      <button
-                        onClick={handleDelete}
-                        className="whitespace-nowrap rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white transition-all hover:bg-red-600 active:scale-95"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setDeleteState("idle")}
-                        className="whitespace-nowrap text-[10px] font-medium text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
-                      >
-                        No
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-
-              <button
-                title="Edit note"
-                onClick={() => setEditing(true)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 dark:text-zinc-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button
-                title="Close"
-                onClick={onClose}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </>
+            <AnimatePresence mode="wait" initial={false}>
+              {deleteState === "confirming" ? (
+                /*
+                  Confirming state: pill slides in from the right,
+                  covering the whole button area. No layout shift on
+                  the title because the row is absolutely positioned.
+                */
+                <motion.div
+                  key="confirm-row"
+                  initial={{ opacity: 0, x: 12, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 12, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 dark:border-red-500/20 dark:bg-red-500/10"
+                >
+                  <span className="whitespace-nowrap text-[11px] font-medium text-red-500 dark:text-red-400">
+                    Delete?
+                  </span>
+                  <button
+                    onClick={handleDelete}
+                    className="whitespace-nowrap rounded-md bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white transition-all hover:bg-red-600 active:scale-95"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setDeleteState("idle")}
+                    className="whitespace-nowrap text-[10px] font-medium text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                  >
+                    No
+                  </button>
+                </motion.div>
+              ) : (
+                /* Idle state: normal trash + edit + close buttons */
+                <motion.div
+                  key="action-buttons"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="flex items-center gap-1"
+                >
+                  <button
+                    title="Delete note"
+                    onClick={() => setDeleteState("confirming")}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-red-50 hover:text-red-500 active:scale-90 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    title="Edit note"
+                    onClick={() => setEditing(true)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 dark:text-zinc-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    title="Close"
+                    onClick={onClose}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           )}
           {editing && (
             <button

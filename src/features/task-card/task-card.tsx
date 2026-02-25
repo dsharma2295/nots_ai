@@ -202,6 +202,31 @@ export function TaskCard({
     notes,
   ]);
 
+  // Handle confirmDelete action sent by keyboard nav (T key).
+  // Shows the confirm modal rather than deleting immediately.
+  useEffect(() => {
+    if (!isKeyboardFocused) return;
+    const origExec = onTaskActionExec;
+    if (!origExec) return;
+    // We intercept by wrapping — but since onTaskActionExec is passed from
+    // signal-stream, we can't intercept at source. Instead we listen for the
+    // "confirmDelete" action coming down through the keyboard nav by checking
+    // if the parent calls it. The cleanest approach: listen on the card itself.
+    // useKeyboardNav now sends "confirmDelete" which signal-stream passes through
+    // to executeTaskAction. We handle it there by doing nothing (unknown action
+    // returns early). But TaskCard also needs to show the modal.
+    // Solution: TaskCard listens for a synthetic custom event dispatched by
+    // signal-stream when it receives "confirmDelete".
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ taskId: string }>;
+      if (ce.detail?.taskId === task.id) {
+        setConfirmDelete(true);
+      }
+    };
+    window.addEventListener("nots:confirmDelete", handler);
+    return () => window.removeEventListener("nots:confirmDelete", handler);
+  }, [isKeyboardFocused, task.id]);
+
   return (
     <div
       ref={cardRef}

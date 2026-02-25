@@ -254,6 +254,15 @@ export function SignalStream({
           }
           return prev.filter((t) => t.id !== taskId);
         });
+      } else if (action === "confirmDelete") {
+        // Dispatched by T key via keyboard nav.
+        // TaskCard listens for this event to show its confirm modal.
+        // No optimistic update — wait for user to confirm in the modal.
+        window.dispatchEvent(
+          new CustomEvent("nots:confirmDelete", { detail: { taskId } }),
+        );
+        pendingRef.current.delete(taskId);
+        return;
       }
 
       const body =
@@ -274,6 +283,7 @@ export function SignalStream({
                   : action === "delete"
                     ? { action: "deleteTask", taskId }
                     : null;
+      // confirmDelete is handled above and returns early — never reaches here.
       if (!body) {
         pendingRef.current.delete(taskId);
         return;

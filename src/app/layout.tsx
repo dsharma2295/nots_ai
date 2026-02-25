@@ -49,7 +49,7 @@ export default function RootLayout({
             toastOptions={{
               classNames: {
                 toast:
-                  "!rounded-xl !border !border-zinc-200 !bg-white !shadow-lg !text-[13px] !font-medium !text-zinc-700 dark:!border-zinc-700 dark:!bg-zinc-900 dark:!text-zinc-200",
+                  "!rounded-xl !border !border-zinc-200 !bg-white !shadow-lg !text-[13px] !font-medium !text-zinc-700 !max-w-xs dark:!border-zinc-700 dark:!bg-zinc-900 dark:!text-zinc-200",
                 actionButton:
                   "!bg-zinc-900 !text-white !text-[11px] !font-semibold !rounded-lg dark:!bg-white dark:!text-zinc-900",
                 cancelButton: "!text-zinc-400 !text-[11px] dark:!text-zinc-500",

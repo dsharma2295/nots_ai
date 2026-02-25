@@ -224,8 +224,9 @@ export function useKeyboardNav({
 
       if (e.key === "t" && !e.metaKey) {
         e.preventDefault();
-        onAction(focusedCardId, "delete");
-        setFocusedCardId(null);
+        // Send "confirmDelete" — TaskCard intercepts this to show the
+        // confirm modal rather than executing the delete immediately.
+        onAction(focusedCardId, "confirmDelete");
         return;
       }
 
