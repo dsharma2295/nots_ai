@@ -208,6 +208,9 @@ export function ViewNoteModal({
   // "idle" | "confirming" — replaces the old confirmDelete modal entirely
   const [deleteState, setDeleteState] = useState<"idle" | "confirming">("idle");
   const cancelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks whether the modal is closing due to a delete (chip will be gone,
+  // so layoutId morph has no target — use fast fade instead of spring-back).
+  const isDeletingRef = useRef(false);
 
   // Auto-revert confirming → idle after 3s of inaction
   useEffect(() => {
@@ -223,8 +226,8 @@ export function ViewNoteModal({
   }, [deleteState]);
 
   // Escape hierarchy: confirming → idle → editing cancel → close
-  // stopPropagation on ALL paths so the event never reaches the
-  // resolved drawer's own Escape listener (which would close the drawer).
+  // capture:true ensures this fires BEFORE the resolved drawer's bubble-phase
+  // listener. stopPropagation() then prevents the drawer from also handling it.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -240,8 +243,9 @@ export function ViewNoteModal({
         }
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keydown", handler, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handler, { capture: true });
   }, [editing, deleteState, note, onClose]);
 
   const handleSave = useCallback(async () => {
@@ -271,9 +275,9 @@ export function ViewNoteModal({
   }, [note.id, title, content, saving, onUpdate]);
 
   const handleDelete = useCallback(async () => {
-    // Close immediately for instant UX — no waiting for network.
-    // Optimistically remove the note from local state via onDelete,
-    // then fire the API silently in the background.
+    // Mark as deleting so the modal uses fast fade exit (chip no longer exists
+    // in DOM after onDelete, so layoutId spring-back would have no target).
+    isDeletingRef.current = true;
     onDelete(note.id);
     onClose();
     try {
@@ -299,25 +303,39 @@ export function ViewNoteModal({
       className="fixed inset-0 z-[9998] flex items-center justify-center"
       onClick={onClose}
     >
-      {/* Animated backdrop */}
+      {/* Animated backdrop — exit matches the modal's exit path */}
       <motion.div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        exit={{
+          opacity: 0,
+          transition: { duration: isDeletingRef.current ? 0.15 : 0.35 },
+        }}
+        transition={{ duration: 0.15 }}
       />
 
       {/*
         Modal — shares layoutId with the NoteChip that opened it.
-        Framer Motion morphs the chip into this modal on open,
-        and back on close (when wrapped in AnimatePresence in parent).
+        On normal close (X / Escape): exit is undefined, so layoutId spring-back
+        morphs the modal back into the chip position.
+        On delete: isDeletingRef is true, chip is already removed from DOM, so
+        we use a fast fade instead (no chip target to spring back to).
       */}
       <motion.div
         layoutId={`note-chip-${note.id}`}
         className="relative z-[9999] w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
         transition={{ type: "spring", stiffness: 320, damping: 30 }}
+        exit={
+          isDeletingRef.current
+            ? {
+                opacity: 0,
+                scale: 0.97,
+                transition: { duration: 0.15, ease: "easeIn" },
+              }
+            : undefined
+        }
       >
         {/* Top row — right-anchored, confirming pill overlays edit+close */}
         <div className="absolute right-4 top-4 flex items-center">
@@ -403,23 +421,23 @@ export function ViewNoteModal({
           )}
         </div>
 
-        {/* Header */}
-        <div className="mb-4 flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-500/10">
+        {/* Header — pr-28 reserves space for the absolute button row (trash+edit+close = ~7rem) */}
+        <div className="mb-4 flex items-center gap-2.5 pr-28">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-500/10">
             <NotebookPen className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             {editing ? (
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Add a title (optional)"
-                className="text-[15px] font-semibold text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
+                className="w-full text-[15px] font-semibold text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
                 maxLength={200}
               />
             ) : (
-              <h2 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
+              <h2 className="truncate text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
                 {note.title || "Untitled Note"}
               </h2>
             )}
