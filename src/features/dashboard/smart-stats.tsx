@@ -1,6 +1,7 @@
 "use client";
 
-import type { NodalTask } from "@/types";
+import type { NodalTask } from "@/lib/mock-data";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   Archive,
@@ -11,6 +12,33 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
+
+// Isolated animated counter — renders the number with a vertical
+// flip when the value changes. Extracted to avoid re-rendering siblings.
+function AnimatedCount({
+  count,
+  className,
+}: {
+  count: number;
+  className: string;
+}) {
+  return (
+    <span className="inline-flex overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={count}
+          initial={{ y: -14, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 14, opacity: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className={`block tabular-nums ${className}`}
+        >
+          {count}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
 
 export function SmartStats({
   tasks,
@@ -71,18 +99,23 @@ export function SmartStats({
 
   return (
     <div className="mb-5 flex flex-wrap items-center gap-2">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium ${item.bg}`}
-        >
-          <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
-          <span className={`tabular-nums ${item.color}`}>
-            {item.count}
-          </span>{" "}
-          <span className="text-zinc-500">{item.label}</span>
-        </div>
-      ))}
+      <AnimatePresence initial={false}>
+        {items.map((item) => (
+          <motion.div
+            key={item.label}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium ${item.bg}`}
+          >
+            <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
+            <AnimatedCount count={item.count} className={item.color} />
+            <span className="text-zinc-500">{item.label}</span>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
       <div className="ml-auto flex items-center gap-1">
         <Link
           href="/bookmarks"
@@ -98,8 +131,19 @@ export function SmartStats({
           <Trash2 className="h-3.5 w-3.5" />
           Trash
           {trashedCount > 0 && (
-            <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-red-500 dark:bg-red-500/10 dark:text-red-400">
-              {trashedCount}
+            <span className="inline-flex overflow-hidden rounded-full bg-red-50 px-1.5 py-0.5 dark:bg-red-500/10">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={trashedCount}
+                  initial={{ y: -10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 10, opacity: 0 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="block text-[10px] font-medium tabular-nums text-red-500 dark:text-red-400"
+                >
+                  {trashedCount}
+                </motion.span>
+              </AnimatePresence>
             </span>
           )}
         </button>

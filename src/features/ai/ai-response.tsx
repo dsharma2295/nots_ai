@@ -1,6 +1,7 @@
 "use client";
 
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
+import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Check,
@@ -14,12 +15,12 @@ import {
 import { useState } from "react";
 
 // =============================================================
-// LOADING STATE
+// LOADING STATE — unchanged
 // =============================================================
 
 export function AIResponseLoading() {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 dark:bg-indigo-500/[0.03]">
+    <div className="relative overflow-hidden rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 dark:bg-indigo-500/3">
       {/* Shimmer bar */}
       <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden">
         <div className="h-full w-1/3 animate-[aiShimmer_1.5s_ease-in-out_infinite] rounded-full bg-indigo-500/40" />
@@ -37,6 +38,44 @@ export function AIResponseLoading() {
     </div>
   );
 }
+
+// =============================================================
+// STAGGER VARIANTS
+// =============================================================
+
+const textContainerVariants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.045, delayChildren: 0.05 },
+  },
+};
+
+const textLineVariants = {
+  hidden: { opacity: 0, y: 5 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.22, ease: "easeOut" as const },
+  },
+};
+
+// Action buttons stagger in after the text lines
+const actionsContainerVariants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.06, delayChildren: 0.0 },
+  },
+};
+
+const actionItemVariants = {
+  hidden: { opacity: 0, y: 6, scale: 0.96 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.2, ease: "easeOut" as const },
+  },
+};
 
 // =============================================================
 // AI RESPONSE CARD
@@ -101,8 +140,20 @@ export function AIResponseCard({
     }
   };
 
+  // Split response into renderable lines for stagger
+  const lines = response.text.split("\n").filter((l, i, arr) => {
+    // Collapse consecutive empty lines into one
+    if (!l.trim() && i > 0 && !arr[i - 1].trim()) return false;
+    return true;
+  });
+
   return (
-    <div className="relative overflow-hidden rounded-xl border border-indigo-500/20 bg-white shadow-lg shadow-indigo-500/5 dark:bg-[#0d0d1a] dark:shadow-indigo-500/[0.02]">
+    <motion.div
+      className="relative overflow-hidden rounded-xl border border-indigo-500/20 bg-white shadow-lg shadow-indigo-500/5 dark:bg-[#0d0d1a] dark:shadow-indigo-500/2"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: "easeOut" as const }}
+    >
       {/* Accent bar */}
       <div className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-indigo-500 via-violet-500 to-indigo-500" />
 
@@ -125,64 +176,98 @@ export function AIResponseCard({
           </button>
         </div>
 
-        {/* Response text — render markdown-ish formatting */}
-        <div className="prose-sm mb-3 text-[13px] leading-[1.7] text-zinc-700 dark:text-zinc-300">
-          {response.text.split("\n").map((line, i) => {
-            // Bold
+        {/*
+          Response text — each line staggers in sequentially.
+          This makes the AI feel like it's revealing its reasoning
+          progressively rather than dumping a block of text.
+        */}
+        <motion.div
+          className="prose-sm mb-3 space-y-0.5 text-[13px] leading-[1.7] text-zinc-700 dark:text-zinc-300"
+          variants={textContainerVariants}
+          initial="hidden"
+          animate="show"
+        >
+          {lines.map((line, i) => {
             const formatted = line.replace(
               /\*\*(.*?)\*\*/g,
               '<strong class="text-zinc-900 dark:text-zinc-100 font-semibold">$1</strong>',
             );
-            // Bullet points
+
             if (line.trim().startsWith("- ") || line.trim().startsWith("• ")) {
               return (
-                <div key={i} className="ml-3 flex gap-2">
+                <motion.div
+                  key={i}
+                  variants={textLineVariants}
+                  className="ml-3 flex gap-2"
+                >
                   <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-indigo-500/40" />
                   <span
                     dangerouslySetInnerHTML={{
                       __html: formatted.replace(/^[-•]\s*/, ""),
                     }}
                   />
-                </div>
+                </motion.div>
               );
             }
-            if (!line.trim()) return <div key={i} className="h-2" />;
+
+            if (!line.trim()) {
+              return (
+                <motion.div
+                  key={i}
+                  variants={textLineVariants}
+                  className="h-2"
+                />
+              );
+            }
+
             return (
-              <p key={i} dangerouslySetInnerHTML={{ __html: formatted }} />
+              <motion.p
+                key={i}
+                variants={textLineVariants}
+                dangerouslySetInnerHTML={{ __html: formatted }}
+              />
             );
           })}
-        </div>
+        </motion.div>
 
-        {/* Action buttons */}
+        {/* Action buttons — stagger in after text completes */}
         {response.actions.length > 0 && (
-          <div className="flex flex-wrap gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/60">
-            {response.actions.map((action, idx) => {
-              const executed = executedIdx.has(idx);
-              const executing = executingIdx === idx;
+          <motion.div
+            className="border-t border-zinc-100 pt-3 dark:border-zinc-800/60"
+            variants={actionsContainerVariants}
+            initial="hidden"
+            animate="show"
+          >
+            <div className="flex flex-wrap gap-2">
+              {response.actions.map((action, idx) => {
+                const executed = executedIdx.has(idx);
+                const executing = executingIdx === idx;
 
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleAction(action, idx)}
-                  disabled={executed || executing}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
-                    executed
-                      ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
-                      : "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/20 dark:hover:bg-indigo-500/20"
-                  } ${executing ? "opacity-70" : ""}`}
-                >
-                  {executing ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : executed ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    actionIcon(action.type)
-                  )}
-                  {executed ? "Done" : actionLabel(action)}
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <motion.button
+                    key={idx}
+                    variants={actionItemVariants}
+                    onClick={() => handleAction(action, idx)}
+                    disabled={executed || executing}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all duration-200 active:scale-[0.97] ${
+                      executed
+                        ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
+                        : "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/20 dark:hover:bg-indigo-500/20"
+                    } ${executing ? "opacity-70" : ""}`}
+                  >
+                    {executing ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : executed ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      actionIcon(action.type)
+                    )}
+                    {executed ? "Done" : actionLabel(action)}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
         )}
 
         {/* Warning for modification actions */}
@@ -193,6 +278,6 @@ export function AIResponseCard({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

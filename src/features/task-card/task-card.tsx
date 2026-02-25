@@ -11,7 +11,7 @@ import { SourceTimeline } from "@/features/timeline/source-timeline";
 import { useLiveRelativeTime } from "@/hooks";
 import { useNotes } from "@/hooks/use-notes";
 import type { NodalTask } from "@/types";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRightLeft,
   Bookmark,
@@ -234,9 +234,24 @@ export function TaskCard({
       onMouseLeave={handleMouseLeave}
       className={`group/card relative rounded-xl border shadow-sm transition-all duration-450 ease-out
         ${isNewArrival ? "animate-arrival" : ""}
-        ${cardClass} ${fadingOut ? "pointer-events-none" : "hover:shadow-md hover:shadow-zinc-200/80 dark:hover:shadow-lg dark:hover:shadow-black/30"} ${task.needsReview ? "ring-1 ring-amber-400/30" : ""} ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}`}
+        ${cardClass} ${fadingOut ? "pointer-events-none opacity-40" : "hover:shadow-md hover:shadow-zinc-200/80 dark:hover:shadow-lg dark:hover:shadow-black/30"} ${task.needsReview ? "ring-1 ring-amber-400/30" : ""} ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}`}
       style={{ willChange: "transform" }}
     >
+      {/*
+        Pulse ring — fires once on new arrival. An expanding ring
+        dissolves outward from the card edge, signalling a live event
+        entering the system. Plays once, never repeats.
+      */}
+      <AnimatePresence>
+        {isNewArrival && (
+          <motion.div
+            className="pointer-events-none absolute -inset-[3px] rounded-[14px] border-2 border-indigo-400/50 dark:border-indigo-500/40"
+            initial={{ opacity: 0.6, scale: 1 }}
+            animate={{ opacity: 0, scale: 1.03 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          />
+        )}
+      </AnimatePresence>
       {/* ─── PORTAL DROPDOWNS ─── */}
       <PortalDropdown
         anchorRef={priorityBtnRef}
