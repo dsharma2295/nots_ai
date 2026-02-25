@@ -1,7 +1,7 @@
 "use client";
 
 import { PlatformBadge, getPlatformDotClass } from "@/components/platform-icon";
-import type { SourceEvent } from "@/lib/mock-data";
+import type { SourceEvent } from "@/types";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Paperclip } from "lucide-react";
 import { useState } from "react";

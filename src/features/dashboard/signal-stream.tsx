@@ -1,5 +1,4 @@
 "use client";
-import { getPlatformFilterStyle } from "@/components/platform-icon";
 import { useToast } from "@/components/toast";
 import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
 import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
@@ -8,18 +7,24 @@ import { useKeyboardNav } from "@/features/keyboard/hooks/use-keyboard-nav";
 import { ShortcutOverlay } from "@/features/keyboard/shortcut-overlay";
 import { TaskCardSkeleton } from "@/features/task-card/task-card-skeleton";
 import { useCmdK } from "@/hooks";
+import type { Platform } from "@/lib/mock-data";
 import { useRealtimeContext } from "@/lib/realtime-provider";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import type { NodalTask } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  Diamond,
   Flame,
+  Hash,
   Inbox,
+  LayoutGrid,
+  Mail,
   Minus,
   Search,
   SlidersHorizontal,
   Sparkles,
+  Target,
   Zap,
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -29,8 +34,97 @@ import { MiniCalendar } from "./mini-calendar";
 import { SmartStats } from "./smart-stats";
 
 // =============================================================
-// SIGNAL STREAM (Main Component)
+// PLATFORM FILTER PILL — frosted glass container, raised active button
+// Inspired by the physical segmented control in the design reference.
+// Active platform: elevated glossy button with amber/gold ring.
+// Inactive: flat icon, muted color.
 // =============================================================
+
+const PLATFORM_ICON_CONFIG: Record<
+  string,
+  { Icon: typeof Hash; color: string; activeColor: string; glow: string }
+> = {
+  SLACK: {
+    Icon: Hash,
+    color: "text-[#9B59A5]/50 dark:text-[#9B59A5]/40",
+    activeColor: "text-[#4A154B] dark:text-[#9B59A5]",
+    glow: "shadow-[0_4px_14px_rgba(155,89,165,0.25)]",
+  },
+  GMAIL: {
+    Icon: Mail,
+    color: "text-[#D93025]/50 dark:text-[#E05545]/40",
+    activeColor: "text-[#D93025] dark:text-[#E05545]",
+    glow: "shadow-[0_4px_14px_rgba(217,48,37,0.25)]",
+  },
+  JIRA: {
+    Icon: Diamond,
+    color: "text-[#0052CC]/50 dark:text-[#4C9AFF]/40",
+    activeColor: "text-[#0052CC] dark:text-[#4C9AFF]",
+    glow: "shadow-[0_4px_14px_rgba(0,82,204,0.25)]",
+  },
+  TRELLO: {
+    Icon: LayoutGrid,
+    color: "text-[#0079BF]/50 dark:text-[#00C2E0]/40",
+    activeColor: "text-[#0079BF] dark:text-[#00C2E0]",
+    glow: "shadow-[0_4px_14px_rgba(0,121,191,0.25)]",
+  },
+  ASANA: {
+    Icon: Target,
+    color: "text-[#F06A6A]/50 dark:text-[#F07A7A]/40",
+    activeColor: "text-[#F06A6A] dark:text-[#F07A7A]",
+    glow: "shadow-[0_4px_14px_rgba(240,106,106,0.25)]",
+  },
+};
+
+function PlatformFilterPill({
+  platforms,
+  active,
+  onToggle,
+}: {
+  platforms: string[];
+  active: Set<string>;
+  onToggle: (p: string) => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-0.5 rounded-full border border-zinc-200/80 bg-white/70 px-1.5 py-1.5 shadow-sm backdrop-blur-sm dark:border-zinc-700/60 dark:bg-zinc-900/50">
+      {platforms.map((p) => {
+        const cfg = PLATFORM_ICON_CONFIG[p];
+        if (!cfg) return null;
+        const { Icon, color, activeColor, glow } = cfg;
+        const isActive = active.has(p);
+
+        return (
+          <motion.button
+            key={p}
+            onClick={() => onToggle(p)}
+            title={p.charAt(0) + p.slice(1).toLowerCase()}
+            animate={isActive ? { scale: 1 } : { scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 400, damping: 28 }}
+            className={`relative flex h-8 w-8 items-center justify-center rounded-[10px] transition-colors duration-150 ${
+              isActive
+                ? `${activeColor} ${glow} ring-[1.5px] ring-amber-400/60 dark:ring-amber-500/50`
+                : `${color} hover:text-zinc-500 dark:hover:text-zinc-400`
+            }`}
+            style={
+              isActive
+                ? {
+                    background:
+                      "linear-gradient(160deg, #ffffff 0%, #f7f7f4 100%)",
+                    boxShadow:
+                      "0 3px 10px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95), 0 0 0 1.5px rgba(180,140,60,0.45)",
+                  }
+                : {
+                    background: "transparent",
+                  }
+            }
+          >
+            <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function SignalStream({
   tasks: serverTasks,
@@ -520,13 +614,17 @@ export function SignalStream({
 
   const filterBar = (
     <div className="flex flex-wrap items-center gap-1.5">
-      {ALL_PLATFORMS.map((p) => {
-        const a = filters.platforms.has(p);
-        const s = getPlatformFilterStyle(p);
-        return pill(a, s.active, p.charAt(0) + p.slice(1).toLowerCase(), () =>
-          setFilters((f) => ({ ...f, platforms: tog(f.platforms, p) })),
-        );
-      })}
+      {/* Platform filter — raised glossy segmented control */}
+      <PlatformFilterPill
+        platforms={ALL_PLATFORMS}
+        active={filters.platforms}
+        onToggle={(p) =>
+          setFilters((f) => ({
+            ...f,
+            platforms: tog(f.platforms, p as Platform),
+          }))
+        }
+      />
       <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
       {ALL_STATUSES.map((s) => {
         const a = filters.statuses.has(s);

@@ -1,7 +1,7 @@
 "use client";
 
 import { TaskCard } from "@/features/task-card/task-card";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Flame } from "lucide-react";
 
