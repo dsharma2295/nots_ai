@@ -102,11 +102,13 @@ export function matchIntentGroup(intent: string, group: IntentGroup): boolean {
 // =============================================================
 
 export interface Filters {
-  // Legacy fields kept for any downstream code that reads them
+  // Legacy fields kept for downstream compatibility
   platforms: Set<Platform>;
   statuses: Set<TaskStatus>;
   showReviewOnly: boolean;
-  // New fields
+  // Tier filter: 0 = no tier, 1/2/3 = P1/P2/P3. Empty = show all.
+  selectedTiers: Set<number>;
+  // Platform spotlight
   spotlightPlatforms: Set<Platform>;
   intentGroup: IntentGroup;
   search: string;

@@ -313,6 +313,169 @@ function PlatformFilterPill({
   );
 }
 
+// =============================================================
+// TIER FILTER DROPDOWN
+// Compact dropdown with checkboxes for P1, P2, P3, None.
+// Empty selection = show all (no filter active).
+// =============================================================
+
+const TIER_OPTIONS_FILTER = [
+  {
+    tier: 1,
+    label: "P1",
+    badge: "bg-gradient-to-r from-amber-500 to-yellow-400 text-black",
+  },
+  {
+    tier: 2,
+    label: "P2",
+    badge: "bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800",
+  },
+  {
+    tier: 3,
+    label: "P3",
+    badge: "bg-gradient-to-r from-amber-700 to-amber-600 text-amber-100",
+  },
+  { tier: 0, label: "None", badge: "" },
+];
+
+function TierDropdown({
+  selected,
+  onChange,
+}: {
+  selected: Set<number>;
+  onChange: (tiers: Set<number>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  function toggle(tier: number) {
+    const next = new Set(selected);
+    if (next.has(tier)) next.delete(tier);
+    else next.add(tier);
+    onChange(next);
+  }
+
+  const label =
+    selected.size === 0
+      ? "Tier"
+      : [...selected]
+          .sort()
+          .map((t) => (t === 0 ? "None" : `P${t}`))
+          .join(", ");
+
+  const isActive = selected.size > 0;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium transition-all active:scale-[0.97] ${
+          isActive
+            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+            : "text-zinc-400 ring-1 ring-zinc-200 hover:text-zinc-600 hover:ring-zinc-300 dark:text-zinc-500 dark:ring-zinc-700 dark:hover:text-zinc-300"
+        }`}
+      >
+        {label}
+        <motion.svg
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.15 }}
+          className="h-3 w-3 opacity-60"
+          viewBox="0 0 16 16"
+          fill="none"
+        >
+          <path
+            d="M4 6l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+          />
+        </motion.svg>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.14, ease: "easeOut" as const }}
+            className="absolute left-0 top-full z-50 mt-1.5 w-32 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            {TIER_OPTIONS_FILTER.map(({ tier, label, badge }) => {
+              const checked = selected.has(tier);
+              return (
+                <button
+                  key={tier}
+                  onClick={() => toggle(tier)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+                >
+                  <span
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                      checked
+                        ? "border-zinc-900 bg-zinc-900 dark:border-white dark:bg-white"
+                        : "border-zinc-300 dark:border-zinc-600"
+                    }`}
+                  >
+                    {checked && (
+                      <svg
+                        viewBox="0 0 12 12"
+                        className="h-2.5 w-2.5 text-white dark:text-zinc-900"
+                        fill="none"
+                      >
+                        <path
+                          d="M2 6l3 3 5-5"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                  </span>
+                  {badge ? (
+                    <span
+                      className={`inline-flex h-4 items-center justify-center rounded px-1.5 text-[9px] font-bold leading-none ${badge}`}
+                    >
+                      {label}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                      {label}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            {selected.size > 0 && (
+              <>
+                <div className="mx-2 my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+                <button
+                  onClick={() => {
+                    onChange(new Set());
+                    setOpen(false);
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-[11px] text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                >
+                  Clear
+                </button>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function SignalStream({
   tasks: serverTasks,
   resolvedTasks = [],
@@ -360,6 +523,7 @@ export function SignalStream({
     platforms: new Set(ALL_PLATFORMS),
     statuses: new Set(ALL_STATUSES),
     showReviewOnly: false,
+    selectedTiers: new Set<number>(),
     spotlightPlatforms: new Set<(typeof ALL_PLATFORMS)[number]>(),
     intentGroup: "all",
     search: "",
@@ -703,6 +867,15 @@ export function SignalStream({
         if (!matchIntentGroup(t.intent, filters.intentGroup)) return false;
       }
 
+      // Review filter — restored: was accidentally dropped in last refactor
+      if (filters.showReviewOnly && !t.needsReview) return false;
+
+      // Tier filter: 0 = no tier assigned, 1/2/3 = P1/P2/P3
+      if (filters.selectedTiers.size > 0) {
+        const taskTier = t.tier ?? 0;
+        if (!filters.selectedTiers.has(taskTier)) return false;
+      }
+
       if (filterText) {
         const q = filterText.toLowerCase();
         if (
@@ -856,7 +1029,18 @@ export function SignalStream({
         })}
       </div>
 
-      {/* Review badge — only shown when there are tasks needing review */}
+      {/* Divider */}
+      <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+
+      {/* Tier filter dropdown */}
+      <TierDropdown
+        selected={filters.selectedTiers}
+        onChange={(tiers) =>
+          setFilters((f) => ({ ...f, selectedTiers: tiers }))
+        }
+      />
+
+      {/* Review badge — only shown when tasks need human review */}
       {reviewCount > 0 && (
         <>
           <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
@@ -1035,6 +1219,7 @@ export function SignalStream({
                       platforms: new Set(ALL_PLATFORMS),
                       statuses: new Set(ALL_STATUSES),
                       showReviewOnly: false,
+                      selectedTiers: new Set(),
                       spotlightPlatforms: new Set(),
                       intentGroup: "all",
                       search: "",
