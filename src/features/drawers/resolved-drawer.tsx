@@ -1,10 +1,21 @@
 "use client";
 
-import { useLiveRelativeTime } from "@/hooks";
+import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
+import { PlatformDot } from "@/components/platform-icon";
+import { useToast } from "@/components/toast";
+import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
 import { useListKeyboardNav } from "@/features/keyboard/hooks/use-list-keyboard-nav";
+import {
+  CreateNoteModal,
+  NoteChips,
+  ViewNoteModal,
+} from "@/features/notes/note-modal";
+import { SourceTimeline } from "@/features/timeline/source-timeline";
+import { useLiveRelativeTime } from "@/hooks";
 import { useNotes } from "@/hooks/use-notes";
-import type { NodalTask } from "@/types";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
+import type { NodalTask } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Bookmark,
   CheckCircle2,
@@ -20,20 +31,15 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
-import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
-import { CreateNoteModal, NoteChips, ViewNoteModal } from "@/features/notes/note-modal";
-import { PlatformDot } from "@/components/platform-icon";
-import { SourceTimeline } from "@/features/timeline/source-timeline";
-import { useToast } from "@/components/toast";
+
 function LiveTime({ iso }: { iso: string }) {
   const t = useLiveRelativeTime(iso);
   return <>{t}</>;
 }
 
 // =============================================================
-// RESOLVED CARD
-// Layout: ✓check · title · 🗑trash · 📝notes · 🔖bookmark · ↩restore
+// RESOLVED CARD — identical to current, only change is
+// AnimatePresence wrapping ViewNoteModal for layoutId morph
 // =============================================================
 
 function ResolvedCard({
@@ -245,14 +251,17 @@ function ResolvedCard({
           onCreate={notes.onCreate}
         />
       )}
-      {notes.viewing && (
-        <ViewNoteModal
-          note={notes.viewing}
-          onClose={() => notes.setViewing(null)}
-          onUpdate={notes.onUpdate}
-          onDelete={notes.onDelete}
-        />
-      )}{" "}
+      {/* AnimatePresence needed for layoutId morph in ViewNoteModal */}
+      <AnimatePresence>
+        {notes.viewing && (
+          <ViewNoteModal
+            note={notes.viewing}
+            onClose={() => notes.setViewing(null)}
+            onUpdate={notes.onUpdate}
+            onDelete={notes.onDelete}
+          />
+        )}
+      </AnimatePresence>
       {confirmDelete && (
         <ConfirmDeleteModal
           onConfirm={() => {
@@ -268,6 +277,10 @@ function ResolvedCard({
 
 // =============================================================
 // RESOLVED DRAWER
+// Change: CSS transition-transform replaced with Framer Motion
+// spring physics (stiffness: 350, damping: 30, mass: 0.9).
+// Backdrop fades in/out with AnimatePresence.
+// All existing logic, keyboard nav, AI mode — identical.
 // =============================================================
 
 export function ResolvedDrawer({
@@ -457,7 +470,6 @@ export function ResolvedDrawer({
       if (key === "r") handleRestore(id);
       if (key === "b") handleBookmark(id);
       if (key === "t") handleDelete(id);
-      // Enter and N handled inside ResolvedCard
     },
     [handleRestore, handleBookmark, handleDelete],
   );
@@ -486,136 +498,149 @@ export function ResolvedDrawer({
   if (typeof window === "undefined") return null;
 
   return createPortal(
-    <>
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-[9990] bg-black/40 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/60 ${
-          open
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
-        }`}
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div
-        className={`fixed bottom-0 right-0 top-0 z-[9991] flex w-[480px] max-w-[90vw] flex-col border-l border-zinc-200 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.08)] transition-transform duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] dark:border-zinc-800/60 dark:bg-[#0f0f14] dark:shadow-[-20px_0_60px_rgba(0,0,0,0.5)] ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex shrink-0 items-center gap-3 border-b border-zinc-100 px-5 pb-4 pt-5 dark:border-zinc-800/50">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          <h2 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
-            Resolved
-          </h2>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-            {tasks.length} task{tasks.length !== 1 ? "s" : ""}
-          </span>
-          <button
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Animated backdrop */}
+          <motion.div
+            key="resolved-backdrop"
+            className="fixed inset-0 z-[9990] bg-black/40 backdrop-blur-sm dark:bg-black/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
             onClick={onClose}
-            className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+          />
 
-        {/* Search */}
-        <div className="shrink-0 px-5 py-3">
-          <div className="relative">
-            {isAiMode ? (
-              <Sparkles className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-indigo-500 dark:text-indigo-400" />
-            ) : (
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
-            )}
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder={
-                isAiMode
-                  ? "Ask about resolved tasks... (Enter)"
-                  : "Search resolved...  / for AI"
-              }
-              value={searchText}
-              onChange={(e) => {
-                setSearchText(e.target.value);
-                if (!e.target.value) setAiResponse(null);
-              }}
-              onKeyDown={handleSearchKeyDown}
-              className={`h-9 w-full rounded-lg pl-9 pr-3 text-[13px] outline-none transition-all duration-200 ${
-                isAiMode
-                  ? "border-indigo-400 bg-indigo-50 text-indigo-900 ring-1 ring-indigo-500/30 placeholder:text-indigo-400 dark:border-indigo-500/40 dark:bg-indigo-500/[0.06] dark:text-indigo-100 dark:ring-indigo-500/20 dark:placeholder:text-indigo-500/60"
-                  : "border border-zinc-200 bg-zinc-50 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300/30 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-700 dark:focus:ring-zinc-700/20"
-              }`}
-            />
-            {isAiMode && (
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded bg-indigo-500/10 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
-                AI
+          {/* Spring drawer */}
+          <motion.div
+            key="resolved-drawer"
+            className="fixed bottom-0 right-0 top-0 z-[9991] flex w-[480px] max-w-[90vw] flex-col border-l border-zinc-200 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.08)] dark:border-zinc-800/60 dark:bg-[#0f0f14] dark:shadow-[-20px_0_60px_rgba(0,0,0,0.5)]"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{
+              type: "spring",
+              stiffness: 350,
+              damping: 30,
+              mass: 0.9,
+            }}
+          >
+            {/* Header */}
+            <div className="flex shrink-0 items-center gap-3 border-b border-zinc-100 px-5 pb-4 pt-5 dark:border-zinc-800/50">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <h2 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
+                Resolved
+              </h2>
+              <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+              </span>
+              <button
+                onClick={onClose}
+                className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="shrink-0 px-5 py-3">
+              <div className="relative">
+                {isAiMode ? (
+                  <Sparkles className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-indigo-500 dark:text-indigo-400" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+                )}
+                <input
+                  ref={searchRef}
+                  type="text"
+                  placeholder={
+                    isAiMode
+                      ? "Ask about resolved tasks... (Enter)"
+                      : "Search resolved...  / for AI"
+                  }
+                  value={searchText}
+                  onChange={(e) => {
+                    setSearchText(e.target.value);
+                    if (!e.target.value) setAiResponse(null);
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                  className={`h-9 w-full rounded-lg pl-9 pr-3 text-[13px] outline-none transition-all duration-200 ${
+                    isAiMode
+                      ? "border-indigo-400 bg-indigo-50 text-indigo-900 ring-1 ring-indigo-500/30 placeholder:text-indigo-400 dark:border-indigo-500/40 dark:bg-indigo-500/[0.06] dark:text-indigo-100 dark:ring-indigo-500/20 dark:placeholder:text-indigo-500/60"
+                      : "border border-zinc-200 bg-zinc-50 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300/30 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-700 dark:focus:ring-zinc-700/20"
+                  }`}
+                />
+                {isAiMode && (
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded bg-indigo-500/10 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
+                    AI
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* AI Response */}
+            {(aiLoading || aiResponse) && (
+              <div className="shrink-0 px-5 pb-3">
+                {aiLoading ? (
+                  <AIResponseLoading />
+                ) : aiResponse ? (
+                  <AIResponseCard
+                    response={aiResponse}
+                    onDismiss={() => {
+                      setAiResponse(null);
+                      setSearchText("");
+                    }}
+                    onExecuteAction={executeAiAction}
+                  />
+                ) : null}
               </div>
             )}
-          </div>
-        </div>
 
-        {/* AI Response */}
-        {(aiLoading || aiResponse) && (
-          <div className="shrink-0 px-5 pb-3">
-            {aiLoading ? (
-              <AIResponseLoading />
-            ) : aiResponse ? (
-              <AIResponseCard
-                response={aiResponse}
-                onDismiss={() => {
-                  setAiResponse(null);
-                  setSearchText("");
-                }}
-                onExecuteAction={executeAiAction}
-              />
-            ) : null}
-          </div>
-        )}
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 pb-6 scrollbar-none">
-          {!isAiMode && (
-            <>
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <Inbox className="mb-3 h-10 w-10 animate-float text-zinc-200 dark:text-zinc-800" />
-                  <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
-                    {tasks.length === 0
-                      ? "No resolved tasks yet"
-                      : `No results for "${filterText}"`}
-                  </p>
-                  {filterText && (
-                    <button
-                      className="mt-2 text-[11px] text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
-                      onClick={() => setSearchText("")}
-                    >
-                      Clear search
-                    </button>
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-5 pb-6 scrollbar-none">
+              {!isAiMode && (
+                <>
+                  {filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                      <Inbox className="mb-3 h-10 w-10 animate-float text-zinc-200 dark:text-zinc-800" />
+                      <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
+                        {tasks.length === 0
+                          ? "No resolved tasks yet"
+                          : `No results for "${filterText}"`}
+                      </p>
+                      {filterText && (
+                        <button
+                          className="mt-2 text-[11px] text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                          onClick={() => setSearchText("")}
+                        >
+                          Clear search
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filtered.map((task, i) => (
+                        <ResolvedCard
+                          key={task.id}
+                          task={task}
+                          index={i}
+                          onRestore={handleRestore}
+                          onBookmark={handleBookmark}
+                          onDelete={handleDelete}
+                          onNoteCountChange={handleNoteCountChange}
+                          isKeyboardFocused={focusedId === task.id}
+                        />
+                      ))}
+                    </div>
                   )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filtered.map((task, i) => (
-                    <ResolvedCard
-                      key={task.id}
-                      task={task}
-                      index={i}
-                      onRestore={handleRestore}
-                      onBookmark={handleBookmark}
-                      onDelete={handleDelete}
-                      onNoteCountChange={handleNoteCountChange}
-                      isKeyboardFocused={focusedId === task.id}
-                    />
-                  ))}
-                </div>
+                </>
               )}
-            </>
-          )}
-        </div>
-      </div>
-    </>,
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>,
     document.body,
   );
 }

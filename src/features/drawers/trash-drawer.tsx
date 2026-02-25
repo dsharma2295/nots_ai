@@ -1,8 +1,13 @@
 "use client";
 
-import { useLiveRelativeTime } from "@/hooks";
+import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
+import { PlatformDot } from "@/components/platform-icon";
+import { useToast } from "@/components/toast";
 import { useListKeyboardNav } from "@/features/keyboard/hooks/use-list-keyboard-nav";
+import { SourceTimeline } from "@/features/timeline/source-timeline";
+import { useLiveRelativeTime } from "@/hooks";
 import type { NodalTask } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
   Inbox,
@@ -14,10 +19,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
-import { PlatformDot } from "@/components/platform-icon";
-import { SourceTimeline } from "@/features/timeline/source-timeline";
-import { useToast } from "@/components/toast";
 
 function LiveTime({ iso }: { iso: string }) {
   const t = useLiveRelativeTime(iso);
@@ -30,7 +31,7 @@ function TrashedAgo({ iso }: { iso: string }) {
 }
 
 // =============================================================
-// TRASHED CARD
+// TRASHED CARD — identical to current file, no changes
 // =============================================================
 
 function TrashedCard({
@@ -189,6 +190,12 @@ function TrashedCard({
 
 // =============================================================
 // TRASH DRAWER
+// Change: CSS transition-transform replaced with Framer Motion
+// spring physics. AnimatePresence wraps backdrop + drawer.
+//
+// IMPORTANT: ConfirmDeleteModal for "Empty trash" is rendered
+// OUTSIDE AnimatePresence (but still inside createPortal) so the
+// drawer's spring exit animation never clips it.
 // =============================================================
 
 export function TrashDrawer({
@@ -293,120 +300,140 @@ export function TrashDrawer({
 
   return createPortal(
     <>
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-[9990] bg-black/40 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/60 ${
-          open
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
-        }`}
-        onClick={onClose}
-      />
+      {/* Drawer + backdrop inside AnimatePresence */}
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div
+              key="trash-backdrop"
+              className="fixed inset-0 z-[9990] bg-black/40 backdrop-blur-sm dark:bg-black/60"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={onClose}
+            />
 
-      {/* Drawer */}
-      <div
-        className={`fixed bottom-0 right-0 top-0 z-[9991] flex w-[480px] max-w-[90vw] flex-col border-l border-zinc-200 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.08)] transition-transform duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] dark:border-zinc-800/60 dark:bg-[#0f0f14] dark:shadow-[-20px_0_60px_rgba(0,0,0,0.5)] ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex shrink-0 items-center gap-3 border-b border-zinc-100 px-5 pb-4 pt-5 dark:border-zinc-800/50">
-          <Trash2 className="h-4 w-4 text-red-400 dark:text-red-500/70" />
-          <h2 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
-            Trash
-          </h2>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-            {tasks.length} task{tasks.length !== 1 ? "s" : ""}
-          </span>
-          {tasks.length > 0 && (
-            <button
-              onClick={() => setConfirmEmptyAll(true)}
-              className="ml-auto mr-2 rounded-lg px-2.5 py-1 text-[11px] font-medium text-red-400 transition-all hover:bg-red-50 hover:text-red-600 active:scale-95 dark:text-red-500/70 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+            <motion.div
+              key="trash-drawer"
+              className="fixed bottom-0 right-0 top-0 z-[9991] flex w-[480px] max-w-[90vw] flex-col border-l border-zinc-200 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.08)] dark:border-zinc-800/60 dark:bg-[#0f0f14] dark:shadow-[-20px_0_60px_rgba(0,0,0,0.5)]"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{
+                type: "spring",
+                stiffness: 350,
+                damping: 30,
+                mass: 0.9,
+              }}
             >
-              Empty trash
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className={`${tasks.length === 0 ? "ml-auto" : ""} flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300`}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Search */}
-        {tasks.length > 0 && (
-          <div className="shrink-0 px-5 py-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
-              <input
-                ref={searchRef}
-                type="text"
-                placeholder="Search trash..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    e.stopPropagation();
-                    if (searchText) {
-                      setSearchText("");
-                    } else {
-                      onClose();
-                    }
-                  }
-                }}
-                className="h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300/30 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-700 dark:focus:ring-zinc-700/20"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Auto-delete notice */}
-        {tasks.length > 0 && (
-          <div className="shrink-0 px-5 pb-2">
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
-              Items are permanently deleted after 30 days.
-            </p>
-          </div>
-        )}
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 pb-6 scrollbar-none">
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Inbox className="mb-3 h-10 w-10 animate-float text-zinc-200 dark:text-zinc-800" />{" "}
-              <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
-                {tasks.length === 0
-                  ? "Trash is empty"
-                  : `No results for "${searchText}"`}
-              </p>
-              {searchText && (
+              {/* Header */}
+              <div className="flex shrink-0 items-center gap-3 border-b border-zinc-100 px-5 pb-4 pt-5 dark:border-zinc-800/50">
+                <Trash2 className="h-4 w-4 text-red-400 dark:text-red-500/70" />
+                <h2 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
+                  Trash
+                </h2>
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                  {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+                </span>
+                {tasks.length > 0 && (
+                  <button
+                    onClick={() => setConfirmEmptyAll(true)}
+                    className="ml-auto mr-2 rounded-lg px-2.5 py-1 text-[11px] font-medium text-red-400 transition-all hover:bg-red-50 hover:text-red-600 active:scale-95 dark:text-red-500/70 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                  >
+                    Empty trash
+                  </button>
+                )}
                 <button
-                  className="mt-2 text-[11px] text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
-                  onClick={() => setSearchText("")}
+                  onClick={onClose}
+                  className={`${tasks.length === 0 ? "ml-auto" : ""} flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300`}
                 >
-                  Clear search
+                  <X className="h-4 w-4" />
                 </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filtered.map((task, i) => (
-                <TrashedCard
-                  key={task.id}
-                  task={task}
-                  index={i}
-                  onRestore={handleRestore}
-                  onPermanentDelete={handlePermanentDelete}
-                  isKeyboardFocused={focusedId === task.id}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+              </div>
 
-      {/* Empty trash confirmation */}
+              {/* Search */}
+              {tasks.length > 0 && (
+                <div className="shrink-0 px-5 py-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+                    <input
+                      ref={searchRef}
+                      type="text"
+                      placeholder="Search trash..."
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          e.stopPropagation();
+                          if (searchText) {
+                            setSearchText("");
+                          } else {
+                            onClose();
+                          }
+                        }
+                      }}
+                      className="h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-300 focus:ring-1 focus:ring-zinc-300/30 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-700 dark:focus:ring-zinc-700/20"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Auto-delete notice */}
+              {tasks.length > 0 && (
+                <div className="shrink-0 px-5 pb-2">
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                    Items are permanently deleted after 30 days.
+                  </p>
+                </div>
+              )}
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto px-5 pb-6 scrollbar-none">
+                {filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <Inbox className="mb-3 h-10 w-10 animate-float text-zinc-200 dark:text-zinc-800" />{" "}
+                    <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
+                      {tasks.length === 0
+                        ? "Trash is empty"
+                        : `No results for "${searchText}"`}
+                    </p>
+                    {searchText && (
+                      <button
+                        className="mt-2 text-[11px] text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                        onClick={() => setSearchText("")}
+                      >
+                        Clear search
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filtered.map((task, i) => (
+                      <TrashedCard
+                        key={task.id}
+                        task={task}
+                        index={i}
+                        onRestore={handleRestore}
+                        onPermanentDelete={handlePermanentDelete}
+                        isKeyboardFocused={focusedId === task.id}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/*
+        Empty trash confirmation is intentionally OUTSIDE AnimatePresence.
+        Reason: if it were inside, when the drawer exits with spring physics,
+        the confirmation modal would animate away with it — clipping it mid-interaction.
+        Both are portaled to document.body so z-index still works correctly:
+        ConfirmDeleteModal uses z-[10000], drawer uses z-[9991].
+      */}
       {confirmEmptyAll && (
         <ConfirmDeleteModal
           title="Empty trash?"

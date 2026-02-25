@@ -1,35 +1,39 @@
 "use client";
 
-import { AlertTriangle, Check, Info, X } from "lucide-react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-} from "react";
+// =============================================================
+// toast.tsx — Sonner-backed, fully backward-compatible shim.
+//
+// Every existing call site works unchanged:
+//   toast("message")              → success toast
+//   toast("message", "error")     → error toast
+//   toast("message", "info")      → info toast
+//
+// New optional third argument for Undo (used only in signal-stream):
+//   toast("message", undefined, { undo: { label: "Undo", action: fn } })
+//
+// ToastProvider is kept as a no-op so layout.tsx import doesn't break.
+// The real <Toaster /> is added to layout.tsx separately.
+// =============================================================
 
-// =============================================================
-// TYPES
-// =============================================================
+import { createContext, useContext } from "react";
+import { toast as sonnerToast } from "sonner";
 
 type ToastVariant = "success" | "error" | "info";
 
-interface Toast {
-  id: string;
-  message: string;
-  variant: ToastVariant;
-  exiting?: boolean;
+export interface ToastUndoOptions {
+  label: string;
+  action: () => void;
 }
 
 interface ToastContextValue {
-  toast: (message: string, variant?: ToastVariant) => void;
+  toast: (
+    message: string,
+    variant?: ToastVariant,
+    opts?: { undo?: ToastUndoOptions },
+  ) => void;
 }
 
-// =============================================================
-// CONTEXT
-// =============================================================
-
+// Context kept for structural compatibility — value provided by ToastProvider shim
 const ToastContext = createContext<ToastContextValue>({
   toast: () => {},
 });
@@ -38,108 +42,43 @@ export function useToast() {
   return useContext(ToastContext);
 }
 
-// =============================================================
-// VARIANT CONFIG
-// =============================================================
+// Internal fire function
+function fireToast(
+  message: string,
+  variant: ToastVariant = "success",
+  opts?: { undo?: ToastUndoOptions },
+) {
+  const sonnerOpts = {
+    duration: opts?.undo ? 4000 : 3000,
+    ...(opts?.undo
+      ? {
+          action: {
+            label: opts.undo.label,
+            onClick: opts.undo.action,
+          },
+        }
+      : {}),
+  };
 
-const VARIANT_STYLE: Record<
-  ToastVariant,
-  { bg: string; icon: typeof Check; iconColor: string }
-> = {
-  success: {
-    bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20",
-    icon: Check,
-    iconColor: "text-emerald-500 dark:text-emerald-400",
-  },
-  error: {
-    bg: "bg-red-50 border-red-200 dark:bg-red-500/10 dark:border-red-500/20",
-    icon: AlertTriangle,
-    iconColor: "text-red-500 dark:text-red-400",
-  },
-  info: {
-    bg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/20",
-    icon: Info,
-    iconColor: "text-indigo-500 dark:text-indigo-400",
-  },
-};
+  if (variant === "error") {
+    sonnerToast.error(message, sonnerOpts);
+  } else if (variant === "info") {
+    sonnerToast.info(message, sonnerOpts);
+  } else {
+    sonnerToast.success(message, sonnerOpts);
+  }
+}
 
-// =============================================================
-// PROVIDER
-// =============================================================
-
+// No-op provider — keeps layout.tsx import working.
+// <Toaster /> in layout.tsx does the actual rendering.
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const counterRef = useRef(0);
-
-  const addToast = useCallback(
-    (message: string, variant: ToastVariant = "success") => {
-      const id = `toast-${++counterRef.current}`;
-      setToasts((prev) => [...prev, { id, message, variant }]);
-
-      // Start exit animation after 2.5s
-      setTimeout(() => {
-        setToasts((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)),
-        );
-      }, 2500);
-
-      // Remove after exit animation completes (300ms)
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 2800);
-    },
-    [],
-  );
-
-  const dismiss = useCallback((id: string) => {
-    setToasts((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)),
-    );
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 300);
-  }, []);
+  const toast = (
+    message: string,
+    variant?: ToastVariant,
+    opts?: { undo?: ToastUndoOptions },
+  ) => fireToast(message, variant, opts);
 
   return (
-    <ToastContext.Provider value={{ toast: addToast }}>
-      {children}
-
-      {/* Toast container — bottom right */}
-      {toasts.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2">
-          {toasts.map((t) => {
-            const v = VARIANT_STYLE[t.variant];
-            const Icon = v.icon;
-
-            return (
-              <div
-                key={t.id}
-                className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm transition-all duration-300 ${v.bg} ${
-                  t.exiting
-                    ? "translate-x-[120%] opacity-0"
-                    : "translate-x-0 opacity-100"
-                }`}
-                style={{
-                  animation: t.exiting
-                    ? undefined
-                    : "toastSlideIn 0.3s cubic-bezier(0.16,1,0.3,1)",
-                }}
-              >
-                <Icon className={`h-4 w-4 shrink-0 ${v.iconColor}`} />
-                <span className="text-[13px] font-medium text-zinc-700 dark:text-zinc-200">
-                  {t.message}
-                </span>
-                <button
-                  onClick={() => dismiss(t.id)}
-                  className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-zinc-400 transition-all hover:text-zinc-600 active:scale-90 dark:text-zinc-500 dark:hover:text-zinc-300"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </ToastContext.Provider>
+    <ToastContext.Provider value={{ toast }}>{children}</ToastContext.Provider>
   );
 }

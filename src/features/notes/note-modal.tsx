@@ -1,10 +1,11 @@
 "use client";
 
+import { PlatformDot } from "@/components/platform-icon";
 import type { SourceEvent } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
 import { NotebookPen, Pencil, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { PlatformDot } from "@/components/platform-icon";
 
 // =============================================================
 // TYPES
@@ -27,7 +28,7 @@ export interface NoteData {
 }
 
 // =============================================================
-// CREATE NOTE MODAL
+// CREATE NOTE MODAL — identical to current, no changes needed
 // =============================================================
 
 export function CreateNoteModal({
@@ -180,6 +181,13 @@ export function CreateNoteModal({
 
 // =============================================================
 // VIEW/EDIT NOTE MODAL
+// Changes from original:
+//   - Removed confirmDelete state + nested confirm overlay
+//   - Added inline expanding delete: trash → "Delete? Yes / No" pill
+//   - Auto-reverts confirming state after 3s if no action taken
+//   - Escape key: confirming → idle → editing cancel → close modal
+//   - motion.div with layoutId for chip→modal morph (enhancement #3)
+//   - Animated backdrop fade-in
 // =============================================================
 
 export function ViewNoteModal({
@@ -197,12 +205,31 @@ export function ViewNoteModal({
   const [title, setTitle] = useState(note.title ?? "");
   const [content, setContent] = useState(note.content);
   const [saving, setSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  // "idle" | "confirming" — replaces the old confirmDelete modal entirely
+  const [deleteState, setDeleteState] = useState<"idle" | "confirming">("idle");
+  const cancelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Auto-revert confirming → idle after 3s of inaction
+  useEffect(() => {
+    if (deleteState === "confirming") {
+      cancelTimerRef.current = setTimeout(() => setDeleteState("idle"), 3000);
+    }
+    return () => {
+      if (cancelTimerRef.current) {
+        clearTimeout(cancelTimerRef.current);
+        cancelTimerRef.current = null;
+      }
+    };
+  }, [deleteState]);
+
+  // Escape hierarchy: confirming → idle → editing cancel → close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (editing) {
+        if (deleteState === "confirming") {
+          e.stopPropagation();
+          setDeleteState("idle");
+        } else if (editing) {
           setEditing(false);
           setTitle(note.title ?? "");
           setContent(note.content);
@@ -213,7 +240,7 @@ export function ViewNoteModal({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [editing, note, onClose]);
+  }, [editing, deleteState, note, onClose]);
 
   const handleSave = useCallback(async () => {
     if (!content.trim() || saving) return;
@@ -270,28 +297,81 @@ export function ViewNoteModal({
       className="fixed inset-0 z-[9998] flex items-center justify-center"
       onClick={onClose}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60" />
+      {/* Animated backdrop */}
+      <motion.div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      />
 
-      {/* Modal */}
-      <div
+      {/*
+        Modal — shares layoutId with the NoteChip that opened it.
+        Framer Motion morphs the chip into this modal on open,
+        and back on close (when wrapped in AnimatePresence in parent).
+      */}
+      <motion.div
+        layoutId={`note-chip-${note.id}`}
         className="relative z-[9999] w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          animation: "noteModalIn 0.25s cubic-bezier(0.16,1,0.3,1)",
-        }}
+        transition={{ type: "spring", stiffness: 320, damping: 30 }}
       >
-        {/* Top row: trash + edit + close */}
+        {/* Top row: inline delete + edit + close */}
         <div className="absolute right-4 top-4 flex items-center gap-1">
           {!editing && (
             <>
-              <button
-                title="Delete note"
-                onClick={() => setConfirmDelete(true)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-red-50 hover:text-red-500 active:scale-90 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              {/* ── Inline expanding delete ── */}
+              <motion.div layout className="flex items-center overflow-hidden">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {deleteState === "idle" ? (
+                    <motion.button
+                      key="trash-icon"
+                      layout
+                      title="Delete note"
+                      onClick={() => setDeleteState("confirming")}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-red-50 hover:text-red-500 active:scale-90 dark:text-zinc-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </motion.button>
+                  ) : (
+                    <motion.div
+                      key="confirm-row"
+                      layout
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: "auto" }}
+                      exit={{ opacity: 0, width: 0 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 28,
+                      }}
+                      className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 dark:border-red-500/20 dark:bg-red-500/10"
+                    >
+                      <span className="whitespace-nowrap text-[11px] font-medium text-red-500 dark:text-red-400">
+                        Delete?
+                      </span>
+                      <button
+                        onClick={handleDelete}
+                        className="whitespace-nowrap rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white transition-all hover:bg-red-600 active:scale-95"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setDeleteState("idle")}
+                        className="whitespace-nowrap text-[10px] font-medium text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                      >
+                        No
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+
               <button
                 title="Edit note"
                 onClick={() => setEditing(true)}
@@ -406,51 +486,17 @@ export function ViewNoteModal({
             </button>
           </div>
         )}
-      </div>
-      {/* Delete confirmation overlay */}
-      {confirmDelete && (
-        <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center"
-          onClick={() => setConfirmDelete(false)}
-        >
-          <div className="absolute inset-0 bg-black/30 dark:bg-black/50" />
-          <div
-            className="relative z-[10001] w-full max-w-xs rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="mb-1 text-[14px] font-semibold text-zinc-900 dark:text-zinc-100">
-              Delete this note?
-            </p>
-            <p className="mb-4 text-[12px] text-zinc-500 dark:text-zinc-400">
-              This action cannot be undone.
-            </p>
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setConfirmDelete(false);
-                  handleDelete();
-                }}
-                className="rounded-lg bg-red-500 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </motion.div>
     </div>,
     document.body,
   );
 }
 
 // =============================================================
-// NOTE CHIPS ROW (displayed inside expanded card, above Provenance)
+// NOTE CHIPS ROW
+// Change: button → motion.button with layoutId so it morphs into
+// ViewNoteModal when clicked (requires AnimatePresence in parent).
+// hover:-translate-y-0.5 removed — motion handles transforms now.
 // =============================================================
 
 export function NoteChips({
@@ -532,19 +578,21 @@ export function NoteChips({
             </span>
           </button>
         )}
-        {/* Chips */}
+        {/* Chips — motion.button with layoutId for morph transition */}
         <div
           ref={scrollRef}
           className="flex gap-1.5 overflow-x-auto px-1 pt-1 pb-1 scrollbar-none"
         >
           {notes.map((note) => (
-            <button
+            <motion.button
               key={note.id}
+              layoutId={`note-chip-${note.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onClickNote(note);
               }}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white/60 px-2.5 py-1.5 text-left ring-1 ring-zinc-200/80 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:ring-zinc-300 dark:bg-white/[0.03] dark:ring-zinc-700/50 dark:hover:ring-zinc-600"
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white/60 px-2.5 py-1.5 text-left ring-1 ring-zinc-200/80 backdrop-blur-sm transition-colors duration-200 hover:shadow-sm hover:ring-zinc-300 dark:bg-white/[0.03] dark:ring-zinc-700/50 dark:hover:ring-zinc-600"
             >
               {note.sourceEvent && (
                 <PlatformDot
@@ -562,7 +610,7 @@ export function NoteChips({
               <span className="max-w-[100px] truncate text-[10px] font-medium text-zinc-600 dark:text-zinc-400">
                 {note.title || note.content.slice(0, 25)}
               </span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>

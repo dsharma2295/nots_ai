@@ -176,6 +176,16 @@ export function SignalStream({
     async (taskId: string, action: string, value?: string) => {
       pendingRef.current.add(taskId);
 
+      // Snapshot the task BEFORE any optimistic update so Undo can restore it.
+      // We read from the functional updater pattern below, but for "done" and
+      // "delete" we need the snapshot here synchronously.
+      let snapshotTask: NodalTask | undefined;
+      if (action === "done" || action === "delete") {
+        // Use a ref-style read: localTasks state is captured via closure at
+        // callback creation time, which is accurate enough for this purpose.
+        snapshotTask = localTasks.find((t) => t.id === taskId);
+      }
+
       // Optimistic update
       if (action === "done") {
         setLocalTasks((prev) => {
@@ -245,6 +255,7 @@ export function SignalStream({
           return prev.filter((t) => t.id !== taskId);
         });
       }
+
       const body =
         action === "done"
           ? { action: "updateStatus", taskId, status: "DONE" }
@@ -277,7 +288,35 @@ export function SignalStream({
         if (!res.ok) {
           toast("Action failed — try again", "error");
         } else if (action === "done") {
-          toast("Task resolved");
+          // Undo: restore task back to OPEN
+          toast("Task resolved", undefined, {
+            undo: snapshotTask
+              ? {
+                  label: "Undo",
+                  action: () => {
+                    setLocalTasks((prev) => [
+                      {
+                        ...snapshotTask!,
+                        status: "OPEN" as NodalTask["status"],
+                      },
+                      ...prev.filter((t) => t.id !== taskId),
+                    ]);
+                    setLocalResolvedTasks((prev) =>
+                      prev.filter((t) => t.id !== taskId),
+                    );
+                    fetch("/api/tasks/update", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "updateStatus",
+                        taskId,
+                        status: "OPEN",
+                      }),
+                    });
+                  },
+                }
+              : undefined,
+          });
         } else if (action === "priority" && value) {
           toast(
             "Moved to " +
@@ -294,7 +333,36 @@ export function SignalStream({
         } else if (action === "bookmark") {
           toast("Bookmark updated");
         } else if (action === "delete") {
-          toast("Moved to trash");
+          // Undo: restore task back from trash
+          toast("Moved to trash", undefined, {
+            undo: snapshotTask
+              ? {
+                  label: "Undo",
+                  action: () => {
+                    setLocalTasks((prev) => [
+                      {
+                        ...snapshotTask!,
+                        status: "OPEN" as NodalTask["status"],
+                        trashedAt: null,
+                      },
+                      ...prev,
+                    ]);
+                    setLocalTrashedTasks((prev) =>
+                      prev.filter((t) => t.id !== taskId),
+                    );
+                    fetch("/api/tasks/update", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "updateStatus",
+                        taskId,
+                        status: "OPEN",
+                      }),
+                    });
+                  },
+                }
+              : undefined,
+          });
         }
       } finally {
         setTimeout(() => {
@@ -302,8 +370,9 @@ export function SignalStream({
         }, 16000);
       }
     },
-    [toast],
+    [toast, localTasks],
   );
+
   // Handle search
   function handleSearchChange(value: string) {
     setFilters((f) => ({ ...f, search: value }));
@@ -359,6 +428,7 @@ export function SignalStream({
   );
   const active = filtered.filter((t) => t.priority === "MEDIUM");
   const low = filtered.filter((t) => t.priority === "LOW");
+
   // Sort helper — must match KanbanColumn's internal sort exactly
   const sortCards = useCallback((cards: NodalTask[]) => {
     return [...cards].sort((a, b) => {

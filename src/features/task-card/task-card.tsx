@@ -11,6 +11,7 @@ import { SourceTimeline } from "@/features/timeline/source-timeline";
 import { useLiveRelativeTime } from "@/hooks";
 import { useNotes } from "@/hooks/use-notes";
 import type { NodalTask } from "@/types";
+import { AnimatePresence } from "framer-motion";
 import {
   ArrowRightLeft,
   Bookmark,
@@ -366,7 +367,7 @@ export function TaskCard({
           )}{" "}
         </div>
 
-        {/* Row 2: Title + unread indicator */}
+        {/* Row 2: Title */}
         <h3 className="mb-2.5 text-[14px] font-medium leading-snug tracking-tight text-zinc-900 transition-colors duration-200 dark:text-zinc-100">
           {task.title}
         </h3>
@@ -487,14 +488,21 @@ export function TaskCard({
           onCreate={notes.onCreate}
         />
       )}
-      {notes.viewing && (
-        <ViewNoteModal
-          note={notes.viewing}
-          onClose={() => notes.setViewing(null)}
-          onUpdate={notes.onUpdate}
-          onDelete={notes.onDelete}
-        />
-      )}{" "}
+      {/*
+        AnimatePresence wraps ViewNoteModal so the layoutId morph
+        in note-modal.tsx works correctly on both open and close.
+        Without this, the exit animation (chip shrink-back) won't fire.
+      */}
+      <AnimatePresence>
+        {notes.viewing && (
+          <ViewNoteModal
+            note={notes.viewing}
+            onClose={() => notes.setViewing(null)}
+            onUpdate={notes.onUpdate}
+            onDelete={notes.onDelete}
+          />
+        )}
+      </AnimatePresence>
       {confirmDelete && (
         <ConfirmDeleteModal
           onConfirm={handleDelete}
