@@ -290,7 +290,7 @@ export function TaskCard({
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
           >
             <span
-              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold leading-none ${opt.badgeClass}`}
+              className={`inline-flex h-4 items-center justify-center rounded px-1.5 text-[9px] font-bold leading-none ${opt.badgeClass}`}
             >
               {opt.sublabel}
             </span>
@@ -343,7 +343,7 @@ export function TaskCard({
           </span>
           {tierStyle && (
             <span
-              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold leading-none ${tierStyle.badge}`}
+              className={`inline-flex h-4 items-center justify-center rounded px-1.5 text-[9px] font-bold leading-none ${tierStyle.badge}`}
             >
               {tierStyle.label}
             </span>
