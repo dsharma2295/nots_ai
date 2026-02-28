@@ -1,6 +1,10 @@
 "use client";
+import { PlatformIcon } from "@/components/platform-icon";
+import { useToast } from "@/components/toast";
+import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
+import { SourceTimeline } from "@/features/timeline/source-timeline";
 import { useCmdK } from "@/hooks";
-import type { NodalTask } from "@/types";
+import type { NodalTask } from "@/lib/mock-data";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
   Bookmark,
@@ -14,10 +18,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
-import { PlatformDot } from "@/components/platform-icon";
-import { SourceTimeline } from "@/features/timeline/source-timeline";
-import { useToast } from "@/components/toast";
 
 export function ResolvedStream({
   tasks: initialTasks,
@@ -302,9 +302,9 @@ export function ResolvedStream({
 
                   {/* Row 2: Meta */}
                   <div className="flex items-center gap-2.5">
-                    <div className="flex -space-x-1.5">
+                    <div className="flex -space-x-1">
                       {platforms.map((p) => (
-                        <PlatformDot
+                        <PlatformIcon
                           key={p}
                           platform={
                             p as NodalTask["sourceEvents"][0]["platform"]
