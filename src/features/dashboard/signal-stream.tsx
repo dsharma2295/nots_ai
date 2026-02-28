@@ -440,6 +440,18 @@ export function SignalStream({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
+
+  // Listen for sidebar icon clicks — sidebar can't reach drawer state directly
+  useEffect(() => {
+    const openResolved = () => setDrawerOpen(true);
+    const openTrash = () => setTrashOpen(true);
+    window.addEventListener("nots:openResolved", openResolved);
+    window.addEventListener("nots:openTrash", openTrash);
+    return () => {
+      window.removeEventListener("nots:openResolved", openResolved);
+      window.removeEventListener("nots:openTrash", openTrash);
+    };
+  }, []);
   // AI mode state
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<AIQueryResponse | null>(null);

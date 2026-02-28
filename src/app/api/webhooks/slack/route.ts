@@ -220,18 +220,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Noise filter
+    // Resolve Nots.ai user (done early so we can use preferences for noise filtering)
+    const teamId = (body.team_id as string) ?? "";
+    let senderName = user; // will be resolved to display name below
+    const primaryEmail =
+      process.env.GMAIL_TARGET_EMAIL ?? `slack-${teamId}@nots.ai`;
+
+    let notsUser = await db.user.findFirst({
+      where: { email: primaryEmail },
+      select: { id: true, email: true, name: true, preferences: true },
+    });
+
+    if (!notsUser) {
+      notsUser = await db.user.create({
+        data: {
+          email: primaryEmail,
+          name: senderName,
+        },
+        select: { id: true, email: true, name: true, preferences: true },
+      });
+    }
+
+    // Extract custom noise keywords from user preferences
+    const customNoiseKeywords: string[] =
+      ((notsUser.preferences as Record<string, unknown> | null)
+        ?.noiseKeywords as string[]) ?? [];
+
+    // Noise filter — now includes user-defined keywords
     // Option B (S6): If noise but has threadTs, send through with flag
     // so process-message can touch the task's updatedAt without adding to provenance.
-    const noiseResult = classifyNoise(cleanedText, user, false);
+    const noiseResult = classifyNoise(
+      cleanedText,
+      user,
+      false,
+      customNoiseKeywords,
+    );
     const isNoiseInThread = !noiseResult.allowed && !!threadTs;
 
     if (!noiseResult.allowed && !isNoiseInThread) {
       return NextResponse.json({ ok: true, filtered: noiseResult.reason });
     }
 
-    // Deduplication
-    const teamId = (body.team_id as string) ?? "";
     const deepLink = `slack://channel?team=${teamId}&id=${channel}&message=${ts}`;
     const sourceHash = generateSourceHash("SLACK", deepLink, cleanedText);
 
@@ -240,9 +269,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, filtered: "DUPLICATE" });
     }
 
-    // Resolve user info
-    let senderName = user;
-
+    // Resolve display name via Slack API if bot token available
     if (botToken) {
       try {
         const userRes = await fetch(
@@ -264,23 +291,6 @@ export async function POST(req: NextRequest) {
       } catch {
         // Non-critical — fall back to user ID
       }
-    }
-
-    // Resolve Nots.ai user
-    const primaryEmail =
-      process.env.GMAIL_TARGET_EMAIL ?? `slack-${teamId}@nots.ai`;
-
-    let notsUser = await db.user.findFirst({
-      where: { email: primaryEmail },
-    });
-
-    if (!notsUser) {
-      notsUser = await db.user.create({
-        data: {
-          email: primaryEmail,
-          name: senderName,
-        },
-      });
     }
 
     // ─── DISPATCH TO INNGEST ─────────────────────────────

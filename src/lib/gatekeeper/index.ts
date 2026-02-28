@@ -203,6 +203,7 @@ export function classifyNoise(
   text: string,
   sender?: string,
   isBotMessage?: boolean,
+  customNoiseKeywords?: string[],
 ): GatekeeperResult {
   // 1. Bot detection
   if (isBotMessage) {
@@ -236,6 +237,15 @@ export function classifyNoise(
 
   if (NOISE_PHRASES.has(normalized)) {
     return makeResult(false, "SHORT_NOISE");
+  }
+
+  // User-defined custom noise keywords from Settings
+  if (customNoiseKeywords && customNoiseKeywords.length > 0) {
+    for (const kw of customNoiseKeywords) {
+      if (normalized.includes(kw.toLowerCase())) {
+        return makeResult(false, "CUSTOM_NOISE_KEYWORD");
+      }
+    }
   }
 
   // Messages under 4 characters that aren't in our allowed set

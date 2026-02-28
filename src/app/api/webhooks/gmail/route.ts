@@ -76,6 +76,15 @@ export async function POST(req: NextRequest) {
     const { oauth2, userId: notsUserId } = await getAuthenticatedClient();
     const gmail = google.gmail({ version: "v1", auth: oauth2 });
 
+    // Fetch user preferences for custom noise filtering
+    const notsUser = await db.user.findUnique({
+      where: { id: notsUserId },
+      select: { preferences: true },
+    });
+    const customNoiseKeywords: string[] =
+      ((notsUser?.preferences as Record<string, unknown> | null)
+        ?.noiseKeywords as string[]) ?? [];
+
     let messageIds: string[] = [];
 
     if (lastHistoryId) {
@@ -156,7 +165,12 @@ export async function POST(req: NextRequest) {
       const enrichedContent = content;
 
       // TIER 2 FILTER: Noise check
-      const noiseResult = classifyNoise(enrichedContent, email.from);
+      const noiseResult = classifyNoise(
+        enrichedContent,
+        email.from,
+        false,
+        customNoiseKeywords,
+      );
       if (!noiseResult.allowed) continue;
 
       // Deduplication

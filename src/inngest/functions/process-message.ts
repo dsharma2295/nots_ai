@@ -13,7 +13,10 @@
 // =============================================================
 
 import { findSimilarTasks, orchestrate } from "@/lib/agents/orchestrator";
-import { refineWithEmbedding } from "@/lib/agents/refiner";
+import {
+  refineWithEmbedding,
+  type RefinerPreferences,
+} from "@/lib/agents/refiner";
 import db from "@/lib/db";
 import { broadcastTaskUpdate } from "@/lib/supabase";
 import {
@@ -165,6 +168,33 @@ export const processMessage = inngest.createFunction(
     const { task, userId } = event.data;
     const validTask = UniversalTaskSchema.parse(task);
 
+    // Fetch user preferences once — used to tune the Refiner prompt.
+    // Runs outside of a step (cheap DB read, no retry needed).
+    let userPrefs: RefinerPreferences | undefined;
+    try {
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: { preferences: true },
+      });
+      if (user?.preferences) {
+        const raw = user.preferences as Record<string, unknown>;
+        userPrefs = {
+          urgentKeywords: Array.isArray(raw.urgentKeywords)
+            ? (raw.urgentKeywords as string[])
+            : undefined,
+          intentPriorityMap:
+            raw.intentPriorityMap && typeof raw.intentPriorityMap === "object"
+              ? (raw.intentPriorityMap as Record<string, string>)
+              : undefined,
+          noiseKeywords: Array.isArray(raw.noiseKeywords)
+            ? (raw.noiseKeywords as string[])
+            : undefined,
+        };
+      }
+    } catch {
+      // Non-fatal — continue with default AI behaviour
+    }
+
     // ─────────────────────────────────────────────────────
     // STAGE 0: NOISE-IN-THREAD (Option B)
     // If the message was flagged as noise but has a threadId,
@@ -260,8 +290,10 @@ export const processMessage = inngest.createFunction(
           existingTask.confidence < 0.5 &&
           existingTask.title.length > 40
         ) {
-          const { refinerOutput: titleRefine } =
-            await refineWithEmbedding(validTask);
+          const { refinerOutput: titleRefine } = await refineWithEmbedding(
+            validTask,
+            userPrefs,
+          );
           if (titleRefine.confidence > existingTask.confidence) {
             await db.nodalTask.update({
               where: { id: threadMergeTaskId },
@@ -298,7 +330,7 @@ export const processMessage = inngest.createFunction(
     const { refinerOutput, embedding } = await step.run(
       "refine-and-embed",
       async () => {
-        const result = await refineWithEmbedding(validTask);
+        const result = await refineWithEmbedding(validTask, userPrefs);
         if (result.refinerOutput.isNoise) {
           return { ...result, isNoise: true };
         }

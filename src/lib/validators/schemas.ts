@@ -321,6 +321,7 @@ export const GatekeeperResultSchema = z.object({
     "BOT_MESSAGE",
     "EMOJI_ONLY",
     "SHORT_NOISE",
+    "CUSTOM_NOISE_KEYWORD",
     "DUPLICATE",
     "HMAC_FAILED",
   ]),

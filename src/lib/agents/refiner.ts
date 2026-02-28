@@ -6,6 +6,7 @@
 // metadata. This is the FIRST AI stage after the Gatekeeper.
 //
 // INPUT: UniversalTask (normalized message from any platform)
+//        UserPreferences (optional — tunes AI behavior per-user)
 // OUTPUT: RefinerOutput (smart title, intent, priority, etc.)
 //
 // COST: Uses Gemini Flash — fast, cheap, high-volume.
@@ -20,12 +21,24 @@ import {
 import { MODELS, generateEmbedding, generateJSON } from "./gemini";
 
 // =============================================================
-// SYSTEM PROMPT
-// This is the "brain" of the Refiner. It tells Gemini exactly
-// what to extract and how to format it.
+// USER PREFERENCES TYPE
+// Subset of the full preferences relevant to the refiner.
+// Passed from process-message after fetching from DB.
 // =============================================================
 
-const REFINER_SYSTEM_PROMPT = `You are the Refiner Agent for Nots.ai, a task management system that converts noisy multi-channel messages into structured tasks.
+export interface RefinerPreferences {
+  urgentKeywords?: string[];
+  intentPriorityMap?: Record<string, string>;
+  noiseKeywords?: string[];
+}
+
+// =============================================================
+// BASE SYSTEM PROMPT
+// Core instructions — never changes.
+// User preferences are appended dynamically per call.
+// =============================================================
+
+const BASE_REFINER_PROMPT = `You are the Refiner Agent for Nots.ai, a task management system that converts noisy multi-channel messages into structured tasks.
 
 Your job is to analyze a raw message and extract structured metadata.
 
@@ -59,17 +72,67 @@ Respond ONLY with valid JSON matching this exact schema:
 }`;
 
 // =============================================================
-// REFINE
-// Main entry point. Takes a UniversalTask, returns RefinerOutput.
+// BUILD DYNAMIC SYSTEM PROMPT
+// Appends user-specific tuning rules to the base prompt.
+// This is what makes the AI tuneable via Settings.
 // =============================================================
 
-export async function refine(task: UniversalTask): Promise<RefinerOutput> {
+function buildSystemPrompt(prefs?: RefinerPreferences): string {
+  if (!prefs) return BASE_REFINER_PROMPT;
+
+  const additions: string[] = [];
+
+  // Custom urgent keywords override the defaults
+  if (prefs.urgentKeywords && prefs.urgentKeywords.length > 0) {
+    additions.push(
+      `\nUSER-DEFINED URGENCY KEYWORDS (treat these as CRITICAL priority triggers): ${prefs.urgentKeywords.join(", ")}`,
+    );
+  }
+
+  // Intent → priority overrides
+  if (
+    prefs.intentPriorityMap &&
+    Object.keys(prefs.intentPriorityMap).length > 0
+  ) {
+    const mappings = Object.entries(prefs.intentPriorityMap)
+      .map(([intent, priority]) => `"${intent}" intent → ${priority}`)
+      .join(", ");
+    additions.push(
+      `\nUSER-DEFINED INTENT PRIORITY RULES (override default priority for these intent types): ${mappings}`,
+    );
+  }
+
+  // Custom noise keywords — mark as isNoise if content contains these
+  if (prefs.noiseKeywords && prefs.noiseKeywords.length > 0) {
+    additions.push(
+      `\nUSER-DEFINED NOISE KEYWORDS (if the message ONLY contains these words with no other actionable content, set isNoise=true): ${prefs.noiseKeywords.join(", ")}`,
+    );
+  }
+
+  if (additions.length === 0) return BASE_REFINER_PROMPT;
+
+  return (
+    BASE_REFINER_PROMPT + "\n\nUSER CUSTOMIZATIONS:" + additions.join("\n")
+  );
+}
+
+// =============================================================
+// REFINE
+// Main entry point. Takes a UniversalTask and optional user
+// preferences, returns RefinerOutput.
+// =============================================================
+
+export async function refine(
+  task: UniversalTask,
+  prefs?: RefinerPreferences,
+): Promise<RefinerOutput> {
+  const systemPrompt = buildSystemPrompt(prefs);
   const userPrompt = buildUserPrompt(task);
 
   try {
     const raw = await generateJSON<Record<string, unknown>>(
       MODELS.refiner,
-      REFINER_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
     );
 
@@ -102,7 +165,6 @@ export async function refine(task: UniversalTask): Promise<RefinerOutput> {
  * low confidence so it gets flagged for human review.
  */
 function buildFallback(task: UniversalTask): RefinerOutput {
-  // Extract first sentence, then truncate at last word boundary
   const firstSentence = task.rawContent.split(/[.!?\n]/)[0].trim();
   let title = firstSentence || task.rawContent;
   if (title.length > 80) {
@@ -126,17 +188,19 @@ function buildFallback(task: UniversalTask): RefinerOutput {
 // =============================================================
 // REFINE WITH EMBEDDING
 // Runs refine() AND generates the embedding in parallel.
-// This is what the Inngest function calls — both operations
-// happen concurrently to minimize latency.
+// Accepts optional user preferences for AI tuning.
 // =============================================================
 
-export async function refineWithEmbedding(task: UniversalTask): Promise<{
+export async function refineWithEmbedding(
+  task: UniversalTask,
+  prefs?: RefinerPreferences,
+): Promise<{
   refinerOutput: RefinerOutput;
   embedding: number[];
 }> {
   // Run both in parallel — no reason to wait sequentially
   const [refinerOutput, embedding] = await Promise.all([
-    refine(task),
+    refine(task, prefs),
     generateEmbedding(task.rawContent),
   ]);
 
