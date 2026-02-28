@@ -7,10 +7,20 @@ import {
   SlackSvg,
   TrelloSvg,
 } from "@/components/platform-icon";
+import { TaskCardStencil } from "@/components/task-card-stencil";
 import { useToast } from "@/components/toast";
 import { useRealtimeData } from "@/hooks/use-realtime-data";
 import { AnimatePresence, motion } from "framer-motion";
-import { Info, Plug, Settings, Shield, Sun, X, Zap } from "lucide-react";
+import {
+  Info,
+  Layers,
+  Plug,
+  Settings,
+  Shield,
+  Sun,
+  X,
+  Zap,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -48,9 +58,16 @@ interface PipelineStats {
 // SECTION CONFIG
 // =============================================================
 
-type SectionId = "general" | "noise" | "priority" | "integrations" | "about";
+type SectionId =
+  | "anatomy"
+  | "general"
+  | "noise"
+  | "priority"
+  | "integrations"
+  | "about";
 
 const SECTIONS: { id: SectionId; label: string; Icon: typeof Settings }[] = [
+  { id: "anatomy", label: "Card Anatomy", Icon: Layers },
   { id: "general", label: "General", Icon: Sun },
   { id: "noise", label: "Noise Filters", Icon: Shield },
   { id: "priority", label: "Priority Rules", Icon: Zap },
@@ -622,7 +639,7 @@ export function SettingsModal({
 
   onClose: () => void;
 }): React.ReactElement | null {
-  const [activeSection, setActiveSection] = useState<SectionId>("general");
+  const [activeSection, setActiveSection] = useState<SectionId>("anatomy");
   const [prefs, setPrefs] = useState<UserPreferences>(DEFAULT_PREFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -778,7 +795,7 @@ export function SettingsModal({
 
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto px-6 py-5 scrollbar-none">
-                {loading ? (
+                {loading && activeSection !== "anatomy" ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
                       <div
@@ -796,6 +813,7 @@ export function SettingsModal({
                       exit={{ opacity: 0, x: -8 }}
                       transition={{ duration: 0.15 }}
                     >
+                      {activeSection === "anatomy" && <TaskCardStencil />}
                       {activeSection === "general" && (
                         <GeneralSection prefs={prefs} onChange={handleChange} />
                       )}

@@ -373,106 +373,112 @@ function PipelineTab({ data }: { data: PipelineData }) {
         />
       </div>
 
-      {/* What the AI discarded — visual emphasis */}
+      {/* Refinery breakdown — stacked horizontal bar */}
       <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-4 flex items-center gap-2">
           <Filter className="h-3.5 w-3.5 text-emerald-500" />
           <span className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-200">
-            Refinery efficiency
+            Message breakdown
+          </span>
+          <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+            {data.totalEventsAllTime.toLocaleString()} total
           </span>
         </div>
-        <div className="flex items-end gap-3">
-          {/* Noise bar */}
-          <div className="flex-1 text-center">
-            <div className="mb-1 h-16 rounded-lg bg-zinc-200 dark:bg-zinc-700">
+
+        {/* Stacked bar */}
+        {data.totalEventsAllTime > 0 ? (
+          <>
+            <div className="mb-4 flex h-6 w-full overflow-hidden rounded-full">
+              {/* Noise segment */}
               <motion.div
-                className="rounded-lg bg-zinc-300 dark:bg-zinc-600"
-                style={{ height: "100%" }}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: 1 }}
-                transition={{ duration: 0.4 }}
+                className="flex items-center justify-center bg-zinc-300 dark:bg-zinc-600"
+                style={{ width: `${data.noiseFilterRate}%` }}
+                initial={{ width: 0 }}
+                animate={{ width: `${data.noiseFilterRate}%` }}
+                transition={{ duration: 0.6, ease: "easeOut" as const }}
+                title={`Noise: ${data.noiseFiltered} messages`}
+              />
+              {/* Merged segment — messages that merged into existing tasks */}
+              {data.mergeRate > 0 && (
+                <motion.div
+                  className="flex items-center justify-center bg-amber-400"
+                  style={{
+                    width: `${Math.round(
+                      (data.mergedTasks / data.totalEventsAllTime) * 100,
+                    )}%`,
+                  }}
+                  initial={{ width: 0 }}
+                  animate={{
+                    width: `${Math.round(
+                      (data.mergedTasks / data.totalEventsAllTime) * 100,
+                    )}%`,
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    delay: 0.1,
+                    ease: "easeOut" as const,
+                  }}
+                  title={`Merged: ${data.mergedTasks} tasks`}
+                />
+              )}
+              {/* Tasks segment */}
+              <motion.div
+                className="flex-1 bg-indigo-500"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+                title={`Tasks: ${data.totalTasksEver}`}
               />
             </div>
-            <p className="text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
-              {data.totalEventsAllTime.toLocaleString()}
-            </p>
-            <p className="text-[9px] text-zinc-400 dark:text-zinc-500">In</p>
-          </div>
 
-          <div className="pb-8 text-zinc-300 dark:text-zinc-700">→</div>
-
-          {/* Passed bar */}
-          <div className="flex-1 text-center">
-            <div
-              className="mb-1 overflow-hidden rounded-lg bg-zinc-200 dark:bg-zinc-700"
-              style={{ height: 64 }}
-            >
-              <motion.div
-                className="w-full rounded-lg bg-amber-400"
-                style={{
-                  height: `${
-                    data.totalEventsAllTime > 0
-                      ? ((data.totalEventsAllTime - data.noiseFiltered) /
-                          data.totalEventsAllTime) *
-                        100
-                      : 0
-                  }%`,
-                }}
-                initial={{ height: 0 }}
-                animate={{
-                  height: `${
-                    data.totalEventsAllTime > 0
-                      ? ((data.totalEventsAllTime - data.noiseFiltered) /
-                          data.totalEventsAllTime) *
-                        100
-                      : 0
-                  }%`,
-                }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              />
+            {/* Legend */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {[
+                {
+                  color: "bg-zinc-300 dark:bg-zinc-600",
+                  label: "Noise filtered",
+                  value: data.noiseFiltered,
+                  pct: data.noiseFilterRate,
+                },
+                {
+                  color: "bg-amber-400",
+                  label: "Merged messages",
+                  value: data.mergedTasks,
+                  pct: Math.round(
+                    (data.mergedTasks / data.totalEventsAllTime) * 100,
+                  ),
+                },
+                {
+                  color: "bg-indigo-500",
+                  label: "Tasks created",
+                  value: data.totalTasksEver,
+                  pct: Math.round(
+                    (data.totalTasksEver / data.totalEventsAllTime) * 100,
+                  ),
+                },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1.5">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${item.color}`}
+                  />
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    {item.label}
+                  </span>
+                  <span className="text-[11px] font-medium tabular-nums text-zinc-700 dark:text-zinc-200">
+                    {item.value.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                    ({item.pct}%)
+                  </span>
+                </div>
+              ))}
             </div>
-            <p className="text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
-              {(data.totalEventsAllTime - data.noiseFiltered).toLocaleString()}
-            </p>
-            <p className="text-[9px] text-zinc-400 dark:text-zinc-500">
-              Signal
-            </p>
-          </div>
-
-          <div className="pb-8 text-zinc-300 dark:text-zinc-700">→</div>
-
-          {/* Tasks bar */}
-          <div className="flex-1 text-center">
-            <div
-              className="mb-1 overflow-hidden rounded-lg bg-zinc-200 dark:bg-zinc-700"
-              style={{ height: 64 }}
-            >
-              <motion.div
-                className="w-full rounded-lg bg-indigo-500"
-                style={{
-                  height: `${
-                    data.totalEventsAllTime > 0
-                      ? (data.totalTasksEver / data.totalEventsAllTime) * 100
-                      : 0
-                  }%`,
-                }}
-                initial={{ height: 0 }}
-                animate={{
-                  height: `${
-                    data.totalEventsAllTime > 0
-                      ? (data.totalTasksEver / data.totalEventsAllTime) * 100
-                      : 0
-                  }%`,
-                }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              />
-            </div>
-            <p className="text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
-              {data.totalTasksEver.toLocaleString()}
-            </p>
-            <p className="text-[9px] text-zinc-400 dark:text-zinc-500">Tasks</p>
-          </div>
-        </div>
+          </>
+        ) : (
+          <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
+            No messages processed yet
+          </p>
+        )}
       </div>
 
       {/* Daily message volume sparkline */}
