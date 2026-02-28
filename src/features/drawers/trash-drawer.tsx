@@ -1,7 +1,7 @@
 "use client";
 
 import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
-import { PlatformDot } from "@/components/platform-icon";
+import { PlatformIcon } from "@/components/platform-icon";
 import { useToast } from "@/components/toast";
 import { useListKeyboardNav } from "@/features/keyboard/hooks/use-list-keyboard-nav";
 import { SourceTimeline } from "@/features/timeline/source-timeline";
@@ -122,9 +122,9 @@ function TrashedCard({
 
           {/* Row 2: meta */}
           <div className="flex items-center gap-2.5">
-            <div className="flex -space-x-1.5">
+            <div className="flex -space-x-1">
               {platforms.map((p) => (
-                <PlatformDot
+                <PlatformIcon
                   key={p}
                   platform={p as NodalTask["sourceEvents"][0]["platform"]}
                 />

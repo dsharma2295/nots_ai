@@ -1,6 +1,6 @@
 "use client";
 import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
-import { PlatformDot } from "@/components/platform-icon";
+import { PlatformIcon } from "@/components/platform-icon";
 import { useToast } from "@/components/toast";
 import {
   CreateNoteModal,
@@ -418,10 +418,9 @@ export function TaskCard({
         {/* Row 3: platforms + sources + intent + (chevron OR actions) */}
         <div className="flex items-center gap-2.5 overflow-hidden">
           {" "}
-          <div className="flex shrink-0 -space-x-1.5">
-            {" "}
+          <div className="flex shrink-0 -space-x-1">
             {platforms.map((p) => (
-              <PlatformDot
+              <PlatformIcon
                 key={p}
                 platform={p as NodalTask["sourceEvents"][0]["platform"]}
               />

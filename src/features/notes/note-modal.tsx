@@ -1,6 +1,6 @@
 "use client";
 
-import { PlatformDot } from "@/components/platform-icon";
+import { PlatformIcon } from "@/components/platform-icon";
 import type { SourceEvent } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { NotebookPen, Pencil, Trash2, X } from "lucide-react";
@@ -450,7 +450,7 @@ export function ViewNoteModal({
         {/* Linked source */}
         {note.sourceEvent && (
           <div className="mb-3 flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/40">
-            <PlatformDot
+            <PlatformIcon
               platform={
                 note.sourceEvent.platform as
                   | "SLACK"
@@ -613,7 +613,7 @@ export function NoteChips({
               className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white/60 px-2.5 py-1.5 text-left ring-1 ring-zinc-200/80 backdrop-blur-sm transition-colors duration-200 hover:shadow-sm hover:ring-zinc-300 dark:bg-white/[0.03] dark:ring-zinc-700/50 dark:hover:ring-zinc-600"
             >
               {note.sourceEvent && (
-                <PlatformDot
+                <PlatformIcon
                   platform={
                     note.sourceEvent.platform as
                       | "SLACK"

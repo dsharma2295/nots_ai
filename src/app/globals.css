@@ -153,3 +153,15 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+/* =============================================================
+   PlatformIcon — brand color via CSS custom properties.
+   Light: uses --platform-color-light
+   Dark:  uses --platform-color-dark
+   Set on the .platform-icon span, read by the child SVG.
+   ============================================================= */
+.platform-icon svg {
+  color: var(--platform-color-light);
+}
+.dark .platform-icon svg {
+  color: var(--platform-color-dark);
+}

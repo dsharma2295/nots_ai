@@ -1,4 +1,11 @@
 "use client";
+import {
+  AsanaSvg,
+  GmailSvg,
+  JiraSvg,
+  SlackSvg,
+  TrelloSvg,
+} from "@/components/platform-icon";
 import { useToast } from "@/components/toast";
 import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
 import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
@@ -49,106 +56,6 @@ import { SmartStats } from "./smart-stats";
 // viewBox 0 0 16 16 for Slack/Trello, 0 0 24 24 for others.
 // =============================================================
 
-function SlackIcon({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="currentColor"
-      className={className}
-      style={style}
-      aria-hidden
-    >
-      <path d="M3.362 10.11c0 .926-.756 1.681-1.681 1.681S0 11.036 0 10.111.756 8.43 1.68 8.43h1.682zm.846 0c0-.924.756-1.68 1.681-1.68s1.681.756 1.681 1.68v4.21c0 .924-.756 1.68-1.68 1.68a1.685 1.685 0 0 1-1.682-1.68zM5.89 3.362c-.926 0-1.682-.756-1.682-1.681S4.964 0 5.89 0s1.68.756 1.68 1.68v1.682zm0 .846c.924 0 1.68.756 1.68 1.681S6.814 7.57 5.89 7.57H1.68C.757 7.57 0 6.814 0 5.89c0-.926.756-1.682 1.68-1.682zm6.749 1.682c0-.926.755-1.682 1.68-1.682S16 4.964 16 5.889s-.756 1.681-1.68 1.681h-1.681zm-.848 0c0 .924-.755 1.68-1.68 1.68A1.685 1.685 0 0 1 8.43 5.89V1.68C8.43.757 9.186 0 10.11 0c.926 0 1.681.756 1.681 1.68zm-1.681 6.748c.926 0 1.682.756 1.682 1.681S11.036 16 10.11 16s-1.681-.756-1.681-1.68v-1.682h1.68zm0-.847c-.924 0-1.68-.755-1.68-1.68s.756-1.681 1.68-1.681h4.21c.924 0 1.68.756 1.68 1.68 0 .926-.756 1.681-1.68 1.681z" />
-    </svg>
-  );
-}
-
-function GmailIcon({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      style={style}
-      aria-hidden
-    >
-      <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.907 1.528-1.148C21.69 2.28 24 3.434 24 5.457z" />
-    </svg>
-  );
-}
-
-function JiraIcon({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      style={style}
-      aria-hidden
-    >
-      <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.004-1.005zm5.723-5.756H5.757a5.215 5.215 0 0 0 5.214 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.762a1.005 1.005 0 0 0-1.021-1.005zM23.013 0H11.455a5.215 5.215 0 0 0 5.214 5.215h2.129v2.057A5.215 5.215 0 0 0 24.019 12.49V1.005A1.001 1.001 0 0 0 23.013 0z" />
-    </svg>
-  );
-}
-
-function TrelloIcon({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="currentColor"
-      className={className}
-      style={style}
-      aria-hidden
-    >
-      <path d="M14.1 0H1.903C.852 0 .002.85 0 1.9v12.19A1.9 1.9 0 0 0 1.902 16h12.199A1.9 1.9 0 0 0 16 14.09V1.9A1.9 1.9 0 0 0 14.1 0zM7 11.367a.636.636 0 0 1-.64.633H3.593a.633.633 0 0 1-.63-.633V3.583c0-.348.281-.631.63-.633h2.765c.35.002.632.284.633.633zm6.052-3.5a.633.633 0 0 1-.64.633h-2.78A.636.636 0 0 1 9 7.867V3.583a.636.636 0 0 1 .633-.633h2.778c.35.002.631.285.631.633z" />
-    </svg>
-  );
-}
-
-function AsanaIcon({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      style={style}
-      aria-hidden
-    >
-      <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm0 19.5a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5zm-5.917-8.25a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5zm11.834 0a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5z" />
-    </svg>
-  );
-}
-
 // Brand colors — active state icon color, tinted chip bg
 const PLATFORM_CONFIG: Record<
   string,
@@ -166,7 +73,7 @@ const PLATFORM_CONFIG: Record<
 > = {
   SLACK: {
     label: "Slack",
-    Icon: SlackIcon,
+    Icon: SlackSvg,
     brand: "#4A154B",
     chipBg: "rgba(74,21,75,0.08)",
     chipBgDark: "rgba(155,89,165,0.12)",
@@ -174,7 +81,7 @@ const PLATFORM_CONFIG: Record<
   },
   GMAIL: {
     label: "Gmail",
-    Icon: GmailIcon,
+    Icon: GmailSvg,
     brand: "#EA4335",
     chipBg: "rgba(234,67,53,0.08)",
     chipBgDark: "rgba(234,67,53,0.12)",
@@ -182,7 +89,7 @@ const PLATFORM_CONFIG: Record<
   },
   JIRA: {
     label: "Jira",
-    Icon: JiraIcon,
+    Icon: JiraSvg,
     brand: "#0052CC",
     chipBg: "rgba(0,82,204,0.08)",
     chipBgDark: "rgba(76,154,255,0.12)",
@@ -190,7 +97,7 @@ const PLATFORM_CONFIG: Record<
   },
   TRELLO: {
     label: "Trello",
-    Icon: TrelloIcon,
+    Icon: TrelloSvg,
     brand: "#0079BF",
     chipBg: "rgba(0,121,191,0.08)",
     chipBgDark: "rgba(0,194,224,0.12)",
@@ -198,7 +105,7 @@ const PLATFORM_CONFIG: Record<
   },
   ASANA: {
     label: "Asana",
-    Icon: AsanaIcon,
+    Icon: AsanaSvg,
     brand: "#F06A6A",
     chipBg: "rgba(240,106,106,0.08)",
     chipBgDark: "rgba(240,106,106,0.12)",
