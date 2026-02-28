@@ -15,24 +15,124 @@ import {
 import { useState } from "react";
 
 // =============================================================
-// LOADING STATE — unchanged
+// LOADING SKELETON
+// Mirrors the exact layout of AIResponseCard so when the real
+// response arrives there is zero layout shift — the skeleton
+// occupies the same space as the content it becomes.
+//
+// Structure matches AIResponseCard exactly:
+//   accent bar → header row → 3 text lines → 2 action buttons
+//
+// The shimmer travels left→right across each bar, simulating
+// content forming rather than a generic spinner waiting.
 // =============================================================
+
+// Shimmer bar — reusable, width drives visual weight hierarchy
+function ShimmerBar({
+  width,
+  height = "h-3",
+  delay = 0,
+  rounded = "rounded",
+}: {
+  width: string;
+  height?: string;
+  delay?: number;
+  rounded?: string;
+}) {
+  return (
+    <div
+      className={`relative overflow-hidden ${height} ${width} ${rounded} bg-indigo-500/8 dark:bg-indigo-500/10`}
+    >
+      <motion.div
+        className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-indigo-500/15 to-transparent dark:via-indigo-400/12"
+        animate={{ x: ["-100%", "200%"] }}
+        transition={{
+          duration: 1.6,
+          ease: "easeInOut" as const,
+          repeat: Infinity,
+          delay,
+        }}
+      />
+    </div>
+  );
+}
 
 export function AIResponseLoading() {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 dark:bg-indigo-500/3">
-      {/* Shimmer bar */}
-      <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden">
-        <div className="h-full w-1/3 animate-[aiShimmer_1.5s_ease-in-out_infinite] rounded-full bg-indigo-500/40" />
-      </div>
+    <div className="relative overflow-hidden rounded-xl border border-indigo-500/20 bg-white shadow-lg shadow-indigo-500/5 dark:bg-[#0d0d1a] dark:shadow-indigo-500/2">
+      {/* Accent bar — identical to real card, but animated */}
+      <motion.div
+        className="absolute inset-x-0 top-0 h-0.5"
+        animate={{
+          background: [
+            "linear-gradient(to right, #6366f1, #8b5cf6, #6366f1)",
+            "linear-gradient(to right, #8b5cf6, #6366f1, #8b5cf6)",
+            "linear-gradient(to right, #6366f1, #8b5cf6, #6366f1)",
+          ],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut" as const,
+        }}
+      />
 
-      <div className="flex items-start gap-3">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 dark:bg-indigo-500/15">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500 dark:text-indigo-400" />
+      <div className="p-4">
+        {/* Header row — matches real card: icon + label + X placeholder */}
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* Icon placeholder — same size as real Sparkles icon container */}
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500/10 dark:bg-indigo-500/15">
+              <motion.div
+                animate={{ opacity: [0.4, 0.9, 0.4] }}
+                transition={{
+                  duration: 1.4,
+                  repeat: Infinity,
+                  ease: "easeInOut" as const,
+                }}
+              >
+                <Sparkles className="h-3 w-3 text-indigo-500/60 dark:text-indigo-400/50" />
+              </motion.div>
+            </div>
+            {/* "AI Response" label placeholder */}
+            <ShimmerBar
+              width="w-20"
+              height="h-2.5"
+              rounded="rounded"
+              delay={0}
+            />
+          </div>
+          {/* X button placeholder — same dimensions, non-interactive */}
+          <div className="h-6 w-6 rounded-md bg-zinc-100/60 dark:bg-zinc-800/40" />
         </div>
-        <div className="flex-1 space-y-2 pt-1">
-          <div className="h-3 w-3/4 animate-pulse rounded bg-indigo-500/10" />
-          <div className="h-3 w-1/2 animate-pulse rounded bg-indigo-500/10" />
+
+        {/* Text content area — 3 lines at realistic widths */}
+        {/* Line widths are deliberately varied to look like real prose */}
+        <div className="mb-4 space-y-2.5">
+          <ShimmerBar width="w-full" height="h-3" delay={0.1} />
+          <ShimmerBar width="w-[88%]" height="h-3" delay={0.2} />
+          <ShimmerBar width="w-[72%]" height="h-3" delay={0.3} />
+          {/* Short gap then a second paragraph */}
+          <div className="h-1" />
+          <ShimmerBar width="w-full" height="h-3" delay={0.35} />
+          <ShimmerBar width="w-[60%]" height="h-3" delay={0.4} />
+        </div>
+
+        {/* Action buttons area — 2 pill-shaped button skeletons */}
+        {/* Border-top matches real card divider */}
+        <div className="flex gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/60">
+          <ShimmerBar
+            width="w-28"
+            height="h-7"
+            rounded="rounded-lg"
+            delay={0.5}
+          />
+          <ShimmerBar
+            width="w-24"
+            height="h-7"
+            rounded="rounded-lg"
+            delay={0.6}
+          />
         </div>
       </div>
     </div>

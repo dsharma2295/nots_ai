@@ -1140,21 +1140,37 @@ export function SignalStream({
           )}
         </AnimatePresence>
       </motion.div>{" "}
-      {/* AI Response */}
+      {/* AI Response — AnimatePresence ensures skeleton fades out
+          and real card fades in with no layout jump */}
       {(aiLoading || aiResponse) && (
         <div className="mb-5">
-          {aiLoading ? (
-            <AIResponseLoading />
-          ) : aiResponse ? (
-            <AIResponseCard
-              response={aiResponse}
-              onDismiss={() => {
-                setAiResponse(null);
-                setFilters((f) => ({ ...f, search: "" }));
-              }}
-              onExecuteAction={executeAiAction}
-            />
-          ) : null}
+          <AnimatePresence mode="wait">
+            {aiLoading ? (
+              <motion.div
+                key="ai-skeleton"
+                exit={{ opacity: 0, scale: 0.99 }}
+                transition={{ duration: 0.15 }}
+              >
+                <AIResponseLoading />
+              </motion.div>
+            ) : aiResponse ? (
+              <motion.div
+                key="ai-response"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.18 }}
+              >
+                <AIResponseCard
+                  response={aiResponse}
+                  onDismiss={() => {
+                    setAiResponse(null);
+                    setFilters((f) => ({ ...f, search: "" }));
+                  }}
+                  onExecuteAction={executeAiAction}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
       )}
       {/* Filters */}
