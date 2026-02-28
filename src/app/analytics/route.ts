@@ -46,7 +46,6 @@ export async function GET() {
       totalEvents,
       recentEvents,
       totalTasksEver,
-      mergedTasksCount, // tasks with >1 source event = were merged
     ] = await Promise.all([
       // Active tasks (not done/trashed)
       db.nodalTask.findMany({
@@ -77,7 +76,7 @@ export async function GET() {
       db.nodalTask.groupBy({
         by: ["priority"],
         where: { status: { notIn: ["DONE", "TRASHED"] } },
-        _count: { priority: true },
+        _count: true,
       }),
       // Needs review
       db.nodalTask.count({
@@ -100,11 +99,6 @@ export async function GET() {
       }),
       // Total tasks ever created
       db.nodalTask.count(),
-      // Tasks with multiple source links = were merged at some point
-      db.nodalTask.count({
-        where: { sourceLinks: { some: {} } },
-        // proxy: tasks that have more than the initial source link
-      }),
     ]);
 
     // ── SIGNAL TAB COMPUTATION ────────────────────────────────
@@ -146,7 +140,7 @@ export async function GET() {
     // Priority breakdown
     const priorityMap: Record<string, number> = {};
     for (const row of tasksByPriority) {
-      priorityMap[row.priority] = row._count.priority;
+      priorityMap[row.priority] = row._count;
     }
 
     // Daily arrivals last 14 days

@@ -1,31 +1,65 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { BookmarksDrawers } from "@/components/bookmarks-drawers";
 import { BookmarkedStream } from "@/features/bookmarks/bookmarked-stream";
 import db from "@/lib/db";
 import type { NodalTask } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
+const INCLUDE = {
+  sourceLinks: {
+    where: { dismissed: false },
+    include: { event: { include: { attachments: true } } },
+    orderBy: { createdAt: "desc" as const },
+  },
+  _count: { select: { notes: true } },
+} as const;
+
 async function getBookmarkedTasks(): Promise<NodalTask[]> {
   const tasks = await db.nodalTask.findMany({
     where: { bookmarked: true },
     orderBy: { createdAt: "desc" },
     take: 100,
-    include: {
-      sourceLinks: {
-        where: { dismissed: false },
-        include: {
-          event: { include: { attachments: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      _count: {
-        select: { notes: true },
-      },
-    },
+    include: INCLUDE,
   });
+  return tasks.map(mapTaskRaw);
+}
 
-  return tasks.map((t) => ({
+// Shared mapping helper — avoids duplicating the map() logic
+function mapTaskRaw(t: {
+  id: string;
+  title: string;
+  intent: string | null;
+  priority: string;
+  status: string;
+  confidence: number;
+  needsReview: boolean;
+  tier: number;
+  bookmarked: boolean;
+  seenEventCount: number;
+  hasBeenOpened: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  trashedAt: Date | null;
+  _count: { notes: number };
+  sourceLinks: Array<{
+    event: {
+      id: string;
+      platform: string;
+      rawContent: string;
+      deepLink: string;
+      sender: string | null;
+      timestamp: Date;
+      attachments: Array<{
+        name: string;
+        url: string;
+        mimeType: string | null;
+      }>;
+    };
+  }>;
+}): NodalTask {
+  return {
     id: t.id,
     title: t.title,
     intent: t.intent ?? "unknown",
@@ -54,11 +88,35 @@ async function getBookmarkedTasks(): Promise<NodalTask[]> {
         mimeType: a.mimeType ?? undefined,
       })),
     })),
-  }));
+  };
+}
+
+async function getResolvedTasks(): Promise<NodalTask[]> {
+  const tasks = await db.nodalTask.findMany({
+    where: { status: "DONE" },
+    orderBy: { updatedAt: "desc" },
+    take: 50,
+    include: INCLUDE,
+  });
+  return tasks.map(mapTaskRaw);
+}
+
+async function getTrashedTasks(): Promise<NodalTask[]> {
+  const tasks = await db.nodalTask.findMany({
+    where: { status: "TRASHED" },
+    orderBy: { trashedAt: "desc" },
+    take: 50,
+    include: INCLUDE,
+  });
+  return tasks.map(mapTaskRaw);
 }
 
 export default async function BookmarksPage() {
-  const tasks = await getBookmarkedTasks();
+  const [tasks, resolvedTasks, trashedTasks] = await Promise.all([
+    getBookmarkedTasks(),
+    getResolvedTasks(),
+    getTrashedTasks(),
+  ]);
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-[#0a0a0f]">
@@ -82,6 +140,12 @@ export default async function BookmarksPage() {
           <BookmarkedStream tasks={tasks} />
         </div>
       </main>
+
+      {/* Drawers — listens for sidebar events, receives server-fetched data */}
+      <BookmarksDrawers
+        resolvedTasks={resolvedTasks}
+        trashedTasks={trashedTasks}
+      />
     </div>
   );
 }
