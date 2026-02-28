@@ -8,6 +8,7 @@ import {
   TrelloSvg,
 } from "@/components/platform-icon";
 import { useToast } from "@/components/toast";
+import { useRealtimeData } from "@/hooks/use-realtime-data";
 import { AnimatePresence, motion } from "framer-motion";
 import { Info, Plug, Settings, Shield, Sun, X, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -511,15 +512,6 @@ function IntegrationsSection() {
 }
 
 function AboutSection({ stats }: { stats: PipelineStats | null }) {
-  const STACK = [
-    { label: "Framework", value: "Next.js 16" },
-    { label: "AI", value: "Gemini Flash + Pro" },
-    { label: "Vectors", value: "pgvector" },
-    { label: "Database", value: "Neon PostgreSQL" },
-    { label: "Jobs", value: "Inngest" },
-    { label: "Realtime", value: "Supabase" },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Pipeline stats */}
@@ -571,28 +563,6 @@ function AboutSection({ stats }: { stats: PipelineStats | null }) {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Tech stack */}
-      <div>
-        <label className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-          Stack
-        </label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {STACK.map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
-            >
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                {item.label}
-              </span>
-              <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-200">
-                {item.value}
-              </span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Keyboard shortcuts */}
@@ -651,16 +621,21 @@ export function SettingsModal({
   open: boolean;
 
   onClose: () => void;
-}) {
+}): React.ReactElement | null {
   const [activeSection, setActiveSection] = useState<SectionId>("general");
   const [prefs, setPrefs] = useState<UserPreferences>(DEFAULT_PREFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [stats, setStats] = useState<PipelineStats | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
 
-  // Load preferences when modal opens
+  // Pipeline stats for About section — auto-refetches on task events
+  const { data: statsData } = useRealtimeData<PipelineStats>(
+    () => fetch("/api/settings", { method: "PUT" }).then((r) => r.json()),
+    { enabled: open && activeSection === "about", debounceMs: 600 },
+  );
+
+  // Load preferences when modal opens (prefs don't need realtime — user edits them)
   useEffect(() => {
     if (!open) return;
     setLoading(true);
@@ -671,12 +646,6 @@ export function SettingsModal({
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-
-    // Load pipeline stats for About section
-    fetch("/api/settings", { method: "PUT" })
-      .then((r) => r.json())
-      .then((data) => setStats(data))
-      .catch(() => {});
   }, [open]);
 
   // Close on Escape
@@ -843,7 +812,7 @@ export function SettingsModal({
                         <IntegrationsSection />
                       )}
                       {activeSection === "about" && (
-                        <AboutSection stats={stats} />
+                        <AboutSection stats={statsData} />
                       )}
                     </motion.div>
                   </AnimatePresence>

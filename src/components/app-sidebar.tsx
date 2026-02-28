@@ -1,8 +1,16 @@
 "use client";
 
+import { AnalyticsModal } from "@/components/analytics-modal";
 import { SettingsModal } from "@/components/settings-modal";
 import { motion } from "framer-motion";
-import { Archive, Bookmark, LayoutGrid, Settings, Trash2 } from "lucide-react";
+import {
+  Archive,
+  BarChart2,
+  Bookmark,
+  LayoutGrid,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -77,7 +85,7 @@ function SidebarItem({
     >
       <Icon className="h-4 w-4" />
       {badge !== undefined && badge > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold leading-none text-white">
+        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold leading-none text-white">
           {badge > 99 ? "99+" : badge}
         </span>
       )}
@@ -130,6 +138,7 @@ export function AppSidebar({
   activeView?: "dashboard" | "bookmarks";
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
 
   function openResolved() {
     window.dispatchEvent(new CustomEvent("nots:openResolved"));
@@ -167,8 +176,13 @@ export function AppSidebar({
           <SidebarItem icon={Trash2} label="Trash" onClick={openTrash} />
         </div>
 
-        {/* Bottom — settings */}
+        {/* Bottom — analytics + settings */}
         <div className="flex flex-col items-center gap-1.5">
+          <SidebarItem
+            icon={BarChart2}
+            label="Analytics"
+            onClick={() => setAnalyticsOpen(true)}
+          />
           <SidebarItem
             icon={Settings}
             label="Settings"
@@ -180,6 +194,10 @@ export function AppSidebar({
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+      <AnalyticsModal
+        open={analyticsOpen}
+        onClose={() => setAnalyticsOpen(false)}
       />
     </>
   );

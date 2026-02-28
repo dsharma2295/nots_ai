@@ -1,8 +1,9 @@
+import { AppSidebar } from "@/components/app-sidebar";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { BookmarkedStream } from "@/features/bookmarks/bookmarked-stream";
-import { ThemeToggle } from "@/components/theme-toggle";
 import db from "@/lib/db";
-import type { NodalTask } from "@/types";
-import Link from "next/link";
+import type { NodalTask } from "@/lib/mock-data";
+
 export const dynamic = "force-dynamic";
 
 async function getBookmarkedTasks(): Promise<NodalTask[]> {
@@ -60,30 +61,27 @@ export default async function BookmarksPage() {
   const tasks = await getBookmarkedTasks();
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-6 transition-colors duration-300 dark:bg-[#0a0a0f] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        {" "}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="text-[12px] text-zinc-400 transition-colors hover:text-indigo-500 dark:text-zinc-600 dark:hover:text-indigo-400"
-            >
-              &larr; Dashboard
-            </Link>
-            <div>
-              <h1 className="text-base font-semibold text-zinc-900 dark:text-white">
+    <div className="flex min-h-screen bg-zinc-50 dark:bg-[#0a0a0f]">
+      <AppSidebar activeView="bookmarks" />
+
+      <main className="flex-1 pl-14">
+        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
+          {/* Header — matches dashboard header style */}
+          <div className="mb-5 flex items-center justify-between">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-white">
                 Bookmarks
-              </h1>
-              <p className="text-[12px] text-zinc-500 dark:text-zinc-600">
-                {tasks.length} bookmarked task{tasks.length !== 1 ? "s" : ""}
-              </p>
+              </span>
+              <span className="text-[13px] text-zinc-400 dark:text-zinc-500">
+                {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+              </span>
             </div>
+            <AutoRefresh intervalSeconds={15} />
           </div>
-          <ThemeToggle />
+
+          <BookmarkedStream tasks={tasks} />
         </div>
-        <BookmarkedStream tasks={tasks} />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

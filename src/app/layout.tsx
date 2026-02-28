@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/toast";
+import { RealtimeProvider } from "@/lib/realtime-provider";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
@@ -38,7 +39,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <ThemeProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <RealtimeProvider intervalSeconds={60}>
+            <ToastProvider>{children}</ToastProvider>
+          </RealtimeProvider>
           {/*
             Sonner Toaster — styled to match the zinc/dark palette.
             Sits outside ToastProvider intentionally: it renders
