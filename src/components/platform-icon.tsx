@@ -1,6 +1,6 @@
 "use client";
 
-import type { Platform } from "@/lib/mock-data";
+import type { Platform } from "@/types";
 import { Pencil } from "lucide-react";
 
 // =============================================================

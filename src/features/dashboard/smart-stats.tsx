@@ -1,6 +1,6 @@
 "use client";
 
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import {
   AlertTriangle,
   Archive,

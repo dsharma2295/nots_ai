@@ -4,8 +4,8 @@ import type {
   ActivityEvent,
   ConnectionState,
   PulseState,
-} from "@/lib/use-realtime-refresh";
-import { useRealtimeRefresh } from "@/lib/use-realtime-refresh";
+} from "@/hooks/use-realtime-refresh";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { createContext, useContext, type ReactNode } from "react";
 
 interface RealtimeContextValue {

@@ -20,7 +20,7 @@
 //   rather than trying to patch state client-side (simpler + correct).
 // =============================================================
 
-import { useRealtimeContext } from "@/lib/realtime-provider";
+import { useRealtimeContext } from "@/components/providers/realtime-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseRealtimeDataOptions {

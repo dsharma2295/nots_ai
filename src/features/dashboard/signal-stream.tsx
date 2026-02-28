@@ -6,6 +6,7 @@ import {
   SlackSvg,
   TrelloSvg,
 } from "@/components/platform-icon";
+import { useRealtimeContext } from "@/components/providers/realtime-provider";
 import { useToast } from "@/components/toast";
 import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
 import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
@@ -14,8 +15,7 @@ import { useKeyboardNav } from "@/features/keyboard/hooks/use-keyboard-nav";
 import { ShortcutOverlay } from "@/features/keyboard/shortcut-overlay";
 import { TaskCardSkeleton } from "@/features/task-card/task-card-skeleton";
 import { useCmdK } from "@/hooks";
-import type { Platform } from "@/lib/mock-data";
-import { useRealtimeContext } from "@/lib/realtime-provider";
+import type { Platform } from "@/types";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import type { NodalTask } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";

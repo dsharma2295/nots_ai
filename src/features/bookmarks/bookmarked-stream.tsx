@@ -13,7 +13,7 @@ import {
 import { SourceTimeline } from "@/features/timeline/source-timeline";
 import { useCmdK, useLiveRelativeTime } from "@/hooks";
 import { useNotes } from "@/hooks/use-notes";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
 import {
   Bookmark,

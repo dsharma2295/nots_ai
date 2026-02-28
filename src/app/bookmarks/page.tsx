@@ -3,7 +3,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { BookmarksDrawers } from "@/components/bookmarks-drawers";
 import { BookmarkedStream } from "@/features/bookmarks/bookmarked-stream";
 import db from "@/lib/db";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 
 export const dynamic = "force-dynamic";
 

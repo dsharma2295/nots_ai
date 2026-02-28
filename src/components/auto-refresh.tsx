@@ -5,7 +5,7 @@
 // mean multiple channels for the same event from the same client.
 // RealtimeProvider handles the single subscription and router.refresh().
 
-import { useRealtimeContext } from "@/lib/realtime-provider";
+import { useRealtimeContext } from "@/components/providers/realtime-provider";
 
 export function AutoRefresh({
   intervalSeconds: _intervalSeconds = 60,

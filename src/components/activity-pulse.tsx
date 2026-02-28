@@ -1,11 +1,11 @@
 "use client";
 
-import { useRealtimeContext } from "@/lib/realtime-provider";
+import { useRealtimeContext } from "@/components/providers/realtime-provider";
 import type {
   ActivityEvent,
   ConnectionState,
   PulseState,
-} from "@/lib/use-realtime-refresh";
+} from "@/hooks/use-realtime-refresh";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";

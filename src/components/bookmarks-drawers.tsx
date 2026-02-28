@@ -5,7 +5,7 @@
 
 import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
 import { TrashDrawer } from "@/features/drawers/trash-drawer";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 import { useEffect, useState } from "react";
 
 export function BookmarksDrawers({

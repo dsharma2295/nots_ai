@@ -2,7 +2,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { SignalStream } from "@/features/dashboard/signal-stream";
 import db from "@/lib/db";
-import type { NodalTask } from "@/lib/mock-data";
+import type { NodalTask } from "@/types";
 
 export const dynamic = "force-dynamic";
 
