@@ -6,6 +6,7 @@ import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
 import { TrashDrawer } from "@/features/drawers/trash-drawer";
 import { useKeyboardNav } from "@/features/keyboard/hooks/use-keyboard-nav";
 import { ShortcutOverlay } from "@/features/keyboard/shortcut-overlay";
+import { TaskCard } from "@/features/task-card/task-card";
 import { TaskCardSkeleton } from "@/features/task-card/task-card-skeleton";
 import { useCmdK } from "@/hooks";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
@@ -16,6 +17,7 @@ import {
   CalendarDays,
   Flame,
   Inbox,
+  Layers,
   Minus,
   Search,
   SlidersHorizontal,
@@ -445,6 +447,7 @@ export function SignalStream({
   });
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
 
@@ -1042,6 +1045,20 @@ export function SignalStream({
           ✕ Clear
         </button>
       )}
+
+      {/* Focus mode toggle — always visible at far right */}
+      <button
+        onClick={() => setFocusMode((prev) => !prev)}
+        className={`ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all active:scale-[0.97] ${
+          focusMode
+            ? "bg-indigo-500 text-white shadow-sm"
+            : "text-zinc-400 hover:text-zinc-600 hover:ring-1 hover:ring-zinc-200 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:ring-zinc-700"
+        }`}
+        title="Focus mode — single prioritised list"
+      >
+        <Layers className="h-3 w-3" />
+        Focus
+      </button>
     </div>
   );
 
@@ -1049,9 +1066,11 @@ export function SignalStream({
     <div>
       <SmartStats
         tasks={localTasks}
-        trashedCount={localTrashedTasks.length}
-        onOpenResolved={() => setDrawerOpen(true)}
-        onOpenTrash={() => setTrashOpen(true)}
+        onQuickAdd={() => {
+          // Focus the search bar and prefill with the AI create-task shorthand
+          setFilters((f) => ({ ...f, search: "/" }));
+          setTimeout(() => searchRef.current?.focus(), 50);
+        }}
       />{" "}
       {/* Search bar */}
       <motion.div
@@ -1218,6 +1237,20 @@ export function SignalStream({
               >
                 Reset filters
               </button>
+            </div>
+          ) : focusMode ? (
+            // Focus mode — single flat list sorted by priority then recency
+            <div className="space-y-2">
+              {[...urgent, ...active, ...low].map((task, i) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={i}
+                  onTaskActionExec={executeTaskAction}
+                  isNewArrival={recentArrivalIds.has(task.id)}
+                  isKeyboardFocused={focusedCardId === task.id}
+                />
+              ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-3">

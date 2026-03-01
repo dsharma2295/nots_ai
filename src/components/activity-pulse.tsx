@@ -7,7 +7,7 @@ import type {
   PulseState,
 } from "@/hooks/use-realtime-refresh";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, WifiOff } from "lucide-react";
+import { Bell, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // =============================================================
@@ -264,32 +264,46 @@ export function ActivityPulse({
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className={`flex items-center gap-2 rounded-full px-2.5 py-1 ring-1 transition-all duration-300 ${colorScheme.bg} ${colorScheme.ring}`}
+        className={`relative flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${
+          dropdownOpen
+            ? "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+        }`}
+        title="Recent activity"
       >
-        <StatusDot pulse={pulse} connection={connection} />
+        {/* Bell icon — animates when pulse is active */}
+        <motion.div
+          animate={
+            pulse === "processing"
+              ? { rotate: [0, -15, 15, -10, 10, 0] }
+              : pulse === "updated"
+                ? { scale: [1, 1.2, 1] }
+                : {}
+          }
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+        >
+          {connection === "disconnected" ? (
+            <WifiOff className="h-4 w-4 text-red-400" />
+          ) : (
+            <Bell className="h-4 w-4" />
+          )}
+        </motion.div>
 
-        <AnimatePresence mode="wait" initial={false}>
+        {/* Unread badge — shows count of unread events */}
+        {history.length > 0 && (
           <motion.span
-            key={labelText}
-            initial={{ opacity: 0, y: 6, filter: "blur(2px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -6, filter: "blur(2px)" }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className={`text-[11px] font-medium whitespace-nowrap ${colorScheme.text}`}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-bold leading-none text-white"
           >
-            {labelText}
+            {history.length > 9 ? "9+" : history.length}
           </motion.span>
-        </AnimatePresence>
+        )}
 
-        {connection === "disconnected" ? (
-          <WifiOff className={`h-3 w-3 ${colorScheme.text}`} />
-        ) : history.length > 0 ? (
-          <ChevronDown
-            className={`h-3 w-3 transition-transform duration-200 ${colorScheme.text} ${
-              dropdownOpen ? "rotate-180" : ""
-            }`}
-          />
-        ) : null}
+        {/* Processing pulse ring */}
+        {pulse === "processing" && (
+          <span className="absolute inset-0 rounded-lg ring-2 ring-indigo-400/50 dark:ring-indigo-500/40 animate-ping" />
+        )}
       </button>
 
       <ActivityDropdown
