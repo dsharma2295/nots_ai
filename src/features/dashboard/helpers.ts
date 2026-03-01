@@ -113,7 +113,12 @@ export interface Filters {
   intentGroup: IntentGroup;
   search: string;
   selectedDate: string | null;
-  // Quick date range filter — replaces calendar
+  // Date filter — quick range or specific calendar date
+  dateFilter:
+    | { type: "range"; range: "today" | "week" | "month" }
+    | { type: "date"; date: string }
+    | null;
+  // Keep dateRange for backward compat
   dateRange: "today" | "week" | "month" | null;
 }
 

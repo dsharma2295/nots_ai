@@ -1,5 +1,6 @@
 "use client";
 import { useRealtimeContext } from "@/components/providers/realtime-provider";
+import { QuickAddModal } from "@/components/quick-add-modal";
 import { useToast } from "@/components/toast";
 import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
 import { ResolvedDrawer } from "@/features/drawers/resolved-drawer";
@@ -253,6 +254,238 @@ const TIER_OPTIONS_FILTER = [
   { tier: 0, label: "None", badge: "" },
 ];
 
+// =============================================================
+// DATE DROPDOWN — quick presets + inline mini-calendar
+// =============================================================
+
+type DateFilter =
+  | { type: "range"; range: "today" | "week" | "month" }
+  | { type: "date"; date: string }
+  | null;
+
+function DateDropdown({
+  value,
+  onChange,
+}: {
+  value: DateFilter;
+  onChange: (v: DateFilter) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [viewDate, setViewDate] = useState(() => new Date());
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const label = (() => {
+    if (!value) return "Date";
+    if (value.type === "range") {
+      return value.range === "today"
+        ? "Today"
+        : value.range === "week"
+          ? "This week"
+          : "This month";
+    }
+    return new Date(value.date + "T12:00:00").toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  })();
+
+  const isActive = value !== null;
+
+  // Calendar helpers
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthName = viewDate.toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  function dateStr(day: number) {
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  const days: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium transition-all active:scale-[0.97] ${
+          isActive
+            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+            : "text-zinc-400 ring-1 ring-zinc-200 hover:text-zinc-600 hover:ring-zinc-300 dark:text-zinc-500 dark:ring-zinc-700 dark:hover:text-zinc-300"
+        }`}
+      >
+        <CalendarDays className="h-3 w-3" />
+        {label}
+        <motion.svg
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.15 }}
+          className="h-3 w-3 opacity-60"
+          viewBox="0 0 16 16"
+          fill="none"
+        >
+          <path
+            d="M4 6l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+          />
+        </motion.svg>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.14, ease: "easeOut" as const }}
+            className="absolute left-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            {/* Quick presets */}
+            <div className="p-1.5">
+              {(["today", "week", "month"] as const).map((range) => {
+                const rangeLabel =
+                  range === "today"
+                    ? "Today"
+                    : range === "week"
+                      ? "This week"
+                      : "This month";
+                const isSelected =
+                  value?.type === "range" && value.range === range;
+                return (
+                  <button
+                    key={range}
+                    onClick={() => {
+                      onChange(isSelected ? null : { type: "range", range });
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] transition-colors ${
+                      isSelected
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                        : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+                    }`}
+                  >
+                    {rangeLabel}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mx-3 h-px bg-zinc-100 dark:bg-zinc-800" />
+
+            {/* Mini calendar */}
+            <div className="p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <button
+                  onClick={() => setViewDate(new Date(year, month - 1, 1))}
+                  className="flex h-5 w-5 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none">
+                    <path
+                      d="M10 4L6 8l4 4"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+                <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">
+                  {monthName}
+                </span>
+                <button
+                  onClick={() => setViewDate(new Date(year, month + 1, 1))}
+                  className="flex h-5 w-5 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none">
+                    <path
+                      d="M6 4l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="mb-1 grid grid-cols-7 text-center">
+                {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                  <span
+                    key={i}
+                    className="text-[9px] font-medium text-zinc-400"
+                  >
+                    {d}
+                  </span>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-px">
+                {days.map((day, i) => {
+                  if (!day) return <span key={i} />;
+                  const ds = dateStr(day);
+                  const isToday = ds === todayStr;
+                  const isSelected =
+                    value?.type === "date" && value.date === ds;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        onChange(
+                          isSelected ? null : { type: "date", date: ds },
+                        );
+                        setOpen(false);
+                      }}
+                      className={`flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-medium transition-all ${
+                        isSelected
+                          ? "bg-indigo-500 text-white"
+                          : isToday
+                            ? "bg-zinc-100 font-bold text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                            : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {isActive && (
+              <>
+                <div className="mx-3 h-px bg-zinc-100 dark:bg-zinc-800" />
+                <div className="p-1.5">
+                  <button
+                    onClick={() => {
+                      onChange(null);
+                      setOpen(false);
+                    }}
+                    className="w-full rounded-lg px-2.5 py-1.5 text-left text-[11px] text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                  >
+                    Clear date filter
+                  </button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function TierDropdown({
   selected,
   onChange,
@@ -444,9 +677,11 @@ export function SignalStream({
     search: "",
     selectedDate: null,
     dateRange: null,
+    dateFilter: null,
   });
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -813,7 +1048,7 @@ export function SignalStream({
         )
           return false;
       }
-      if (filters.dateRange) {
+      if (filters.dateFilter) {
         const now = new Date();
         const taskDate = new Date(t.updatedAt);
         const startOfToday = new Date(
@@ -821,16 +1056,21 @@ export function SignalStream({
           now.getMonth(),
           now.getDate(),
         );
-        if (filters.dateRange === "today") {
-          if (taskDate < startOfToday) return false;
-        } else if (filters.dateRange === "week") {
-          const weekAgo = new Date(startOfToday);
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          if (taskDate < weekAgo) return false;
-        } else if (filters.dateRange === "month") {
-          const monthAgo = new Date(startOfToday);
-          monthAgo.setMonth(monthAgo.getMonth() - 1);
-          if (taskDate < monthAgo) return false;
+        if (filters.dateFilter.type === "range") {
+          if (filters.dateFilter.range === "today") {
+            if (taskDate < startOfToday) return false;
+          } else if (filters.dateFilter.range === "week") {
+            const weekAgo = new Date(startOfToday);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            if (taskDate < weekAgo) return false;
+          } else if (filters.dateFilter.range === "month") {
+            const monthAgo = new Date(startOfToday);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            if (taskDate < monthAgo) return false;
+          }
+        } else if (filters.dateFilter.type === "date") {
+          const ds = taskDate.toISOString().slice(0, 10);
+          if (ds !== filters.dateFilter.date) return false;
         }
       }
       return true;
@@ -973,35 +1213,12 @@ export function SignalStream({
         }
       />
 
-      {/* Date range quick pills */}
+      {/* Date dropdown with mini-calendar */}
       <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-      <div className="flex items-center gap-1">
-        {(
-          [
-            { id: "today", label: "Today" },
-            { id: "week", label: "This week" },
-            { id: "month", label: "This month" },
-          ] as const
-        ).map((opt) => (
-          <button
-            key={opt.id}
-            onClick={() =>
-              setFilters((f) => ({
-                ...f,
-                dateRange: f.dateRange === opt.id ? null : opt.id,
-              }))
-            }
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-150 active:scale-[0.97] ${
-              filters.dateRange === opt.id
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                : "text-zinc-400 hover:text-zinc-600 hover:ring-1 hover:ring-zinc-200 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:ring-zinc-700"
-            }`}
-          >
-            {opt.id === "today" && <CalendarDays className="h-3 w-3" />}
-            {opt.label}
-          </button>
-        ))}
-      </div>
+      <DateDropdown
+        value={filters.dateFilter}
+        onChange={(v) => setFilters((f) => ({ ...f, dateFilter: v }))}
+      />
 
       {/* Review badge */}
       {reviewCount > 0 && (
@@ -1027,7 +1244,7 @@ export function SignalStream({
       {(filters.spotlightPlatforms.size > 0 ||
         filters.intentGroup !== "all" ||
         filters.selectedTiers.size > 0 ||
-        filters.dateRange !== null ||
+        filters.dateFilter !== null ||
         filters.showReviewOnly) && (
         <button
           onClick={() =>
@@ -1036,6 +1253,7 @@ export function SignalStream({
               spotlightPlatforms: new Set(),
               intentGroup: "all",
               selectedTiers: new Set(),
+              dateFilter: null,
               dateRange: null,
               showReviewOnly: false,
             }))
@@ -1064,14 +1282,7 @@ export function SignalStream({
 
   return (
     <div>
-      <SmartStats
-        tasks={localTasks}
-        onQuickAdd={() => {
-          // Focus the search bar and prefill with the AI create-task shorthand
-          setFilters((f) => ({ ...f, search: "/" }));
-          setTimeout(() => searchRef.current?.focus(), 50);
-        }}
-      />{" "}
+      <SmartStats tasks={localTasks} onQuickAdd={() => setQuickAddOpen(true)} />{" "}
       {/* Search bar */}
       <motion.div
         className="relative mb-4 rounded-xl"
@@ -1232,6 +1443,7 @@ export function SignalStream({
                     search: "",
                     selectedDate: null,
                     dateRange: null,
+                    dateFilter: null,
                   })
                 }
               >
@@ -1368,6 +1580,48 @@ export function SignalStream({
           for keyboard shortcuts
         </button>
       </div>{" "}
+      {/* Quick Add Modal */}
+      <QuickAddModal
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        onCreate={async ({ title, priority, tier, notes }) => {
+          const res = await fetch("/api/tasks/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "createTask",
+              title,
+              priority,
+              tier,
+              notes,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.task) {
+              const newTask: NodalTask = {
+                id: data.task.id,
+                title: data.task.title,
+                intent: "manual",
+                priority,
+                status: "OPEN",
+                confidence: 1.0,
+                needsReview: false,
+                tier,
+                bookmarked: false,
+                seenEventCount: 0,
+                noteCount: notes ? 1 : 0,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                trashedAt: null,
+                hasBeenOpened: false,
+                sourceEvents: [],
+              };
+              setLocalTasks((prev) => [newTask, ...prev]);
+            }
+          }
+        }}
+      />
     </div>
   );
 }

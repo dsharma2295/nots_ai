@@ -36,6 +36,8 @@ const CreateManualTaskSchema = z.object({
   intent: z.string().optional(),
   priority: PriorityEnum.optional(),
   deadline: z.string().optional(),
+  tier: z.number().int().min(0).max(3).optional(),
+  notes: z.string().max(2000).optional(),
 });
 
 const RequestSchema = z.union([UpdateTaskSchema, CreateManualTaskSchema]);
@@ -118,8 +120,19 @@ export async function POST(req: NextRequest) {
           status: "OPEN",
           confidence: 1.0,
           needsReview: false,
+          tier: data.tier ?? 0,
         },
       });
+
+      // If notes provided, create a note attached to the task
+      if (data.notes?.trim()) {
+        await db.note.create({
+          data: {
+            taskId: task.id,
+            content: data.notes.trim(),
+          },
+        });
+      }
       await broadcastTaskUpdate({ type: "task_created", taskId: task.id });
       return NextResponse.json({
         success: true,
