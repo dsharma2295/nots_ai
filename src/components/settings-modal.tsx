@@ -22,7 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // =============================================================
 // TYPES

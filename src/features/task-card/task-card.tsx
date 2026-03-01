@@ -1,6 +1,6 @@
 "use client";
 import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
-import { PlatformDot } from "@/components/platform-icon";
+import { PlatformIcon } from "@/components/platform-icon";
 import { useToast } from "@/components/toast";
 import {
   CreateNoteModal,
@@ -11,6 +11,7 @@ import { SourceTimeline } from "@/features/timeline/source-timeline";
 import { useLiveRelativeTime } from "@/hooks";
 import { useNotes } from "@/hooks/use-notes";
 import type { NodalTask } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRightLeft,
   Bookmark,
@@ -87,9 +88,13 @@ export function TaskCard({
 
   const { toast } = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const notes = useNotes(task.id, expanded, (id, count) => {
-    onTaskActionExec?.(id, "noteCount", String(count));
-  });
+  const handleNoteCountChange = useCallback(
+    (id: string, count: number) => {
+      onTaskActionExec?.(id, "noteCount", String(count));
+    },
+    [onTaskActionExec],
+  );
+  const notes = useNotes(task.id, expanded, handleNoteCountChange);
   const noteCount = notes.count(task.noteCount ?? 0);
   const tierStyle = task.tier > 0 ? TIER_STYLE[task.tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
@@ -201,6 +206,31 @@ export function TaskCard({
     notes,
   ]);
 
+  // Handle confirmDelete action sent by keyboard nav (T key).
+  // Shows the confirm modal rather than deleting immediately.
+  useEffect(() => {
+    if (!isKeyboardFocused) return;
+    const origExec = onTaskActionExec;
+    if (!origExec) return;
+    // We intercept by wrapping — but since onTaskActionExec is passed from
+    // signal-stream, we can't intercept at source. Instead we listen for the
+    // "confirmDelete" action coming down through the keyboard nav by checking
+    // if the parent calls it. The cleanest approach: listen on the card itself.
+    // useKeyboardNav now sends "confirmDelete" which signal-stream passes through
+    // to executeTaskAction. We handle it there by doing nothing (unknown action
+    // returns early). But TaskCard also needs to show the modal.
+    // Solution: TaskCard listens for a synthetic custom event dispatched by
+    // signal-stream when it receives "confirmDelete".
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ taskId: string }>;
+      if (ce.detail?.taskId === task.id) {
+        setConfirmDelete(true);
+      }
+    };
+    window.addEventListener("nots:confirmDelete", handler);
+    return () => window.removeEventListener("nots:confirmDelete", handler);
+  }, [isKeyboardFocused, task.id]);
+
   return (
     <div
       ref={cardRef}
@@ -208,27 +238,24 @@ export function TaskCard({
       onMouseLeave={handleMouseLeave}
       className={`group/card relative rounded-xl border shadow-sm transition-all duration-450 ease-out
         ${isNewArrival ? "animate-arrival" : ""}
-        ${cardClass} ${fadingOut ? "pointer-events-none" : "hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20"} ${task.needsReview ? "ring-1 ring-amber-400/30" : ""} ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}`}
-      style={{ willChange: "auto" }}
+        ${cardClass} ${fadingOut ? "pointer-events-none opacity-40" : "hover:shadow-md hover:shadow-zinc-200/80 dark:hover:shadow-lg dark:hover:shadow-black/30"} ${task.needsReview ? "ring-1 ring-amber-400/30" : ""} ${isKeyboardFocused ? "ring-2 ring-indigo-500/50" : ""}`}
+      style={{ willChange: "transform" }}
     >
-      {/* ─── UNREAD BADGE — iPhone app icon style ─── */}
-      {showIndicator && (
-        <span
-          className={`
-            absolute -right-2 -top-2 z-10 flex items-center justify-center
-            rounded-full bg-rose-500 font-bold leading-none text-white
-            shadow-[0_0_0_2px_white] dark:shadow-[0_0_0_2px_#18181b]
-            transition-all duration-200
-            ${
-              isNewTask
-                ? "h-3.5 w-3.5 animate-pulse"
-                : "h-5 min-w-5 px-1.5 text-[10px]"
-            }
-          `}
-        >
-          {!isNewTask && unseenCount}
-        </span>
-      )}
+      {/*
+        Pulse ring — fires once on new arrival. An expanding ring
+        dissolves outward from the card edge, signalling a live event
+        entering the system. Plays once, never repeats.
+      */}
+      <AnimatePresence>
+        {isNewArrival && (
+          <motion.div
+            className="pointer-events-none absolute -inset-[3px] rounded-[14px] border-2 border-indigo-400/50 dark:border-indigo-500/40"
+            initial={{ opacity: 0.6, scale: 1 }}
+            animate={{ opacity: 0, scale: 1.03 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          />
+        )}
+      </AnimatePresence>
       {/* ─── PORTAL DROPDOWNS ─── */}
       <PortalDropdown
         anchorRef={priorityBtnRef}
@@ -263,7 +290,7 @@ export function TaskCard({
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
           >
             <span
-              className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${opt.badgeClass}`}
+              className={`inline-flex h-4 items-center justify-center rounded px-1.5 text-[9px] font-bold leading-none ${opt.badgeClass}`}
             >
               {opt.sublabel}
             </span>
@@ -316,7 +343,7 @@ export function TaskCard({
           </span>
           {tierStyle && (
             <span
-              className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${tierStyle.badge}`}
+              className={`inline-flex h-4 items-center justify-center rounded px-1.5 text-[9px] font-bold leading-none ${tierStyle.badge}`}
             >
               {tierStyle.label}
             </span>
@@ -370,19 +397,30 @@ export function TaskCard({
               Review
             </span>
           )}
+          {showIndicator && (
+            <span className="ml-auto">
+              {isNewTask ? (
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.5)]" />
+              ) : (
+                <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_6px_rgba(244,63,94,0.5)]">
+                  {" "}
+                  {unseenCount}
+                </span>
+              )}
+            </span>
+          )}{" "}
         </div>
 
-        {/* Row 2: Title + unread indicator */}
+        {/* Row 2: Title */}
         <h3 className="mb-2.5 text-[14px] font-medium leading-snug tracking-tight text-zinc-900 transition-colors duration-200 dark:text-zinc-100">
           {task.title}
         </h3>
         {/* Row 3: platforms + sources + intent + (chevron OR actions) */}
         <div className="flex items-center gap-2.5 overflow-hidden">
           {" "}
-          <div className="flex shrink-0 -space-x-1.5">
-            {" "}
+          <div className="flex shrink-0 -space-x-1">
             {platforms.map((p) => (
-              <PlatformDot
+              <PlatformIcon
                 key={p}
                 platform={p as NodalTask["sourceEvents"][0]["platform"]}
               />
@@ -493,14 +531,21 @@ export function TaskCard({
           onCreate={notes.onCreate}
         />
       )}
-      {notes.viewing && (
-        <ViewNoteModal
-          note={notes.viewing}
-          onClose={() => notes.setViewing(null)}
-          onUpdate={notes.onUpdate}
-          onDelete={notes.onDelete}
-        />
-      )}{" "}
+      {/*
+        AnimatePresence wraps ViewNoteModal so the layoutId morph
+        in note-modal.tsx works correctly on both open and close.
+        Without this, the exit animation (chip shrink-back) won't fire.
+      */}
+      <AnimatePresence>
+        {notes.viewing && (
+          <ViewNoteModal
+            note={notes.viewing}
+            onClose={() => notes.setViewing(null)}
+            onUpdate={notes.onUpdate}
+            onDelete={notes.onDelete}
+          />
+        )}
+      </AnimatePresence>
       {confirmDelete && (
         <ConfirmDeleteModal
           onConfirm={handleDelete}

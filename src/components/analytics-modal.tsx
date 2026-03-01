@@ -10,7 +10,7 @@ import {
 import { useRealtimeData } from "@/hooks/use-realtime-data";
 import { AnimatePresence, motion } from "framer-motion";
 import { BarChart2, Filter, X, Zap } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 // =============================================================
 // TYPES
@@ -564,7 +564,7 @@ export function AnalyticsModal({
   open: boolean;
 
   onClose: () => void;
-}): React.ReactElement | null {
+}) {
   const [tab, setTab] = useState<Tab>("signal");
 
   // Auto-refetches whenever a task event fires via Supabase realtime.
