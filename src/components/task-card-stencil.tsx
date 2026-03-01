@@ -13,7 +13,7 @@ import {
   Paperclip,
   Trash2,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 
 interface Annotation {
   label: string;
