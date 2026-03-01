@@ -229,7 +229,19 @@ function StencilCard({
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
 
   return (
-    <div className={`rounded-xl border shadow-sm ${cardClass}`}>
+    <div className={`relative rounded-xl border shadow-sm ${cardClass}`}>
+      {/* iPhone-style badge — absolute top-right corner */}
+      <Ann
+        id="unread"
+        onShow={onShow}
+        onHide={onHide}
+        containerRef={containerRef}
+        inline
+      >
+        <span className="absolute -right-2 -top-2 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold leading-none text-white shadow-[0_0_0_2px_white] dark:shadow-[0_0_0_2px_#18181b]">
+          3
+        </span>
+      </Ann>
       <div className="px-4 py-3.5">
         {/* Row 1 */}
         <div className="mb-2 flex items-center gap-2">
@@ -306,18 +318,6 @@ function StencilCard({
           >
             <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
               Review
-            </span>
-          </Ann>
-
-          <Ann
-            id="unread"
-            onShow={onShow}
-            onHide={onHide}
-            containerRef={containerRef}
-            inline
-          >
-            <span className="ml-auto inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_6px_rgba(244,63,94,0.5)]">
-              3
             </span>
           </Ann>
         </div>
