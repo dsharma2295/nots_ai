@@ -1,5 +1,5 @@
+import { ActivityPulse } from "@/components/activity-pulse";
 import { AppSidebar } from "@/components/app-sidebar";
-import { AutoRefresh } from "@/components/auto-refresh";
 import { BookmarksDrawers } from "@/components/bookmarks-drawers";
 import { BookmarkedStream } from "@/features/bookmarks/bookmarked-stream";
 import db from "@/lib/db";
@@ -134,7 +134,7 @@ export default async function BookmarksPage() {
                 {tasks.length} task{tasks.length !== 1 ? "s" : ""}
               </span>
             </div>
-            <AutoRefresh intervalSeconds={15} />
+            <ActivityPulse />
           </div>
 
           <BookmarkedStream tasks={tasks} />

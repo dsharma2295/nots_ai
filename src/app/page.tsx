@@ -1,5 +1,5 @@
+import { ActivityPulse } from "@/components/activity-pulse";
 import { AppSidebar } from "@/components/app-sidebar";
-import { AutoRefresh } from "@/components/auto-refresh";
 import { SignalStream } from "@/features/dashboard/signal-stream";
 import db from "@/lib/db";
 import type { NodalTask } from "@/types";
@@ -169,7 +169,7 @@ export default async function Home() {
                 .ai
               </span>
             </div>
-            <AutoRefresh intervalSeconds={15} />
+            <ActivityPulse />
           </div>
 
           <SignalStream

@@ -1,11 +1,4 @@
 "use client";
-import {
-  AsanaSvg,
-  GmailSvg,
-  JiraSvg,
-  SlackSvg,
-  TrelloSvg,
-} from "@/components/platform-icon";
 import { useRealtimeContext } from "@/components/providers/realtime-provider";
 import { useToast } from "@/components/toast";
 import { AIResponseCard, AIResponseLoading } from "@/features/ai/ai-response";
@@ -15,12 +8,12 @@ import { useKeyboardNav } from "@/features/keyboard/hooks/use-keyboard-nav";
 import { ShortcutOverlay } from "@/features/keyboard/shortcut-overlay";
 import { TaskCardSkeleton } from "@/features/task-card/task-card-skeleton";
 import { useCmdK } from "@/hooks";
-import type { Platform } from "@/types";
 import type { AIQueryResponse } from "@/lib/validators/ai-query";
-import type { NodalTask } from "@/types";
+import type { NodalTask, Platform } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  CalendarDays,
   Flame,
   Inbox,
   Minus,
@@ -29,7 +22,13 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ALL_PLATFORMS,
   ALL_STATUSES,
@@ -39,7 +38,14 @@ import {
   type IntentGroup,
 } from "./helpers";
 import { KanbanColumn } from "./kanban-column";
-import { MiniCalendar } from "./mini-calendar";
+
+import {
+  AsanaSvg,
+  GmailSvg,
+  JiraSvg,
+  SlackSvg,
+  TrelloSvg,
+} from "@/components/platform-icon";
 import { SmartStats } from "./smart-stats";
 
 // =============================================================
@@ -393,7 +399,7 @@ export function SignalStream({
   resolvedTasks?: NodalTask[];
   trashedTasks?: NodalTask[];
   isLoading?: boolean;
-}) {
+}): React.ReactElement {
   const searchRef = useRef<HTMLInputElement>(null);
   useCmdK(searchRef);
   const { recentArrivalIds } = useRealtimeContext();
@@ -435,6 +441,7 @@ export function SignalStream({
     intentGroup: "all",
     search: "",
     selectedDate: null,
+    dateRange: null,
   });
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -803,10 +810,25 @@ export function SignalStream({
         )
           return false;
       }
-      if (filters.selectedDate) {
-        const td = new Date(t.updatedAt);
-        const ds = `${td.getFullYear()}-${String(td.getMonth() + 1).padStart(2, "0")}-${String(td.getDate()).padStart(2, "0")}`;
-        if (ds !== filters.selectedDate) return false;
+      if (filters.dateRange) {
+        const now = new Date();
+        const taskDate = new Date(t.updatedAt);
+        const startOfToday = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        );
+        if (filters.dateRange === "today") {
+          if (taskDate < startOfToday) return false;
+        } else if (filters.dateRange === "week") {
+          const weekAgo = new Date(startOfToday);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          if (taskDate < weekAgo) return false;
+        } else if (filters.dateRange === "month") {
+          const monthAgo = new Date(startOfToday);
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          if (taskDate < monthAgo) return false;
+        }
       }
       return true;
     });
@@ -857,17 +879,6 @@ export function SignalStream({
     searchRef,
     disabled: isAiMode || drawerOpen || trashOpen,
   });
-
-  const taskDates = useMemo(() => {
-    const s = new Set<string>();
-    for (const t of localTasks) {
-      const d = new Date(t.updatedAt);
-      s.add(
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-      );
-    }
-    return s;
-  }, [localTasks]);
 
   const reviewCount = localTasks.filter(
     (t) =>
@@ -959,7 +970,37 @@ export function SignalStream({
         }
       />
 
-      {/* Review badge — only shown when tasks need human review */}
+      {/* Date range quick pills */}
+      <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+      <div className="flex items-center gap-1">
+        {(
+          [
+            { id: "today", label: "Today" },
+            { id: "week", label: "This week" },
+            { id: "month", label: "This month" },
+          ] as const
+        ).map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() =>
+              setFilters((f) => ({
+                ...f,
+                dateRange: f.dateRange === opt.id ? null : opt.id,
+              }))
+            }
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-150 active:scale-[0.97] ${
+              filters.dateRange === opt.id
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                : "text-zinc-400 hover:text-zinc-600 hover:ring-1 hover:ring-zinc-200 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:ring-zinc-700"
+            }`}
+          >
+            {opt.id === "today" && <CalendarDays className="h-3 w-3" />}
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Review badge */}
       {reviewCount > 0 && (
         <>
           <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
@@ -977,6 +1018,29 @@ export function SignalStream({
             {reviewCount}
           </button>
         </>
+      )}
+
+      {/* Clear all filters — only shown when any filter is active */}
+      {(filters.spotlightPlatforms.size > 0 ||
+        filters.intentGroup !== "all" ||
+        filters.selectedTiers.size > 0 ||
+        filters.dateRange !== null ||
+        filters.showReviewOnly) && (
+        <button
+          onClick={() =>
+            setFilters((f) => ({
+              ...f,
+              spotlightPlatforms: new Set(),
+              intentGroup: "all",
+              selectedTiers: new Set(),
+              dateRange: null,
+              showReviewOnly: false,
+            }))
+          }
+          className="ml-1 flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-zinc-400 transition-all hover:bg-red-50 hover:text-red-500 active:scale-[0.97] dark:hover:bg-red-500/10 dark:hover:text-red-400"
+        >
+          ✕ Clear
+        </button>
       )}
     </div>
   );
@@ -1039,7 +1103,7 @@ export function SignalStream({
           onKeyDown={handleSearchKeyDown}
           className={`h-10 w-full rounded-xl pl-10 pr-4 text-sm outline-none transition-colors duration-250 ${
             isAiMode
-              ? "border border-indigo-400/60 bg-indigo-50 text-indigo-900 placeholder:text-indigo-400 dark:border-indigo-500/40 dark:bg-indigo-500/[0.06] dark:text-indigo-100 dark:placeholder:text-indigo-500/60"
+              ? "border border-indigo-400/60 bg-indigo-50 text-indigo-900 placeholder:text-indigo-400 dark:border-indigo-500/40 dark:bg-indigo-500/6 dark:text-indigo-100 dark:placeholder:text-indigo-500/60"
               : "border border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-800/80 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-indigo-500/40"
           }`}
         />
@@ -1123,83 +1187,72 @@ export function SignalStream({
       )}
       {/* Main layout */}
       {!isAiMode && (
-        <div className="flex gap-5">
-          <div className="hidden w-48 shrink-0 lg:block">
-            <MiniCalendar
-              taskDates={taskDates}
-              selectedDate={filters.selectedDate}
-              onSelectAction={(d) =>
-                setFilters((f) => ({ ...f, selectedDate: d }))
-              }
-            />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            {isLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <TaskCardSkeleton key={i} index={i} />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-20 dark:border-zinc-800/40">
-                <Inbox className="mb-3 h-12 w-12 animate-float text-zinc-300 dark:text-zinc-800" />
-                <p className="text-sm text-zinc-500 dark:text-zinc-500">
-                  No signals found{" "}
-                </p>
-                <button
-                  className="mt-3 text-[11px] text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
-                  onClick={() =>
-                    setFilters({
-                      platforms: new Set(ALL_PLATFORMS),
-                      statuses: new Set(ALL_STATUSES),
-                      showReviewOnly: false,
-                      selectedTiers: new Set(),
-                      spotlightPlatforms: new Set(),
-                      intentGroup: "all",
-                      search: "",
-                      selectedDate: null,
-                    })
-                  }
-                >
-                  Reset filters
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                <KanbanColumn
-                  title="Urgent"
-                  icon={Flame}
-                  iconColor="text-orange-500 dark:text-orange-400"
-                  tasks={urgent}
-                  totalIndex={0}
-                  onTaskActionExec={executeTaskAction}
-                  recentArrivalIds={recentArrivalIds}
-                  focusedCardId={focusedCardId}
-                />
-                <KanbanColumn
-                  title="Normal"
-                  icon={Zap}
-                  iconColor="text-blue-500 dark:text-blue-400"
-                  tasks={active}
-                  totalIndex={urgent.length}
-                  onTaskActionExec={executeTaskAction}
-                  recentArrivalIds={recentArrivalIds}
-                  focusedCardId={focusedCardId}
-                />
-                <KanbanColumn
-                  title="Low Priority"
-                  icon={Minus}
-                  iconColor="text-zinc-400 dark:text-zinc-500"
-                  tasks={low}
-                  totalIndex={urgent.length + active.length}
-                  onTaskActionExec={executeTaskAction}
-                  recentArrivalIds={recentArrivalIds}
-                  focusedCardId={focusedCardId}
-                />{" "}
-              </div>
-            )}
-          </div>
+        <div className="min-w-0">
+          {isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TaskCardSkeleton key={i} index={i} />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-20 dark:border-zinc-800/40">
+              <Inbox className="mb-3 h-12 w-12 animate-float text-zinc-300 dark:text-zinc-800" />
+              <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                No signals found{" "}
+              </p>
+              <button
+                className="mt-3 text-[11px] text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                onClick={() =>
+                  setFilters({
+                    platforms: new Set(ALL_PLATFORMS),
+                    statuses: new Set(ALL_STATUSES),
+                    showReviewOnly: false,
+                    selectedTiers: new Set(),
+                    spotlightPlatforms: new Set(),
+                    intentGroup: "all",
+                    search: "",
+                    selectedDate: null,
+                    dateRange: null,
+                  })
+                }
+              >
+                Reset filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <KanbanColumn
+                title="Urgent"
+                icon={Flame}
+                iconColor="text-orange-500 dark:text-orange-400"
+                tasks={urgent}
+                totalIndex={0}
+                onTaskActionExec={executeTaskAction}
+                recentArrivalIds={recentArrivalIds}
+                focusedCardId={focusedCardId}
+              />
+              <KanbanColumn
+                title="Normal"
+                icon={Zap}
+                iconColor="text-blue-500 dark:text-blue-400"
+                tasks={active}
+                totalIndex={urgent.length}
+                onTaskActionExec={executeTaskAction}
+                recentArrivalIds={recentArrivalIds}
+                focusedCardId={focusedCardId}
+              />
+              <KanbanColumn
+                title="Low Priority"
+                icon={Minus}
+                iconColor="text-zinc-400 dark:text-zinc-500"
+                tasks={low}
+                totalIndex={urgent.length + active.length}
+                onTaskActionExec={executeTaskAction}
+                recentArrivalIds={recentArrivalIds}
+                focusedCardId={focusedCardId}
+              />{" "}
+            </div>
+          )}
         </div>
       )}
       <ResolvedDrawer

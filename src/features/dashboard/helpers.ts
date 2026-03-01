@@ -113,6 +113,8 @@ export interface Filters {
   intentGroup: IntentGroup;
   search: string;
   selectedDate: string | null;
+  // Quick date range filter — replaces calendar
+  dateRange: "today" | "week" | "month" | null;
 }
 
 export function getTimeGroup(iso: string): string {
