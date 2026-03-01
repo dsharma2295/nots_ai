@@ -1,7 +1,5 @@
 "use client";
 
-import { AnalyticsModal } from "@/components/analytics-modal";
-import { SettingsModal } from "@/components/settings-modal";
 import { motion } from "framer-motion";
 import {
   Archive,
@@ -11,25 +9,34 @@ import {
   Settings,
   Trash2,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 
+// Lazy-load heavy modals so a compile error inside them
+// cannot crash the sidebar render.
+const SettingsModal = dynamic(
+  () => import("@/components/settings-modal").then((m) => m.SettingsModal),
+  { ssr: false },
+);
+
+const AnalyticsModal = dynamic(
+  () => import("@/components/analytics-modal").then((m) => m.AnalyticsModal),
+  { ssr: false },
+);
+
 // =============================================================
 // FUNNEL LOGO MARK
-// The noise-to-signal funnel SVG — product identity.
-// Wide trapezoid (noise) → narrow rect (filter) → circle (signal)
 // =============================================================
 function FunnelMark() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
-      {/* Wide top — noisy input */}
       <path
         d="M3 5h18L17 10H7L3 5z"
         fill="currentColor"
         opacity={0.2}
         className="text-zinc-800 dark:text-white"
       />
-      {/* Narrow middle — filtering stage */}
       <rect
         x="8"
         y="11"
@@ -40,7 +47,6 @@ function FunnelMark() {
         opacity={0.55}
         className="text-zinc-800 dark:text-white"
       />
-      {/* Single dot — refined signal */}
       <circle
         cx="12"
         cy="19"
@@ -55,20 +61,17 @@ function FunnelMark() {
 
 // =============================================================
 // SIDEBAR ITEM
-// Icon button with right-anchored tooltip
 // =============================================================
 function SidebarItem({
   icon: Icon,
   label,
   active = false,
-  badge,
   onClick,
   href,
 }: {
   icon: typeof LayoutGrid;
   label: string;
   active?: boolean;
-  badge?: number;
   onClick?: () => void;
   href?: string;
 }) {
@@ -84,15 +87,10 @@ function SidebarItem({
       whileTap={{ scale: 0.92 }}
     >
       <Icon className="h-4 w-4" />
-      {badge !== undefined && badge > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold leading-none text-white">
-          {badge > 99 ? "99+" : badge}
-        </span>
-      )}
     </motion.div>
   );
 
-  const wrapper = (
+  return (
     <div
       className="relative"
       onMouseEnter={() => setHovered(true)}
@@ -108,7 +106,6 @@ function SidebarItem({
         </button>
       )}
 
-      {/* Tooltip — right-anchored */}
       {hovered && (
         <motion.div
           className="pointer-events-none absolute left-full top-1/2 z-50 ml-2.5 -translate-y-1/2"
@@ -123,14 +120,10 @@ function SidebarItem({
       )}
     </div>
   );
-
-  return wrapper;
 }
 
 // =============================================================
 // APP SIDEBAR
-// Fixed 56px rail on the left edge.
-// Logo at top, nav icons in middle, settings at bottom.
 // =============================================================
 export function AppSidebar({
   activeView = "dashboard",
@@ -191,14 +184,19 @@ export function AppSidebar({
         </div>
       </div>
 
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
-      <AnalyticsModal
-        open={analyticsOpen}
-        onClose={() => setAnalyticsOpen(false)}
-      />
+      {/* Modals — lazy loaded so errors inside them don't crash the sidebar */}
+      {settingsOpen && (
+        <SettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {analyticsOpen && (
+        <AnalyticsModal
+          open={analyticsOpen}
+          onClose={() => setAnalyticsOpen(false)}
+        />
+      )}
     </>
   );
 }
