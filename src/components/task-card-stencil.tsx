@@ -1,15 +1,5 @@
 "use client";
 
-// =============================================================
-// TaskCardStencil — Settings "Card Anatomy" Tab
-//
-// Renders a pixel-accurate replica of the task card in its
-// hover+expanded+provenance state. Numbered annotation markers
-// appear on each UI element. Hovering either a marker or its
-// label in the legend highlights both — connecting the visual
-// to the explanation.
-// =============================================================
-
 import { GmailSvg, SlackSvg } from "@/components/platform-icon";
 import { DEFAULT_CARD, TIER_STYLE } from "@/features/task-card/tier-config";
 import { AnimatePresence, motion } from "framer-motion";
@@ -23,528 +13,542 @@ import {
   Paperclip,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-// =============================================================
-// ANNOTATION DEFINITIONS
-// Each has an id, label, and description.
-// =============================================================
-
-const ANNOTATIONS = [
-  {
-    id: 1,
-    label: "Status dot",
-    description: "Green = Open · Blue = Active · Red = Blocked",
-  },
-  {
-    id: 2,
-    label: "Priority tier",
-    description:
-      "P1 Gold · P2 Silver · P3 Bronze — set manually to boost visibility",
-  },
-  {
-    id: 3,
-    label: "Bookmark",
-    description: "Save for quick access in the Bookmarks view",
-  },
-  {
-    id: 4,
-    label: "Notes",
-    description: "Personal notes attached to this task — visible only to you",
-  },
-  {
-    id: 5,
-    label: "Attachments",
-    description: "Files detected in the source messages",
-  },
-  {
-    id: 6,
-    label: "Review flag",
-    description: "AI confidence < 70% — the grouping needs your confirmation",
-  },
-  {
-    id: 7,
-    label: "Unread badge",
-    description: "New messages arrived since you last opened this task",
-  },
-  {
-    id: 8,
-    label: "Smart title",
-    description: "AI-generated 3–15 word summary of the core action needed",
-  },
-  {
-    id: 9,
-    label: "Source icons",
-    description: "Platforms this task aggregated messages from",
-  },
-  {
-    id: 10,
-    label: "Message count",
-    description: "Total raw messages merged into this single task",
-  },
-  {
-    id: 11,
-    label: "Intent tag",
-    description:
-      "AI-classified communication intent — what kind of ask is this?",
-  },
-  {
-    id: 12,
-    label: "Mark done",
-    description: "Resolve the task — moves it to the Resolved drawer",
-  },
-  {
-    id: 13,
-    label: "Move column",
-    description: "Reassign priority — shifts to Urgent, Normal, or Low",
-  },
-  {
-    id: 14,
-    label: "Set tier",
-    description: "Manually pin a P1/P2/P3 emphasis badge onto the card",
-  },
-  {
-    id: 15,
-    label: "Delete",
-    description: "Soft delete — moves to Trash, recoverable for 30 days",
-  },
-  {
-    id: 16,
-    label: "Note chips",
-    description: "Inline preview of attached notes — click to read",
-  },
-  {
-    id: 17,
-    label: "Provenance",
-    description: "Full audit trail of every message that formed this task",
-  },
-  {
-    id: 18,
-    label: "Platform badge",
-    description: "Which integration this message came from",
-  },
-  {
-    id: 19,
-    label: "Sender",
-    description: "Who sent the original message",
-  },
-  {
-    id: 20,
-    label: "Open source",
-    description: "Deep link back to the original message in Slack, Gmail, etc.",
-  },
-] as const;
-
-type AnnotationId = (typeof ANNOTATIONS)[number]["id"];
-
-// =============================================================
-// MARKER — numbered circle that highlights on hover
-// =============================================================
-
-function Marker({
-  id,
-  active,
-  onHover,
-  className = "",
-}: {
-  id: AnnotationId;
-  active: boolean;
-  onHover: (id: AnnotationId | null) => void;
-  className?: string;
-}) {
-  return (
-    <span
-      onMouseEnter={() => onHover(id)}
-      onMouseLeave={() => onHover(null)}
-      className={`
-        inline-flex h-4 w-4 shrink-0 cursor-default items-center justify-center
-        rounded-full text-[8px] font-bold leading-none
-        transition-all duration-150 select-none
-        ${
-          active
-            ? "bg-indigo-500 text-white shadow-[0_0_0_3px_rgba(99,102,241,0.25)]"
-            : "bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400"
-        }
-        ${className}
-      `}
-    >
-      {id}
-    </span>
-  );
+interface Annotation {
+  label: string;
+  description: string;
 }
 
-// =============================================================
-// HIGHLIGHT — wraps a card element, shows indigo ring when active.
-// Defined at module level (not inside render) to avoid recreation.
-// =============================================================
+const ANNOTATIONS: Record<string, Annotation> = {
+  status: {
+    label: "Status",
+    description:
+      "Current state — Open, Active, Blocked, or Done. Updates as you work the task.",
+  },
+  tier: {
+    label: "Priority Tier",
+    description:
+      "P1 Gold · P2 Silver · P3 Bronze. Set manually to boost visual prominence in the kanban.",
+  },
+  bookmark: {
+    label: "Bookmark",
+    description:
+      "Pin to Bookmarks view for quick access without affecting priority.",
+  },
+  notes: {
+    label: "Notes",
+    description:
+      "Personal notes attached to this task. The number shows how many you've written.",
+  },
+  attachments: {
+    label: "Attachments",
+    description:
+      "Files detected in the source messages — click to open in the original platform.",
+  },
+  review: {
+    label: "Needs Review",
+    description:
+      "AI grouping confidence was under 70%. Verify the task is correctly formed before acting.",
+  },
+  unread: {
+    label: "Unread",
+    description:
+      "New messages arrived since you last opened this task. Number shows how many.",
+  },
+  title: {
+    label: "Smart Title",
+    description:
+      "AI-generated 3–15 word summary of the core action, based on what was actually said.",
+  },
+  platforms: {
+    label: "Source Platforms",
+    description:
+      "Every platform this task aggregated messages from. One card can span many sources.",
+  },
+  msgcount: {
+    label: "Message Count",
+    description:
+      "Total raw messages merged into this single card by the AI pipeline.",
+  },
+  intent: {
+    label: "Intent Tag",
+    description:
+      "AI-classified communication type — document-review, meeting-request, bug-fix, and so on.",
+  },
+  done: {
+    label: "Mark Done",
+    description:
+      "Resolve the task. Moves it to the Resolved drawer. Undoable within the session.",
+  },
+  move: {
+    label: "Move Column",
+    description:
+      "Reassign priority — shifts the card to Urgent, Normal, or Low Priority.",
+  },
+  settier: {
+    label: "Set Tier",
+    description:
+      "Manually pin a P1/P2/P3 badge. Changes the card border colour and background gradient.",
+  },
+  delete: {
+    label: "Delete",
+    description:
+      "Soft delete — moves to Trash. Recoverable for 30 days before permanent removal.",
+  },
+  notechip: {
+    label: "Note Preview",
+    description:
+      "Inline chip showing one of your notes. Click to read or edit it.",
+  },
+  provenance: {
+    label: "Provenance",
+    description:
+      "Full audit trail of every message that formed this task. Immutable record of context.",
+  },
+  platform: {
+    label: "Platform Badge",
+    description: "Which integration this specific message came from.",
+  },
+  sender: {
+    label: "Sender",
+    description:
+      "Who sent the original message — resolved to their display name.",
+  },
+  openlink: {
+    label: "Deep Link",
+    description:
+      "Jump directly to the original message in Slack, Gmail, or Jira.",
+  },
+};
 
-function Highlight({
+interface PopoverState {
+  key: string;
+  rect: DOMRect;
+  containerRect: DOMRect;
+}
+
+function Ann({
   id,
-  activeId,
-  onHover,
   children,
+  onShow,
+  onHide,
+  containerRef,
   inline = false,
 }: {
-  id: AnnotationId;
-  activeId: AnnotationId | null;
-  onHover: (id: AnnotationId | null) => void;
+  id: string;
   children: React.ReactNode;
+  onShow: (s: PopoverState) => void;
+  onHide: () => void;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   inline?: boolean;
 }) {
+  const ref = useRef<HTMLElement>(null);
   const Tag = inline ? "span" : "div";
+
   return (
     <Tag
-      onMouseEnter={() => onHover(id)}
-      onMouseLeave={() => onHover(null)}
-      className={`relative rounded transition-all duration-150 ${
-        activeId === id
-          ? "outline-2 outline-indigo-400/70 outline-offset-1 bg-indigo-50/60 dark:bg-indigo-500/10 [outline-style:solid]"
-          : ""
-      }`}
+      ref={ref as React.RefObject<HTMLDivElement & HTMLSpanElement>}
+      onMouseEnter={() => {
+        // Reading refs in event handlers is always safe
+        const el = ref.current;
+        const container = containerRef.current;
+        if (el && container) {
+          onShow({
+            key: id,
+            rect: el.getBoundingClientRect(),
+            containerRect: container.getBoundingClientRect(),
+          });
+        }
+      }}
+      onMouseLeave={onHide}
+      className="cursor-default rounded transition-colors duration-100 hover:bg-indigo-50/80 hover:ring-1 hover:ring-inset hover:ring-indigo-300/70 dark:hover:bg-indigo-500/10 dark:hover:ring-indigo-500/30"
     >
       {children}
     </Tag>
   );
 }
 
-// =============================================================
-// STENCIL CARD — static replica of TaskCard in hover+expanded state
-// =============================================================
+function Popover({ state }: { state: PopoverState }) {
+  const ann = ANNOTATIONS[state.key];
+  if (!ann) return null;
+  const containerRect = state.containerRect;
+
+  const relTop = state.rect.top - containerRect.top;
+  const relBottom = state.rect.bottom - containerRect.top;
+  const showAbove = relTop > 80;
+  const POPOVER_W = 224;
+  const idealLeft =
+    state.rect.left - containerRect.left + state.rect.width / 2 - POPOVER_W / 2;
+  const left = Math.max(
+    4,
+    Math.min(idealLeft, containerRect.width - POPOVER_W - 4),
+  );
+
+  return (
+    <motion.div
+      key={state.key}
+      initial={{ opacity: 0, y: showAbove ? 6 : -6, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.13, ease: "easeOut" }}
+      style={{
+        position: "absolute",
+        ...(showAbove
+          ? { bottom: containerRect.height - relTop + 8 }
+          : { top: relBottom + 8 }),
+        left,
+        width: POPOVER_W,
+        zIndex: 50,
+        pointerEvents: "none",
+      }}
+      className="rounded-xl border border-indigo-200/70 bg-white px-3.5 py-2.5 shadow-xl shadow-indigo-100/40 dark:border-indigo-500/25 dark:bg-zinc-900 dark:shadow-black/40"
+    >
+      <p className="text-[12px] font-semibold text-indigo-700 dark:text-indigo-300">
+        {ann.label}
+      </p>
+      <p className="mt-0.5 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
+        {ann.description}
+      </p>
+    </motion.div>
+  );
+}
 
 function StencilCard({
-  active,
-  onHover,
   tier,
+  onShow,
+  onHide,
+  containerRef,
 }: {
-  active: AnnotationId | null;
-  onHover: (id: AnnotationId | null) => void;
   tier: number;
+  onShow: (s: PopoverState) => void;
+  onHide: () => void;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const isActive = (id: AnnotationId) => active === id;
   const tierStyle = tier > 0 ? TIER_STYLE[tier] : null;
   const cardClass = tierStyle ? tierStyle.card : DEFAULT_CARD;
 
   return (
-    // Exactly the real card wrapper: rounded-xl border shadow-sm + hover shadow-md
-    // (stencil always shows hover state so we use shadow-md directly)
-    <div
-      className={`rounded-xl border shadow-md ring-1 ring-amber-400/30 ${cardClass}`}
-    >
-      {/* Card body */}
+    <div className={`rounded-xl border shadow-sm ${cardClass}`}>
       <div className="px-4 py-3.5">
         {/* Row 1 */}
         <div className="mb-2 flex items-center gap-2">
-          {/* Status */}
-          <Highlight activeId={active} onHover={onHover} id={1} inline>
+          <Ann
+            id="status"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
             <span className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Open
             </span>
-            <Marker
-              id={1}
-              active={isActive(1)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
 
-          {/* Tier badge — only shown when tier > 0, uses real TIER_STYLE classes */}
           {tierStyle && (
-            <Highlight activeId={active} onHover={onHover} id={2} inline>
+            <Ann
+              id="tier"
+              onShow={onShow}
+              onHide={onHide}
+              containerRef={containerRef}
+              inline
+            >
               <span
-                className={`inline-flex h-4 items-center justify-center rounded px-1.5 text-[9px] font-bold leading-none ${tierStyle.badge}`}
+                className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${tierStyle.badge}`}
               >
                 {tierStyle.label}
               </span>
-              <Marker
-                id={2}
-                active={isActive(2)}
-                onHover={onHover}
-                className="ml-1"
-              />
-            </Highlight>
+            </Ann>
           )}
 
-          {/* Bookmark */}
-          <Highlight activeId={active} onHover={onHover} id={3} inline>
+          <Ann
+            id="bookmark"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
             <Bookmark className="h-3 w-3 fill-blue-500 text-blue-500" />
-            <Marker
-              id={3}
-              active={isActive(3)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
 
-          {/* Notes */}
-          <Highlight activeId={active} onHover={onHover} id={4} inline>
+          <Ann
+            id="notes"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
             <span className="flex items-center gap-1">
               <NotebookPen className="h-3 w-3 text-indigo-500" />
               <span className="text-[11px] font-medium text-indigo-500">2</span>
             </span>
-            <Marker
-              id={4}
-              active={isActive(4)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
 
-          {/* Attachments */}
-          <Highlight activeId={active} onHover={onHover} id={5} inline>
+          <Ann
+            id="attachments"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
             <span className="flex items-center gap-0.5 text-[11px] text-zinc-400">
               <Paperclip className="h-3 w-3" />1
             </span>
-            <Marker
-              id={5}
-              active={isActive(5)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
 
-          {/* Review flag */}
-          <Highlight activeId={active} onHover={onHover} id={6} inline>
+          <Ann
+            id="review"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
             <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
               Review
             </span>
-            <Marker
-              id={6}
-              active={isActive(6)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
 
-          {/* Unread badge */}
-          <Highlight activeId={active} onHover={onHover} id={7} inline>
+          <Ann
+            id="unread"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
             <span className="ml-auto inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_6px_rgba(244,63,94,0.5)]">
               3
             </span>
-            <Marker
-              id={7}
-              active={isActive(7)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
         </div>
 
         {/* Row 2: Title */}
-        <Highlight activeId={active} onHover={onHover} id={8}>
+        <Ann
+          id="title"
+          onShow={onShow}
+          onHide={onHide}
+          containerRef={containerRef}
+        >
           <h3 className="mb-2.5 text-[14px] font-medium leading-snug tracking-tight text-zinc-900 dark:text-zinc-100">
             Review Q3 Budget Deck by Friday
           </h3>
-          <Marker
-            id={8}
-            active={isActive(8)}
-            onHover={onHover}
-            className="absolute -right-1 -top-1"
-          />
-        </Highlight>
+        </Ann>
 
-        {/* Row 3: meta + actions */}
+        {/* Row 3 */}
         <div className="flex items-center gap-2.5">
-          {/* Platform icons */}
-          <Highlight activeId={active} onHover={onHover} id={9} inline>
+          <Ann
+            id="platforms"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
             <span className="flex -space-x-1">
-              <span className="inline-flex h-4 w-4 items-center justify-center rounded ring-[1.5px] ring-white dark:ring-zinc-800 bg-white dark:bg-zinc-900">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-white ring-[1.5px] ring-white dark:bg-zinc-900 dark:ring-zinc-800">
                 <SlackSvg
                   className="h-2.5 w-2.5"
                   style={{ color: "#4A154B" }}
                 />
               </span>
-              <span className="inline-flex h-4 w-4 items-center justify-center rounded ring-[1.5px] ring-white dark:ring-zinc-800 bg-white dark:bg-zinc-900">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-white ring-[1.5px] ring-white dark:bg-zinc-900 dark:ring-zinc-800">
                 <GmailSvg
                   className="h-2.5 w-2.5"
                   style={{ color: "#D93025" }}
                 />
               </span>
             </span>
-            <Marker
-              id={9}
-              active={isActive(9)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
 
-          {/* Message count */}
-          <Highlight activeId={active} onHover={onHover} id={10} inline>
+          <Ann
+            id="msgcount"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
             <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
               3 messages
             </span>
-            <Marker
-              id={10}
-              active={isActive(10)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
 
-          {/* Intent tag */}
-          <Highlight activeId={active} onHover={onHover} id={11} inline>
-            <span className="truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-500">
+          <Ann
+            id="intent"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-500">
               document-review
             </span>
-            <Marker
-              id={11}
-              active={isActive(11)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+          </Ann>
 
-          {/* Action buttons */}
           <div className="ml-auto flex items-center gap-0.5">
-            <Highlight activeId={active} onHover={onHover} id={12} inline>
+            <Ann
+              id="done"
+              onShow={onShow}
+              onHide={onHide}
+              containerRef={containerRef}
+              inline
+            >
               <button className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400">
                 <Check className="h-3.5 w-3.5" />
               </button>
-              <Marker id={12} active={isActive(12)} onHover={onHover} />
-            </Highlight>
-            <Highlight activeId={active} onHover={onHover} id={13} inline>
+            </Ann>
+            <Ann
+              id="move"
+              onShow={onShow}
+              onHide={onHide}
+              containerRef={containerRef}
+              inline
+            >
               <button className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-500/10 dark:hover:text-orange-400">
                 <ArrowRightLeft className="h-3.5 w-3.5" />
               </button>
-              <Marker id={13} active={isActive(13)} onHover={onHover} />
-            </Highlight>
-            <Highlight activeId={active} onHover={onHover} id={14} inline>
+            </Ann>
+            <Ann
+              id="settier"
+              onShow={onShow}
+              onHide={onHide}
+              containerRef={containerRef}
+              inline
+            >
               <button className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400">
                 <Medal className="h-3.5 w-3.5" />
               </button>
-              <Marker id={14} active={isActive(14)} onHover={onHover} />
-            </Highlight>
-            <Highlight activeId={active} onHover={onHover} id={15} inline>
+            </Ann>
+            <Ann
+              id="delete"
+              onShow={onShow}
+              onHide={onHide}
+              containerRef={containerRef}
+              inline
+            >
               <button className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
-              <Marker id={15} active={isActive(15)} onHover={onHover} />
-            </Highlight>
+            </Ann>
           </div>
         </div>
       </div>
 
-      {/* Expanded section */}
-      <div>
-        {/* Note chip */}
-        <div className="border-t border-zinc-100 px-4 pb-0 pt-3 dark:border-zinc-800/50">
-          <Highlight activeId={active} onHover={onHover} id={16} inline>
-            <button className="inline-flex items-center gap-1.5 rounded-lg bg-white/60 px-2.5 py-1.5 text-left ring-1 ring-zinc-200/80 text-[10px] font-medium text-zinc-600 dark:bg-white/3 dark:ring-zinc-700/50 dark:text-zinc-400">
-              <NotebookPen className="h-2.5 w-2.5 text-indigo-400" />
-              Check slide 7 numbers with Finance
-            </button>
-            <Marker
-              id={16}
-              active={isActive(16)}
-              onHover={onHover}
-              className="ml-1"
-            />
-          </Highlight>
+      {/* Note chip */}
+      <div className="border-t border-zinc-100 px-4 pb-0 pt-3 dark:border-zinc-800/50">
+        <Ann
+          id="notechip"
+          onShow={onShow}
+          onHide={onHide}
+          containerRef={containerRef}
+          inline
+        >
+          <button className="inline-flex items-center gap-1.5 rounded-lg bg-white/60 px-2.5 py-1.5 text-[10px] font-medium text-zinc-600 ring-1 ring-zinc-200/80 dark:bg-white/3 dark:text-zinc-400 dark:ring-zinc-700/50">
+            <NotebookPen className="h-2.5 w-2.5 text-indigo-400" />
+            Check slide 7 numbers with Finance
+          </button>
+        </Ann>
+      </div>
+
+      {/* Provenance */}
+      <div className="border-t border-zinc-100 px-4 pb-4 pt-3 dark:border-zinc-800/50">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />
+          <Ann
+            id="provenance"
+            onShow={onShow}
+            onHide={onHide}
+            containerRef={containerRef}
+            inline
+          >
+            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+              Provenance
+            </span>
+          </Ann>
+          <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />
         </div>
 
-        {/* Provenance */}
-        <div className="border-t border-zinc-100 px-4 pb-4 pt-3 dark:border-zinc-800/50">
-          <div className="mb-3 flex items-center gap-3">
-            <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />
-            <Highlight activeId={active} onHover={onHover} id={17} inline>
-              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
-                Provenance
-              </span>
-              <Marker
-                id={17}
-                active={isActive(17)}
-                onHover={onHover}
-                className="ml-1"
-              />
-            </Highlight>
-            <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800/60" />
-          </div>
+        <div className="relative ml-1 pl-5">
+          <div className="absolute bottom-5 left-1.5 top-5.75 w-px bg-zinc-200 dark:bg-zinc-700" />
 
-          {/* Timeline event */}
-          <div className="relative ml-1 pl-5">
-            <div className="absolute bottom-5 left-1.5 top-5.75 w-px bg-zinc-200 dark:bg-zinc-700" />
-            {/* Event 1 */}
-            <div className="relative mb-3">
-              <div className="absolute -left-4.75 top-4.5 h-2.5 w-2.5 rounded-full bg-[#4A154B] ring-[3px] ring-white dark:ring-zinc-800" />
-              <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3.5 dark:border-zinc-800/50 dark:bg-[#0f0f18]">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Highlight activeId={active} onHover={onHover} id={18} inline>
-                    <span className="inline-flex items-center gap-1 rounded-md bg-[#4A154B]/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#4A154B] ring-1 ring-[#4A154B]/20">
-                      <SlackSvg className="h-2.5 w-2.5" />
-                      Slack
-                    </span>
-                    <Marker
-                      id={18}
-                      active={isActive(18)}
-                      onHover={onHover}
-                      className="ml-1"
-                    />
-                  </Highlight>
-                  <Highlight activeId={active} onHover={onHover} id={19} inline>
-                    <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
-                      Sarah Chen
-                    </span>
-                    <Marker
-                      id={19}
-                      active={isActive(19)}
-                      onHover={onHover}
-                      className="ml-1"
-                    />
-                  </Highlight>
-                  <span className="ml-auto text-[11px] text-zinc-400 dark:text-zinc-500">
-                    Feb 7, 9:15 AM
+          {/* Event 1 */}
+          <div className="relative mb-3">
+            <div className="absolute -left-4.75 top-4.5 h-2.5 w-2.5 rounded-full bg-[#4A154B] ring-[3px] ring-white dark:ring-zinc-800" />
+            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3.5 dark:border-zinc-800/50 dark:bg-[#0f0f18]">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <Ann
+                  id="platform"
+                  onShow={onShow}
+                  onHide={onHide}
+                  containerRef={containerRef}
+                  inline
+                >
+                  <span className="inline-flex items-center gap-1 rounded-md bg-[#4A154B]/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#4A154B] ring-1 ring-[#4A154B]/20">
+                    <SlackSvg className="h-2.5 w-2.5" />
+                    Slack
                   </span>
-                </div>
-                <p className="text-[13px] leading-[1.6] text-zinc-600 dark:text-zinc-400">
-                  Hey team, can someone review the Q3 budget deck by Friday?
-                  I&apos;ve attached the latest numbers and we need sign-off
-                  before the board meeting.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-2.5 py-1.5 text-[11px] text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800/40 dark:text-zinc-400 dark:ring-zinc-700/30">
-                    <Paperclip className="h-3 w-3 opacity-50" />
-                    Q3_Budget_v3.xlsx
+                </Ann>
+                <Ann
+                  id="sender"
+                  onShow={onShow}
+                  onHide={onHide}
+                  containerRef={containerRef}
+                  inline
+                >
+                  <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
+                    Sarah Chen
                   </span>
-                </div>
-                <div className="mt-2.5 flex items-center justify-between">
-                  <Highlight activeId={active} onHover={onHover} id={20} inline>
-                    <a className="flex items-center gap-1 text-[11px] font-medium text-indigo-500 hover:text-indigo-600">
-                      Open in Slack
-                      <ArrowUpRight className="h-3 w-3" />
-                    </a>
-                    <Marker
-                      id={20}
-                      active={isActive(20)}
-                      onHover={onHover}
-                      className="ml-1"
-                    />
-                  </Highlight>
-                </div>
+                </Ann>
+                <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                  Feb 7, 9:15 AM
+                </span>
+              </div>
+              <p className="text-[13px] leading-[1.6] text-zinc-600 dark:text-zinc-400">
+                Hey team, can someone review the Q3 budget deck by Friday?
+                I&apos;ve attached the latest numbers and we need sign-off
+                before the board meeting.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-2.5 py-1.5 text-[11px] text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800/40 dark:text-zinc-400 dark:ring-zinc-700/30">
+                  <Paperclip className="h-3 w-3 opacity-50" />
+                  Q3_Budget_v3.xlsx
+                </span>
+              </div>
+              <div className="mt-2.5">
+                <Ann
+                  id="openlink"
+                  onShow={onShow}
+                  onHide={onHide}
+                  containerRef={containerRef}
+                  inline
+                >
+                  <span className="flex items-center gap-1 text-[11px] font-medium text-indigo-500">
+                    Open in Slack
+                    <ArrowUpRight className="h-3 w-3" />
+                  </span>
+                </Ann>
               </div>
             </div>
+          </div>
 
-            {/* Event 2 */}
-            <div className="relative">
-              <div className="absolute -left-4.75 top-4.5 h-2.5 w-2.5 rounded-full bg-[#D93025] ring-[3px] ring-white dark:ring-zinc-800" />
-              <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3.5 dark:border-zinc-800/50 dark:bg-[#0f0f18]">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-[#D93025]/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#D93025] ring-1 ring-[#D93025]/20">
-                    <GmailSvg className="h-2.5 w-2.5" />
-                    Gmail
-                  </span>
-                  <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
-                    Marcus Liu
-                  </span>
-                  <span className="ml-auto text-[11px] text-zinc-400 dark:text-zinc-500">
-                    Feb 7, 11:42 AM
-                  </span>
-                </div>
-                <p className="text-[13px] leading-[1.6] text-zinc-600 dark:text-zinc-400">
-                  RE: Q3 Budget — I&apos;ve added revised numbers for APAC.
-                  Please check slide 7 before circulating.
-                </p>
+          {/* Event 2 */}
+          <div className="relative">
+            <div className="absolute -left-4.75 top-4.5 h-2.5 w-2.5 rounded-full bg-[#D93025] ring-[3px] ring-white dark:ring-zinc-800" />
+            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3.5 dark:border-zinc-800/50 dark:bg-[#0f0f18]">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-md bg-[#D93025]/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#D93025] ring-1 ring-[#D93025]/20">
+                  <GmailSvg className="h-2.5 w-2.5" />
+                  Gmail
+                </span>
+                <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
+                  Marcus Liu
+                </span>
+                <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                  Feb 7, 11:42 AM
+                </span>
               </div>
+              <p className="text-[13px] leading-[1.6] text-zinc-600 dark:text-zinc-400">
+                RE: Q3 Budget — I&apos;ve added revised numbers for APAC. Please
+                check slide 7 before circulating.
+              </p>
             </div>
           </div>
         </div>
@@ -553,65 +557,10 @@ function StencilCard({
   );
 }
 
-// =============================================================
-// LEGEND — scrollable list of annotation entries
-// =============================================================
-
-function LegendItem({
-  annotation,
-  active,
-  onHover,
-}: {
-  annotation: (typeof ANNOTATIONS)[number];
-  active: boolean;
-  onHover: (id: AnnotationId | null) => void;
-}) {
-  return (
-    <motion.div
-      onMouseEnter={() => onHover(annotation.id)}
-      onMouseLeave={() => onHover(null)}
-      animate={active ? { x: 2 } : { x: 0 }}
-      transition={{ duration: 0.12 }}
-      className={`flex cursor-default items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-150 ${
-        active
-          ? "bg-indigo-50 dark:bg-indigo-500/10"
-          : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
-      }`}
-    >
-      <span
-        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px] font-bold leading-none transition-all duration-150 ${
-          active
-            ? "bg-indigo-500 text-white shadow-[0_0_0_3px_rgba(99,102,241,0.2)]"
-            : "bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400"
-        }`}
-      >
-        {annotation.id}
-      </span>
-      <div className="min-w-0">
-        <p
-          className={`text-[12px] font-semibold leading-none transition-colors ${
-            active
-              ? "text-indigo-600 dark:text-indigo-400"
-              : "text-zinc-700 dark:text-zinc-200"
-          }`}
-        >
-          {annotation.label}
-        </p>
-        <p className="mt-0.5 text-[11px] leading-snug text-zinc-400 dark:text-zinc-500">
-          {annotation.description}
-        </p>
-      </div>
-    </motion.div>
-  );
-}
-
-// =============================================================
-// MAIN EXPORT
-// =============================================================
-
 export function TaskCardStencil() {
-  const [active, setActive] = useState<AnnotationId | null>(null);
+  const [popover, setPopover] = useState<PopoverState | null>(null);
   const [tier, setTier] = useState<number>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const TIER_TABS = [
     { value: 0, label: "Default" },
@@ -621,23 +570,20 @@ export function TaskCardStencil() {
   ];
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-            Card Anatomy
-          </p>
-          <p className="mt-1 text-[12px] text-zinc-500 dark:text-zinc-400">
-            Hover any number on the card or its label to learn what it does.
-          </p>
-        </div>
-        {/* Tier switcher */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 dark:border-zinc-700 dark:bg-zinc-800/50">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
+          Hover any element on the card to learn what it does.
+        </p>
+        <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 dark:border-zinc-700 dark:bg-zinc-800/50">
           {TIER_TABS.map((t) => (
             <button
               key={t.value}
-              onClick={() => setTier(t.value)}
+              onClick={() => {
+                setTier(t.value);
+                setPopover(null);
+              }}
               className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
                 tier === t.value
                   ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
@@ -650,48 +596,18 @@ export function TaskCardStencil() {
         </div>
       </div>
 
-      {/* Two-column layout: card left, legend right */}
-      <div className="flex flex-1 gap-5 overflow-hidden">
-        {/* Card — scrollable if tall */}
-        <div className="flex-1 overflow-y-auto scrollbar-none">
-          <StencilCard active={active} onHover={setActive} tier={tier} />
-        </div>
-
-        {/* Legend — scrollable */}
-        <div className="w-52 shrink-0 overflow-y-auto scrollbar-none">
-          <div className="space-y-0.5">
-            {ANNOTATIONS.map((ann) => (
-              <LegendItem
-                key={ann.id}
-                annotation={ann}
-                active={active === ann.id}
-                onHover={setActive}
-              />
-            ))}
-          </div>
-        </div>
+      {/* Card + floating popover */}
+      <div ref={containerRef} className="relative">
+        <StencilCard
+          tier={tier}
+          onShow={setPopover}
+          onHide={() => setPopover(null)}
+          containerRef={containerRef}
+        />
+        <AnimatePresence>
+          {popover && <Popover key={popover.key} state={popover} />}
+        </AnimatePresence>
       </div>
-
-      {/* Tooltip for active annotation */}
-      <AnimatePresence>
-        {active && (
-          <motion.div
-            key={active}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.12 }}
-            className="shrink-0 rounded-lg border border-indigo-200/60 bg-indigo-50 px-3 py-2 dark:border-indigo-500/20 dark:bg-indigo-500/10"
-          >
-            <p className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
-              {ANNOTATIONS.find((a) => a.id === active)?.label}
-            </p>
-            <p className="text-[11px] text-indigo-600/80 dark:text-indigo-400/80">
-              {ANNOTATIONS.find((a) => a.id === active)?.description}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
