@@ -298,7 +298,7 @@ export function TrashDrawer({
         className={`fixed bottom-0 left-14 right-0 top-0 z-[9990] bg-black/40 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/60 ${
           open
             ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
+            : "pointer-events-none opacity-0 hidden"
         }`}
         onClick={onClose}
       />
