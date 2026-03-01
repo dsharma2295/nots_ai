@@ -54,6 +54,17 @@ export function getClientSupabase() {
 
 export type TaskEvent = {
   type: "task_created" | "task_updated" | "task_deleted";
+  action?:
+    | "done"
+    | "trash"
+    | "restore"
+    | "bookmark"
+    | "unbookmark"
+    | "priority"
+    | "tier"
+    | "snooze"
+    | "merge"
+    | "manual_create";
   taskId: string;
   platform?: string;
   taskTitle?: string;

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export interface ActivityEvent {
   id: string;
   type: TaskEvent["type"];
+  action?: TaskEvent["action"];
   taskId: string;
   platform?: string;
   taskTitle?: string;
@@ -63,6 +64,7 @@ export function useRealtimeRefresh(fallbackIntervalSeconds = 60) {
             const event: ActivityEvent = {
               id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
               type: payload.type,
+              action: payload.action,
               taskId: payload.taskId,
               platform: payload.platform,
               taskTitle: payload.taskTitle,

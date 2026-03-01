@@ -1470,7 +1470,6 @@ export function SignalStream({
                 title="Urgent"
                 icon={Flame}
                 iconColor="text-orange-500 dark:text-orange-400"
-                dotColor="bg-orange-500"
                 tasks={urgent}
                 totalIndex={0}
                 onTaskActionExec={executeTaskAction}
@@ -1481,7 +1480,6 @@ export function SignalStream({
                 title="Normal"
                 icon={Zap}
                 iconColor="text-blue-500 dark:text-blue-400"
-                dotColor="bg-blue-500"
                 tasks={active}
                 totalIndex={urgent.length}
                 onTaskActionExec={executeTaskAction}
@@ -1492,7 +1490,6 @@ export function SignalStream({
                 title="Low Priority"
                 icon={Minus}
                 iconColor="text-zinc-400 dark:text-zinc-500"
-                dotColor="bg-zinc-300 dark:bg-zinc-600"
                 tasks={low}
                 totalIndex={urgent.length + active.length}
                 onTaskActionExec={executeTaskAction}

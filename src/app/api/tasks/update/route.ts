@@ -36,8 +36,6 @@ const CreateManualTaskSchema = z.object({
   intent: z.string().optional(),
   priority: PriorityEnum.optional(),
   deadline: z.string().optional(),
-  tier: z.number().int().min(0).max(3).optional(),
-  notes: z.string().max(2000).optional(),
 });
 
 const RequestSchema = z.union([UpdateTaskSchema, CreateManualTaskSchema]);
@@ -120,20 +118,14 @@ export async function POST(req: NextRequest) {
           status: "OPEN",
           confidence: 1.0,
           needsReview: false,
-          tier: data.tier ?? 0,
         },
       });
-
-      // If notes provided, create a note attached to the task
-      if (data.notes?.trim()) {
-        await db.note.create({
-          data: {
-            taskId: task.id,
-            content: data.notes.trim(),
-          },
-        });
-      }
-      await broadcastTaskUpdate({ type: "task_created", taskId: task.id });
+      await broadcastTaskUpdate({
+        type: "task_created",
+        action: "manual_create",
+        taskId: task.id,
+        taskTitle: data.title,
+      });
       return NextResponse.json({
         success: true,
         action: "createTask",
@@ -147,6 +139,12 @@ export async function POST(req: NextRequest) {
         data: { status: data.status },
       });
 
+      await broadcastTaskUpdate({
+        type: "task_updated",
+        action: data.status === "DONE" ? "done" : "restore",
+        taskId: data.taskId,
+        changes: { status: data.status },
+      });
       return NextResponse.json({
         success: true,
         action: "updateStatus",
@@ -163,6 +161,7 @@ export async function POST(req: NextRequest) {
       });
       await broadcastTaskUpdate({
         type: "task_updated",
+        action: "priority",
         taskId: data.taskId,
         changes: { priority: data.priority },
       });
@@ -182,6 +181,7 @@ export async function POST(req: NextRequest) {
       });
       await broadcastTaskUpdate({
         type: "task_updated",
+        action: "tier",
         taskId: data.taskId,
         changes: { tier: data.tier },
       });
@@ -208,6 +208,7 @@ export async function POST(req: NextRequest) {
 
       await broadcastTaskUpdate({
         type: "task_updated",
+        action: !task.bookmarked ? "bookmark" : "unbookmark",
         taskId: data.taskId,
         changes: { bookmarked: !task.bookmarked },
       });
@@ -241,6 +242,7 @@ export async function POST(req: NextRequest) {
       });
       await broadcastTaskUpdate({
         type: "task_updated",
+        action: "trash",
         taskId: data.taskId,
         changes: { status: "TRASHED" },
       });
@@ -258,6 +260,7 @@ export async function POST(req: NextRequest) {
       });
       await broadcastTaskUpdate({
         type: "task_updated",
+        action: "restore",
         taskId: data.taskId,
         changes: { status: "OPEN" },
       });
@@ -311,6 +314,7 @@ export async function POST(req: NextRequest) {
       });
       await broadcastTaskUpdate({
         type: "task_updated",
+        action: "snooze",
         taskId: data.taskId,
         changes: { status: "ARCHIVED" },
       });

@@ -9,7 +9,6 @@ export function KanbanColumn({
   title,
   icon: Icon,
   iconColor,
-  dotColor = "bg-zinc-400",
   tasks,
   totalIndex,
   onTaskActionExec,
@@ -19,7 +18,6 @@ export function KanbanColumn({
   title: string;
   icon: typeof Flame;
   iconColor: string;
-  dotColor?: string;
   tasks: NodalTask[];
   totalIndex: number;
   onTaskActionExec: (
@@ -53,7 +51,7 @@ export function KanbanColumn({
     <div className="flex min-w-0 flex-1 flex-col">
       {/* Column header — white card, same surface as task cards, distinguished by dot color + stronger type */}
       <div className="sticky top-0 z-10 mb-3 flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 shadow-sm dark:border-zinc-700/60 dark:bg-zinc-900">
-        <span className={`h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
+        <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColor}`} />
         <span className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
           {title}
         </span>
