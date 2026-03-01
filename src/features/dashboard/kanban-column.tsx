@@ -9,6 +9,7 @@ export function KanbanColumn({
   title,
   icon: Icon,
   iconColor,
+  accentColor = "bg-zinc-400",
   tasks,
   totalIndex,
   onTaskActionExec,
@@ -18,6 +19,7 @@ export function KanbanColumn({
   title: string;
   icon: typeof Flame;
   iconColor: string;
+  accentColor?: string;
   tasks: NodalTask[];
   totalIndex: number;
   onTaskActionExec: (
@@ -49,51 +51,49 @@ export function KanbanColumn({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800">
-        <Icon className={`h-4 w-4 ${iconColor}`} />
-        <span className="text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
-          {title}
-        </span>
-        <span className="ml-auto flex items-center justify-center overflow-hidden rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800/60">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={tasks.length}
-              initial={{ y: -12, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 12, opacity: 0 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="block text-[11px] font-semibold tabular-nums text-zinc-500 dark:text-zinc-400"
-            >
-              {tasks.length}
-            </motion.span>
-          </AnimatePresence>
-        </span>
+      {/* Column header — visually distinct from cards */}
+      <div className="sticky top-0 z-10 mb-3">
+        <div className="flex items-center gap-2.5 px-1 py-1">
+          {/* Accent bar */}
+          <div className={`h-5 w-1 rounded-full ${accentColor} opacity-80`} />
+          <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+          <span className="text-[12px] font-bold uppercase tracking-[0.1em] text-zinc-500 dark:text-zinc-400">
+            {title}
+          </span>
+          {/* Count pill */}
+          <span
+            className={`ml-auto flex h-5 min-w-5 items-center justify-center overflow-hidden rounded-full px-1.5 text-[10px] font-bold tabular-nums ${
+              tasks.length > 0
+                ? `${accentColor} bg-opacity-15 text-zinc-600 dark:text-zinc-300`
+                : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
+            }`}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={tasks.length}
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 10, opacity: 0 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="block"
+              >
+                {tasks.length}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+        </div>
+        {/* Bottom rule */}
+        <div
+          className={`mt-1 h-px w-full ${tasks.length > 0 ? accentColor + " opacity-20" : "bg-zinc-200 dark:bg-zinc-800"}`}
+        />
       </div>
       <div className="flex flex-col gap-2">
         {tasks.length === 0 ? (
-          /*
-            Breathing empty state — slow opacity pulse signals the column
-            is healthy and quiet, not broken or forgotten.
-            The text pulses at a slight offset from the border.
-          */
-          <motion.div
-            className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40"
-            animate={{ opacity: [0.35, 0.65, 0.35] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <motion.p
-              className="text-[12px] text-zinc-400 dark:text-zinc-500"
-              animate={{ opacity: [0.4, 0.75, 0.4] }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 0.6, // slight offset from border
-              }}
-            >
+          <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center dark:border-zinc-800/40">
+            <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
               No tasks
-            </motion.p>
-          </motion.div>
+            </p>
+          </div>
         ) : (
           <AnimatePresence mode="popLayout" initial={false}>
             {sorted.map((t) => (
@@ -105,8 +105,7 @@ export function KanbanColumn({
                 exit={{
                   opacity: 0,
                   scale: 0.97,
-                  y: -4,
-                  transition: { duration: 0.22, ease: "easeIn" },
+                  transition: { duration: 0.2, ease: "easeIn" },
                 }}
                 transition={{
                   layout: {
