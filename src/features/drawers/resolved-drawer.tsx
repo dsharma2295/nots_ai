@@ -493,18 +493,18 @@ export function ResolvedDrawer({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed bottom-0 left-14 right-0 top-0 z-[9990] bg-black/40 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/60 ${
+        className={`fixed inset-0 z-[9990] bg-black/40 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/60 ${
           open
             ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0 hidden"
+            : "pointer-events-none opacity-0"
         }`}
         onClick={onClose}
       />
 
       {/* Drawer */}
       <div
-        className={`fixed bottom-0 left-14 top-0 z-[9991] flex w-[480px] max-w-[90vw] flex-col border-r border-zinc-200 bg-white shadow-[20px_0_60px_rgba(0,0,0,0.08)] transition-transform duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] dark:border-zinc-800/60 dark:bg-[#0f0f14] dark:shadow-[20px_0_60px_rgba(0,0,0,0.5)] ${
-          open ? "translate-x-0" : "-translate-x-full"
+        className={`fixed bottom-0 right-0 top-0 z-[9991] flex w-[480px] max-w-[90vw] flex-col border-l border-zinc-200 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.08)] transition-transform duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] dark:border-zinc-800/60 dark:bg-[#0f0f14] dark:shadow-[-20px_0_60px_rgba(0,0,0,0.5)] ${
+          open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
