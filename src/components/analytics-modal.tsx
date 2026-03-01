@@ -10,7 +10,7 @@ import {
 import { useRealtimeData } from "@/hooks/use-realtime-data";
 import { AnimatePresence, motion } from "framer-motion";
 import { BarChart2, Filter, X, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // =============================================================
 // TYPES
@@ -373,107 +373,89 @@ function PipelineTab({ data }: { data: PipelineData }) {
         />
       </div>
 
-      {/* Refinery breakdown — stacked horizontal bar */}
+      {/* Refinery breakdown */}
       <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
         <div className="mb-4 flex items-center gap-2">
           <Filter className="h-3.5 w-3.5 text-emerald-500" />
           <span className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-200">
-            Message breakdown
+            Refinery breakdown
           </span>
           <span className="ml-auto text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-            {data.totalEventsAllTime.toLocaleString()} total
+            {data.totalEventsAllTime.toLocaleString()} messages in
           </span>
         </div>
 
-        {/* Stacked bar */}
         {data.totalEventsAllTime > 0 ? (
-          <>
-            <div className="mb-4 flex h-6 w-full overflow-hidden rounded-full">
-              {/* Noise segment */}
-              <motion.div
-                className="flex items-center justify-center bg-zinc-300 dark:bg-zinc-600"
-                style={{ width: `${data.noiseFilterRate}%` }}
-                initial={{ width: 0 }}
-                animate={{ width: `${data.noiseFilterRate}%` }}
-                transition={{ duration: 0.6, ease: "easeOut" as const }}
-                title={`Noise: ${data.noiseFiltered} messages`}
-              />
-              {/* Merged segment — messages that merged into existing tasks */}
-              {data.mergeRate > 0 && (
+          <div className="space-y-3">
+            {/* Row 1: Noise vs Signal — two honest segments */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  Noise filtered out
+                </span>
+                <span className="text-[11px] tabular-nums font-medium text-zinc-600 dark:text-zinc-300">
+                  {data.noiseFiltered.toLocaleString()}{" "}
+                  <span className="font-normal text-zinc-400">
+                    ({data.noiseFilterRate}%)
+                  </span>
+                </span>
+              </div>
+              <div className="flex h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
                 <motion.div
-                  className="flex items-center justify-center bg-amber-400"
-                  style={{
-                    width: `${Math.round(
-                      (data.mergedTasks / data.totalEventsAllTime) * 100,
-                    )}%`,
-                  }}
+                  className="h-full rounded-full bg-zinc-400 dark:bg-zinc-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${data.noiseFilterRate}%` }}
+                  transition={{ duration: 0.6, ease: "easeOut" as const }}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Signal → Tasks conversion */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  Became tasks
+                </span>
+                <span className="text-[11px] tabular-nums font-medium text-zinc-600 dark:text-zinc-300">
+                  {data.totalTasksEver.toLocaleString()}{" "}
+                  <span className="font-normal text-zinc-400">
+                    (
+                    {Math.round(
+                      (data.totalTasksEver / data.totalEventsAllTime) * 100,
+                    )}
+                    %)
+                  </span>
+                </span>
+              </div>
+              <div className="flex h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                <motion.div
+                  className="h-full rounded-full bg-indigo-500"
                   initial={{ width: 0 }}
                   animate={{
-                    width: `${Math.round(
-                      (data.mergedTasks / data.totalEventsAllTime) * 100,
-                    )}%`,
+                    width: `${Math.round((data.totalTasksEver / data.totalEventsAllTime) * 100)}%`,
                   }}
                   transition={{
                     duration: 0.6,
                     delay: 0.1,
                     ease: "easeOut" as const,
                   }}
-                  title={`Merged: ${data.mergedTasks} tasks`}
                 />
-              )}
-              {/* Tasks segment */}
-              <motion.div
-                className="flex-1 bg-indigo-500"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3, delay: 0.5 }}
-                title={`Tasks: ${data.totalTasksEver}`}
-              />
+              </div>
             </div>
 
-            {/* Legend */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-              {[
-                {
-                  color: "bg-zinc-300 dark:bg-zinc-600",
-                  label: "Noise filtered",
-                  value: data.noiseFiltered,
-                  pct: data.noiseFilterRate,
-                },
-                {
-                  color: "bg-amber-400",
-                  label: "Merged messages",
-                  value: data.mergedTasks,
-                  pct: Math.round(
-                    (data.mergedTasks / data.totalEventsAllTime) * 100,
-                  ),
-                },
-                {
-                  color: "bg-indigo-500",
-                  label: "Tasks created",
-                  value: data.totalTasksEver,
-                  pct: Math.round(
-                    (data.totalTasksEver / data.totalEventsAllTime) * 100,
-                  ),
-                },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-1.5">
-                  <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${item.color}`}
-                  />
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    {item.label}
-                  </span>
-                  <span className="text-[11px] font-medium tabular-nums text-zinc-700 dark:text-zinc-200">
-                    {item.value.toLocaleString()}
-                  </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
-                    ({item.pct}%)
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
+            {/* Merge insight — separate fact, not a bar segment */}
+            {data.mergedTasks > 0 && (
+              <div className="mt-1 flex items-center gap-2 rounded-lg bg-amber-50/60 px-3 py-2 dark:bg-amber-500/5">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-200">
+                    {data.mergedTasks}
+                  </span>{" "}
+                  tasks consolidated messages from multiple sources
+                </span>
+              </div>
+            )}
+          </div>
         ) : (
           <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
             No messages processed yet
@@ -564,7 +546,7 @@ export function AnalyticsModal({
   open: boolean;
 
   onClose: () => void;
-}) {
+}): React.ReactElement | null {
   const [tab, setTab] = useState<Tab>("signal");
 
   // Auto-refetches whenever a task event fires via Supabase realtime.
