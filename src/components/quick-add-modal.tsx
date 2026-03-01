@@ -1,8 +1,9 @@
 "use client";
 
+import { INTENT_GROUPS } from "@/features/dashboard/helpers";
 import { TIER_STYLE } from "@/features/task-card/tier-config";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
 // =============================================================
@@ -11,40 +12,32 @@ import React, { useEffect, useRef, useState } from "react";
 
 interface QuickAddValues {
   title: string;
-  priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  priority: "HIGH" | "MEDIUM" | "LOW";
   tier: number;
   notes: string;
+  intent: string;
 }
 
+// 3 options matching the kanban columns exactly
 const PRIORITY_OPTIONS: {
   value: QuickAddValues["priority"];
   label: string;
   color: string;
-  dot: string;
 }[] = [
   {
-    value: "CRITICAL",
-    label: "Urgent",
-    color: "text-red-600 dark:text-red-400",
-    dot: "bg-red-500",
-  },
-  {
     value: "HIGH",
-    label: "High",
+    label: "Urgent",
     color: "text-orange-500 dark:text-orange-400",
-    dot: "bg-orange-400",
   },
   {
     value: "MEDIUM",
     label: "Normal",
     color: "text-blue-500 dark:text-blue-400",
-    dot: "bg-blue-400",
   },
   {
     value: "LOW",
     label: "Low Priority",
     color: "text-zinc-400 dark:text-zinc-500",
-    dot: "bg-zinc-300 dark:bg-zinc-600",
   },
 ];
 
@@ -73,8 +66,22 @@ export function QuickAddModal({
     useState<QuickAddValues["priority"]>("MEDIUM");
   const [tier, setTier] = useState(0);
   const [notes, setNotes] = useState("");
+  const [intent, setIntent] = useState("action");
+  const [intentOpen, setIntentOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
+  const intentRef = useRef<HTMLDivElement>(null);
+
+  // Close intent dropdown on outside click
+  useEffect(() => {
+    if (!intentOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (intentRef.current && !intentRef.current.contains(e.target as Node))
+        setIntentOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [intentOpen]);
 
   // Focus title on open
   useEffect(() => {
@@ -83,10 +90,11 @@ export function QuickAddModal({
       setPriority("MEDIUM");
       setTier(0);
       setNotes("");
+      setIntent("action");
+      setIntentOpen(false);
       setTimeout(() => titleRef.current?.focus(), 80);
     }
   }, [open]);
-
   // Close on Escape
   useEffect(() => {
     if (!open) return;
@@ -107,7 +115,13 @@ export function QuickAddModal({
     }
     setLoading(true);
     try {
-      await onCreate({ title: trimmed, priority, tier, notes: notes.trim() });
+      await onCreate({
+        title: trimmed,
+        priority,
+        tier,
+        notes: notes.trim(),
+        intent,
+      });
       onClose();
     } finally {
       setLoading(false);
@@ -230,6 +244,57 @@ export function QuickAddModal({
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Intent */}
+              <div className="mb-4">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+                  Intent
+                </p>
+                <div ref={intentRef} className="relative">
+                  <button
+                    onClick={() => setIntentOpen((p) => !p)}
+                    className="flex h-8 w-full items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-[12px] text-zinc-700 transition-colors hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                  >
+                    <span className="capitalize">
+                      {INTENT_GROUPS.find((g) => g.id === intent)?.label ??
+                        intent}
+                    </span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 text-zinc-400 transition-transform ${intentOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {intentOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute left-0 top-full z-50 mt-1 w-full overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                      >
+                        {INTENT_GROUPS.filter((g) => g.id !== "all").map(
+                          (g) => (
+                            <button
+                              key={g.id}
+                              onClick={() => {
+                                setIntent(g.id);
+                                setIntentOpen(false);
+                              }}
+                              className={`flex w-full items-center px-3 py-2 text-left text-[12px] transition-colors ${
+                                intent === g.id
+                                  ? "bg-zinc-100 font-semibold text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                                  : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/60"
+                              }`}
+                            >
+                              {g.label}
+                            </button>
+                          ),
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 

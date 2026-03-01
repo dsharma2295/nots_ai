@@ -163,10 +163,7 @@ export default async function Home() {
           <div className="mb-5 flex items-center justify-between">
             <div className="flex items-baseline gap-1">
               <span className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-white">
-                Nots
-              </span>
-              <span className="text-[15px] text-zinc-400 dark:text-zinc-500">
-                .ai
+                My Command Center
               </span>
             </div>
             <ActivityPulse />

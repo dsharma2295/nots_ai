@@ -1584,7 +1584,7 @@ export function SignalStream({
       <QuickAddModal
         open={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
-        onCreate={async ({ title, priority, tier, notes }) => {
+        onCreate={async ({ title, priority, tier, notes, intent }) => {
           const res = await fetch("/api/tasks/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1594,6 +1594,7 @@ export function SignalStream({
               priority,
               tier,
               notes,
+              intent,
             }),
           });
           if (res.ok) {
@@ -1602,7 +1603,7 @@ export function SignalStream({
               const newTask: NodalTask = {
                 id: data.task.id,
                 title: data.task.title,
-                intent: "manual",
+                intent,
                 priority,
                 status: "OPEN",
                 confidence: 1.0,
