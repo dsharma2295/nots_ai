@@ -157,7 +157,7 @@ export function AppSidebar({
             icon={LayoutGrid}
             label="Dashboard"
             active={activeView === "dashboard"}
-            href="/"
+            href="/command"
           />
           <SidebarItem
             icon={Bookmark}

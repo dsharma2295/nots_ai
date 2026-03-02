@@ -51,8 +51,6 @@ function Robot({
     );
   }, [cursor]);
 
-  const flip = side === "right" ? "scaleX(-1)" : undefined;
-
   return (
     <motion.div
       initial={{ y: 40, opacity: 0 }}
@@ -70,15 +68,8 @@ function Robot({
           delay: delay * 2,
         }}
       >
-        <svg
-          ref={ref}
-          width="96"
-          height="110"
-          viewBox="0 0 96 110"
-          fill="none"
-          style={{ transform: flip }}
-        >
-          {/* Antenna */}
+        <svg ref={ref} width="96" height="110" viewBox="0 0 96 110" fill="none">
+          {/* Antenna — mirrored for right robot */}
           <rect x="44" y="0" width="8" height="16" rx="4" fill="#292524" />
           <circle cx="48" cy="1" r="6" fill="#F59E0B">
             {!isHiding && (
@@ -91,7 +82,7 @@ function Robot({
             )}
           </circle>
 
-          {/* Glow under antenna when active */}
+          {/* Glow */}
           {!isHiding && (
             <circle cx="48" cy="1" r="10" fill="#F59E0B" opacity="0.2">
               <animate
@@ -109,7 +100,7 @@ function Robot({
             </circle>
           )}
 
-          {/* Head */}
+          {/* Head — structural, safe to mirror */}
           <rect
             x="6"
             y="14"
@@ -120,8 +111,6 @@ function Robot({
             stroke="#3C3836"
             strokeWidth="1.5"
           />
-
-          {/* Inner head highlight */}
           <rect
             x="6"
             y="14"
@@ -132,7 +121,7 @@ function Robot({
             opacity="0.03"
           />
 
-          {/* Left eye socket */}
+          {/* Eye sockets */}
           <ellipse
             cx="30"
             cy="43"
@@ -142,7 +131,6 @@ function Robot({
             stroke="#292524"
             strokeWidth="1"
           />
-          {/* Right eye socket */}
           <ellipse
             cx="66"
             cy="43"
@@ -153,25 +141,23 @@ function Robot({
             strokeWidth="1"
           />
 
-          {/* Left iris */}
+          {/* Eyes — always track cursor correctly, no flip */}
           <motion.circle
             cx={30 + eye.x}
             cy={43 + eye.y}
             r="8"
             fill="#F59E0B"
-            animate={{ opacity: isHiding ? 0 : 1, scale: isHiding ? 0 : 1 }}
+            animate={{ opacity: isHiding ? 0 : 1 }}
             transition={{ duration: 0.18 }}
           />
-          {/* Right iris */}
           <motion.circle
             cx={66 + eye.x}
             cy={43 + eye.y}
             r="8"
             fill="#F59E0B"
-            animate={{ opacity: isHiding ? 0 : 1, scale: isHiding ? 0 : 1 }}
+            animate={{ opacity: isHiding ? 0 : 1 }}
             transition={{ duration: 0.18 }}
           />
-          {/* Shine */}
           <motion.circle
             cx={33 + eye.x}
             cy={39.5 + eye.y}
@@ -231,7 +217,7 @@ function Robot({
             fill="none"
           />
 
-          {/* Cheek blush dots when NOT hiding */}
+          {/* Blush */}
           <AnimatePresence>
             {!isHiding && (
               <>
@@ -261,7 +247,6 @@ function Robot({
 
           {/* Neck */}
           <rect x="38" y="76" width="20" height="10" fill="#1C1917" />
-
           {/* Body */}
           <rect
             x="10"
@@ -273,8 +258,6 @@ function Robot({
             stroke="#3C3836"
             strokeWidth="1.5"
           />
-
-          {/* Body panel lines */}
           <line
             x1="10"
             y1="97"
@@ -283,8 +266,7 @@ function Robot({
             stroke="#292524"
             strokeWidth="1"
           />
-
-          {/* Chest indicator */}
+          {/* Chest */}
           <circle
             cx="48"
             cy="97"
@@ -337,7 +319,6 @@ function Robot({
               delay: isHiding ? 0.05 : 0,
             }}
           />
-
           <motion.rect
             x="84"
             y="84"

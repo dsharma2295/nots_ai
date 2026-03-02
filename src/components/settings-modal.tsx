@@ -22,7 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 // =============================================================
 // TYPES
@@ -517,8 +517,19 @@ function IntegrationsSection() {
 
             {/* Action */}
             {!comingSoon && (
-              <button className="shrink-0 rounded-lg border border-zinc-200 px-3 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:border-zinc-300 hover:text-zinc-700 active:scale-95 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-200">
-                Test
+              <button
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Disconnect ${label}? New messages from this platform will stop being processed.`,
+                    )
+                  ) {
+                    window.location.href = `/api/auth/${platform.toLowerCase()}/disconnect`;
+                  }
+                }}
+                className="shrink-0 rounded-lg border border-red-200 px-3 py-1.5 text-[11px] font-medium text-red-500 transition-all hover:bg-red-50 hover:border-red-300 active:scale-95 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10"
+              >
+                Disconnect
               </button>
             )}
           </div>
@@ -775,6 +786,32 @@ export function SettingsModal({
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+
+              {/* Sign out */}
+              <div className="border-t border-zinc-100 px-3 pb-4 pt-3 dark:border-zinc-800">
+                <button
+                  onClick={async () => {
+                    await fetch("/api/auth/logout", { method: "POST" });
+                    window.location.href = "/";
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[12px] font-medium text-red-500 transition-all hover:bg-red-50 dark:hover:bg-red-500/10"
+                >
+                  <svg
+                    className="h-3.5 w-3.5 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Sign out
+                </button>
               </div>
             </div>
 
