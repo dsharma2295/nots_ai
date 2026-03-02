@@ -16,7 +16,7 @@ const PUBLIC_PATHS = [
   "/login",
   "/api/auth/login",
   "/api/webhooks", // webhooks use HMAC, not session
-  "/api/inngest", // Inngest uses its own signing key
+  "/api/inngest",  // Inngest uses its own signing key
 ];
 
 function isPublic(pathname: string): boolean {
