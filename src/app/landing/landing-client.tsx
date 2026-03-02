@@ -463,23 +463,27 @@ function Nav() {
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/30">
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-xl ring-1 ${scrolled ? "bg-amber-500/10 ring-amber-500/30" : "bg-amber-500/15 ring-amber-500/40"}`}
+          >
             <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px]">
-              <path d="M3 5h18L17 10H7L3 5z" fill="#D97706" opacity={0.5} />
+              <path d="M3 5h18L17 10H7L3 5z" fill="#F59E0B" opacity={0.6} />
               <rect
                 x="8"
                 y="11"
                 width="8"
                 height="4"
                 rx="1"
-                fill="#D97706"
-                opacity={0.9}
+                fill="#F59E0B"
+                opacity={0.95}
               />
-              <circle cx="12" cy="19" r="2.5" fill="#D97706" />
+              <circle cx="12" cy="19" r="2.5" fill="#F59E0B" />
             </svg>
           </div>
-          <span className="text-[16px] font-bold text-zinc-900">
-            Nots<span className="text-amber-600">.ai</span>
+          <span
+            className={`text-[16px] font-bold ${scrolled ? "text-zinc-900" : "text-white"}`}
+          >
+            Nots<span className="text-amber-500">.ai</span>
           </span>
         </div>
 
@@ -492,7 +496,7 @@ function Nav() {
             <a
               key={href}
               href={href}
-              className="text-[13px] text-zinc-500 hover:text-zinc-900 transition-colors font-medium"
+              className={`text-[13px] font-medium transition-colors ${scrolled ? "text-zinc-500 hover:text-zinc-900" : "text-white/70 hover:text-white"}`}
             >
               {label}
             </a>
@@ -501,7 +505,11 @@ function Nav() {
 
         <Link
           href="/login"
-          className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-5 py-2.5 text-[13px] font-bold text-white shadow-lg hover:bg-zinc-700 transition-all active:scale-95"
+          className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-[13px] font-bold shadow-lg transition-all active:scale-95 ${
+            scrolled
+              ? "bg-zinc-900 text-white hover:bg-zinc-700"
+              : "bg-white text-zinc-900 hover:bg-zinc-100"
+          }`}
         >
           Sign in →
         </Link>
@@ -715,14 +723,6 @@ export default function LandingClient() {
           </svg>
         </motion.div>
       </section>
-
-      {/* ── PLATFORM TICKER — light section ─────────────────────── */}
-      <div className="bg-zinc-50 border-b border-zinc-200 py-8">
-        <p className="mb-6 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-          Works with your existing stack
-        </p>
-        <PlatformTicker />
-      </div>
 
       {/* ── THE PROBLEM — light ──────────────────────────────────── */}
       <section className="bg-white py-28 px-6">

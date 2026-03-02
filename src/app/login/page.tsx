@@ -6,184 +6,157 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 // =============================================================
-// EYE TRACKING MATH
+// EYE TRACKING
 // =============================================================
 
 function getEyeOffset(
-  cursorX: number,
-  cursorY: number,
-  eyeX: number,
-  eyeY: number,
-  maxOffset = 3.5,
+  cx: number,
+  cy: number,
+  mx: number,
+  my: number,
+  max = 3.5,
 ) {
-  const dx = cursorX - eyeX;
-  const dy = cursorY - eyeY;
+  const dx = mx - cx;
+  const dy = my - cy;
   const dist = Math.hypot(dx, dy);
   if (dist === 0) return { x: 0, y: 0 };
-  const scale = Math.min(1, dist / 120);
-  return {
-    x: (dx / dist) * scale * maxOffset,
-    y: (dy / dist) * scale * maxOffset,
-  };
+  const scale = Math.min(1, dist / 140);
+  return { x: (dx / dist) * scale * max, y: (dy / dist) * scale * max };
 }
 
 // =============================================================
-// SINGLE CHARACTER — one of three observers
+// ROBOT — sits to the left or right of the form
 // =============================================================
 
-function RobotCharacter({
+function Robot({
   cursor,
   isHiding,
-  containerRef,
-  offsetX = 0,
-  scaleX = 1,
+  side,
   delay = 0,
 }: {
   cursor: { x: number; y: number };
   isHiding: boolean;
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  offsetX?: number;
-  scaleX?: number;
+  side: "left" | "right";
   delay?: number;
 }) {
-  const charRef = useRef<HTMLDivElement>(null);
-  const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
+  const ref = useRef<HTMLDivElement>(null);
+  const [eye, setEye] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (!charRef.current || !containerRef.current) return;
-    const charRect = charRef.current.getBoundingClientRect();
-    // Eye centres in screen coordinates
-    const eyeCX = charRect.left + charRect.width / 2;
-    const eyeCY = charRect.top + charRect.height * 0.38;
-    setEyeOffset(getEyeOffset(cursor.x, cursor.y, eyeCX, eyeCY));
-  }, [cursor, containerRef]);
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height * 0.38;
+    setEye(getEyeOffset(cx, cy, cursor.x, cursor.y));
+  }, [cursor]);
+
+  // mirror right robot
+  const flip = side === "right" ? -1 : 1;
 
   return (
     <motion.div
-      ref={charRef}
-      initial={{ y: 40, opacity: 0 }}
+      ref={ref}
+      initial={{ y: 30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{
-        delay,
-        duration: 0.6,
-        type: "spring",
-        stiffness: 160,
-        damping: 20,
-      }}
-      style={{ scaleX }}
-      className="relative select-none"
+      transition={{ delay, type: "spring", stiffness: 140, damping: 18 }}
+      className="flex flex-col items-center"
     >
-      <svg width="72" height="92" viewBox="0 0 72 92" fill="none">
+      <svg
+        width="80"
+        height="100"
+        viewBox="0 0 80 100"
+        fill="none"
+        style={{ transform: `scaleX(${flip})` }}
+      >
         {/* Antenna */}
-        <rect x="34" y="0" width="4" height="12" rx="2" fill="#3f3f5a" />
-        <circle
-          cx="36"
-          cy="0"
-          r="4"
-          fill="#6366f1"
-          opacity={isHiding ? 0.3 : 0.9}
-        >
+        <rect x="37" y="0" width="6" height="14" rx="3" fill="#292524" />
+        <circle cx="40" cy="0" r="5" fill="#F59E0B">
           {!isHiding && (
             <animate
               attributeName="opacity"
-              values="0.9;0.4;0.9"
-              dur="2s"
+              values="1;0.4;1"
+              dur="2.2s"
               repeatCount="indefinite"
             />
           )}
         </circle>
 
-        {/* Head — rounded rect */}
+        {/* Head */}
         <rect
-          x="6"
-          y="10"
-          width="60"
-          height="52"
+          x="8"
+          y="12"
+          width="64"
+          height="54"
           rx="14"
-          fill="#16161f"
-          stroke="#2e2e42"
+          fill="#1C1917"
+          stroke="#292524"
           strokeWidth="1.5"
-        />
-
-        {/* Screen scanline texture */}
-        <rect
-          x="6"
-          y="10"
-          width="60"
-          height="52"
-          rx="14"
-          fill="url(#scan)"
-          opacity="0.06"
         />
 
         {/* Left eye socket */}
         <ellipse
-          cx="24"
-          cy="36"
-          rx="11"
-          ry="12"
-          fill="#0d0d18"
-          stroke="#2e2e42"
+          cx="27"
+          cy="38"
+          rx="12"
+          ry="13"
+          fill="#0C0A09"
+          stroke="#292524"
           strokeWidth="1"
         />
         {/* Right eye socket */}
         <ellipse
-          cx="48"
-          cy="36"
-          rx="11"
-          ry="12"
-          fill="#0d0d18"
-          stroke="#2e2e42"
+          cx="53"
+          cy="38"
+          rx="12"
+          ry="13"
+          fill="#0C0A09"
+          stroke="#292524"
           strokeWidth="1"
         />
 
         {/* Left iris */}
         <motion.circle
-          cx={24 + eyeOffset.x}
-          cy={36 + eyeOffset.y}
-          r="6"
-          fill="#6366f1"
-          opacity={isHiding ? 0 : 0.9}
-          animate={{ opacity: isHiding ? 0 : 0.9 }}
+          cx={27 + eye.x}
+          cy={38 + eye.y}
+          r="6.5"
+          fill="#F59E0B"
+          animate={{ opacity: isHiding ? 0 : 1 }}
           transition={{ duration: 0.15 }}
         />
         {/* Right iris */}
         <motion.circle
-          cx={48 + eyeOffset.x}
-          cy={36 + eyeOffset.y}
-          r="6"
-          fill="#6366f1"
-          opacity={isHiding ? 0 : 0.9}
-          animate={{ opacity: isHiding ? 0 : 0.9 }}
+          cx={53 + eye.x}
+          cy={38 + eye.y}
+          r="6.5"
+          fill="#F59E0B"
+          animate={{ opacity: isHiding ? 0 : 1 }}
+          transition={{ duration: 0.15 }}
+        />
+        {/* Pupils */}
+        <motion.circle
+          cx={29 + eye.x}
+          cy={35.5 + eye.y}
+          r="2.5"
+          fill="white"
+          animate={{ opacity: isHiding ? 0 : 0.7 }}
+          transition={{ duration: 0.15 }}
+        />
+        <motion.circle
+          cx={55 + eye.x}
+          cy={35.5 + eye.y}
+          r="2.5"
+          fill="white"
+          animate={{ opacity: isHiding ? 0 : 0.7 }}
           transition={{ duration: 0.15 }}
         />
 
-        {/* Left pupil shine */}
-        <motion.circle
-          cx={26 + eyeOffset.x}
-          cy={33 + eyeOffset.y}
-          r="2"
-          fill="white"
-          opacity={isHiding ? 0 : 0.6}
-          animate={{ opacity: isHiding ? 0 : 0.6 }}
-        />
-        {/* Right pupil shine */}
-        <motion.circle
-          cx={50 + eyeOffset.x}
-          cy={33 + eyeOffset.y}
-          r="2"
-          fill="white"
-          opacity={isHiding ? 0 : 0.6}
-          animate={{ opacity: isHiding ? 0 : 0.6 }}
-        />
-
-        {/* Closed eye lines — shown when hiding */}
+        {/* Closed lines */}
         <AnimatePresence>
           {isHiding && (
             <>
               <motion.path
-                d="M 15 36 Q 24 29 33 36"
-                stroke="#6366f1"
+                d="M17 38 Q27 30 37 38"
+                stroke="#F59E0B"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 fill="none"
@@ -193,8 +166,8 @@ function RobotCharacter({
                 transition={{ duration: 0.2 }}
               />
               <motion.path
-                d="M 39 36 Q 48 29 57 36"
-                stroke="#6366f1"
+                d="M43 38 Q53 30 63 38"
+                stroke="#F59E0B"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 fill="none"
@@ -209,134 +182,116 @@ function RobotCharacter({
 
         {/* Mouth */}
         <motion.path
-          d={isHiding ? "M 24 52 Q 36 48 48 52" : "M 24 52 Q 36 56 48 52"}
-          stroke="#4b4b6a"
+          animate={{
+            d: isHiding ? "M27 56 Q40 52 53 56" : "M27 56 Q40 60 53 56",
+          }}
+          transition={{ duration: 0.3 }}
+          stroke="#44403C"
           strokeWidth="2"
           strokeLinecap="round"
           fill="none"
-          animate={{
-            d: isHiding ? "M 24 52 Q 36 48 48 52" : "M 24 52 Q 36 56 48 52",
-          }}
-          transition={{ duration: 0.3 }}
         />
 
         {/* Neck */}
-        <rect x="28" y="62" width="16" height="8" fill="#16161f" />
+        <rect x="32" y="66" width="16" height="9" fill="#1C1917" />
 
         {/* Body */}
         <rect
           x="12"
-          y="68"
-          width="48"
-          height="24"
-          rx="8"
-          fill="#16161f"
-          stroke="#2e2e42"
+          y="74"
+          width="56"
+          height="26"
+          rx="9"
+          fill="#1C1917"
+          stroke="#292524"
           strokeWidth="1.5"
         />
 
         {/* Chest light */}
         <circle
-          cx="36"
-          cy="80"
-          r="4"
-          fill={isHiding ? "#2e2e42" : "#6366f1"}
-          opacity="0.6"
+          cx="40"
+          cy="86"
+          r="5"
+          fill={isHiding ? "#292524" : "#F59E0B"}
+          opacity="0.7"
         >
           {!isHiding && (
             <animate
               attributeName="opacity"
-              values="0.6;0.2;0.6"
-              dur="1.8s"
+              values="0.7;0.25;0.7"
+              dur="1.9s"
               repeatCount="indefinite"
             />
           )}
         </circle>
 
-        {/* Left arm — animates up to cover face */}
+        {/* Left arm */}
         <motion.g
-          animate={{
-            y: isHiding ? -44 : 0,
-            rotate: isHiding ? -35 : 0,
-          }}
+          animate={{ y: isHiding ? -46 : 0, rotate: isHiding ? -32 : 0 }}
           transition={{
             type: "spring",
             stiffness: 180,
             damping: 22,
-            delay: isHiding ? delay * 0.4 : 0,
+            delay: isHiding ? delay * 0.3 : 0,
           }}
-          style={{ originX: "12px", originY: "72px" }}
+          style={{ originX: "12px", originY: "76px" }}
         >
           <rect
             x="0"
-            y="70"
+            y="76"
             width="12"
-            height="24"
+            height="22"
             rx="6"
-            fill="#1e1e2e"
-            stroke="#2e2e42"
-            strokeWidth="1.5"
+            fill="#292524"
+            stroke="#3C3836"
+            strokeWidth="1"
           />
-          {/* Hand */}
           <circle
             cx="6"
-            cy="95"
-            r="6"
-            fill="#1e1e2e"
-            stroke="#2e2e42"
-            strokeWidth="1.5"
+            cy="99"
+            r="6.5"
+            fill="#292524"
+            stroke="#3C3836"
+            strokeWidth="1"
           />
         </motion.g>
 
         {/* Right arm */}
         <motion.g
-          animate={{
-            y: isHiding ? -44 : 0,
-            rotate: isHiding ? 35 : 0,
-          }}
+          animate={{ y: isHiding ? -46 : 0, rotate: isHiding ? 32 : 0 }}
           transition={{
             type: "spring",
             stiffness: 180,
             damping: 22,
-            delay: isHiding ? delay * 0.4 : 0,
+            delay: isHiding ? delay * 0.3 : 0,
           }}
-          style={{ originX: "60px", originY: "72px" }}
+          style={{ originX: "68px", originY: "76px" }}
         >
           <rect
-            x="60"
-            y="70"
+            x="68"
+            y="76"
             width="12"
-            height="24"
+            height="22"
             rx="6"
-            fill="#1e1e2e"
-            stroke="#2e2e42"
-            strokeWidth="1.5"
+            fill="#292524"
+            stroke="#3C3836"
+            strokeWidth="1"
           />
-          {/* Hand */}
           <circle
-            cx="66"
-            cy="95"
-            r="6"
-            fill="#1e1e2e"
-            stroke="#2e2e42"
-            strokeWidth="1.5"
+            cx="74"
+            cy="99"
+            r="6.5"
+            fill="#292524"
+            stroke="#3C3836"
+            strokeWidth="1"
           />
         </motion.g>
-
-        {/* Scanline pattern def */}
-        <defs>
-          <pattern
-            id="scan"
-            x="0"
-            y="0"
-            width="72"
-            height="4"
-            patternUnits="userSpaceOnUse"
-          >
-            <rect x="0" y="0" width="72" height="2" fill="white" />
-          </pattern>
-        </defs>
       </svg>
+
+      {/* Small label */}
+      <p className="mt-2 text-[10px] font-medium text-zinc-600">
+        {side === "left" ? "watching…" : "…watching"}
+      </p>
     </motion.div>
   );
 }
@@ -347,7 +302,6 @@ function RobotCharacter({
 
 export default function LoginPage() {
   const router = useRouter();
-  const containerRef = useRef<HTMLDivElement>(null);
   const [cursor, setCursor] = useState({ x: 0, y: 0 });
   const [isHiding, setIsHiding] = useState(false);
   const [email, setEmail] = useState("");
@@ -355,12 +309,10 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Track cursor globally
   useEffect(() => {
-    const handler = (e: MouseEvent) =>
-      setCursor({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", handler);
-    return () => window.removeEventListener("mousemove", handler);
+    const fn = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", fn);
+    return () => window.removeEventListener("mousemove", fn);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -374,7 +326,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       if (res.ok) {
-        router.push("/");
+        router.push("/command");
       } else {
         setError("Incorrect credentials. Try again.");
       }
@@ -387,170 +339,154 @@ export default function LoginPage() {
 
   return (
     <div
-      ref={containerRef}
-      className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-4"
+      className="flex min-h-screen items-center justify-center bg-[#0E0F13] px-4"
       style={{
         backgroundImage:
-          "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.12), transparent)",
+          "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(245,158,11,0.08), transparent)",
       }}
     >
-      {/* Characters */}
-      <div className="mb-2 flex items-end gap-8">
-        <RobotCharacter
-          cursor={cursor}
-          isHiding={isHiding}
-          containerRef={containerRef}
-          scaleX={-1}
-          delay={0.1}
-        />
-        <RobotCharacter
-          cursor={cursor}
-          isHiding={isHiding}
-          containerRef={containerRef}
-          delay={0}
-        />
-        <RobotCharacter
-          cursor={cursor}
-          isHiding={isHiding}
-          containerRef={containerRef}
-          scaleX={-1}
-          delay={0.15}
-        />
-      </div>
+      {/* Three-column layout: robot | form | robot */}
+      <div className="flex w-full max-w-2xl items-center justify-center gap-6 md:gap-10">
+        {/* Left robot */}
+        <div className="hidden md:flex flex-col items-center justify-center pt-12">
+          <Robot cursor={cursor} isHiding={isHiding} side="left" delay={0.15} />
+        </div>
 
-      {/* Form card */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
-        className="w-full max-w-sm overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/80 shadow-2xl shadow-black/50 backdrop-blur-xl"
-      >
-        {/* Top accent */}
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+        {/* Form card */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{
+            delay: 0.1,
+            type: "spring",
+            stiffness: 120,
+            damping: 18,
+          }}
+          className="w-full max-w-sm overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/80 shadow-2xl shadow-black/60 backdrop-blur-xl"
+        >
+          {/* Amber accent line */}
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
 
-        <div className="px-8 py-8">
-          {/* Logo + title */}
-          <div className="mb-8 text-center">
-            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 ring-1 ring-indigo-500/20">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="h-5 w-5"
-                aria-hidden
-              >
-                <path d="M3 5h18L17 10H7L3 5z" fill="#6366f1" opacity={0.3} />
-                <rect
-                  x="8"
-                  y="11"
-                  width="8"
-                  height="4"
-                  rx="1"
-                  fill="#6366f1"
-                  opacity={0.7}
-                />
-                <circle cx="12" cy="19" r="2" fill="#6366f1" />
-              </svg>
+          <div className="px-8 py-8">
+            {/* Logo */}
+            <div className="mb-8 text-center">
+              <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/25">
+                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+                  <path d="M3 5h18L17 10H7L3 5z" fill="#F59E0B" opacity={0.5} />
+                  <rect
+                    x="8"
+                    y="11"
+                    width="8"
+                    height="4"
+                    rx="1"
+                    fill="#F59E0B"
+                    opacity={0.9}
+                  />
+                  <circle cx="12" cy="19" r="2.5" fill="#F59E0B" />
+                </svg>
+              </div>
+              <h1 className="text-[18px] font-bold tracking-tight text-zinc-100">
+                Nots<span className="text-amber-500">.ai</span>
+              </h1>
+              <p className="mt-1 text-[12px] text-zinc-500">
+                Sign in to your Command Center
+              </p>
             </div>
-            <h1 className="text-[18px] font-semibold tracking-tight text-zinc-100">
-              Command Center
-            </h1>
-            <p className="mt-1 text-[12px] text-zinc-500">
-              Sign in to access your signals
-            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onFocus={() => setIsHiding(false)}
+                  placeholder="you@company.com"
+                  required
+                  className="w-full rounded-xl border border-zinc-700/60 bg-zinc-800/60 px-4 py-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/15 transition-all duration-200"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setIsHiding(true)}
+                  onBlur={() => setIsHiding(false)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full rounded-xl border border-zinc-700/60 bg-zinc-800/60 px-4 py-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/15 transition-all duration-200"
+                />
+              </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="text-[12px] text-red-400"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-xl bg-amber-500 py-3 text-[14px] font-bold text-white shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-400 hover:shadow-amber-400/30 active:scale-[0.98] disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        duration: 0.9,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                      className="inline-block h-4 w-4 rounded-full border-2 border-white/30 border-t-white"
+                    />
+                    Signing in…
+                  </span>
+                ) : (
+                  "Sign in →"
+                )}
+              </button>
+            </form>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div>
-              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onFocus={() => setIsHiding(false)}
-                placeholder="you@company.com"
-                required
-                className="w-full rounded-xl border border-zinc-700/60 bg-zinc-800/60 px-4 py-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-500/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onFocus={() => setIsHiding(true)}
-                onBlur={() => setIsHiding(false)}
-                placeholder="••••••••"
-                required
-                className="w-full rounded-xl border border-zinc-700/60 bg-zinc-800/60 px-4 py-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-500/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
-              />
-            </div>
-
-            {/* Error */}
-            <AnimatePresence>
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="text-[12px] text-red-400"
-                >
-                  {error}
-                </motion.p>
-              )}
-            </AnimatePresence>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-2 w-full rounded-xl bg-indigo-600 py-3 text-[14px] font-semibold text-white transition-all hover:bg-indigo-500 active:scale-[0.98] disabled:opacity-50"
+          <div className="border-t border-zinc-800/60 px-8 py-4 text-center">
+            <Link
+              href="/"
+              className="text-[11px] text-zinc-600 transition-colors hover:text-zinc-400"
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                    className="inline-block h-4 w-4 rounded-full border-2 border-white/30 border-t-white"
-                  />
-                  Signing in…
-                </span>
-              ) : (
-                "Sign in"
-              )}
-            </button>
-          </form>
-        </div>
+              ← Back to home
+            </Link>
+          </div>
+        </motion.div>
 
-        {/* Footer */}
-        <div className="border-t border-zinc-800/60 px-8 py-4 text-center">
-          <Link
-            href="/landing"
-            className="text-[11px] text-zinc-600 transition-colors hover:text-zinc-400"
-          >
-            ← Back to home
-          </Link>
+        {/* Right robot */}
+        <div className="hidden md:flex flex-col items-center justify-center pt-12">
+          <Robot cursor={cursor} isHiding={isHiding} side="right" delay={0.2} />
         </div>
-      </motion.div>
+      </div>
 
-      {/* Hint text */}
+      {/* Hint */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="mt-5 text-[11px] text-zinc-700"
+        transition={{ delay: 1 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[11px] text-zinc-700"
       >
         They&apos;re watching. They just won&apos;t watch your password.
       </motion.p>
